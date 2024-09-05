@@ -4,9 +4,8 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="04bd5c4e-614c-4a2f-8fba-5d9fd1827ad7" name="Changes" comment="Correcting GPT errors in 2nd and 3rd block">
+    <list default="true" id="04bd5c4e-614c-4a2f-8fba-5d9fd1827ad7" name="Changes" comment="removed forward and tests (will add later on) and removed final linear layers (to be included only in the MCNN)">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/model/single_scale_cnn.py" beforeDir="false" afterPath="$PROJECT_DIR$/model/single_scale_cnn.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -77,7 +76,14 @@
       <option name="project" value="LOCAL" />
       <updated>1725551872708</updated>
     </task>
-    <option name="localTasksCounter" value="5" />
+    <task id="LOCAL-00005" summary="removed forward and tests (will add later on) and removed final linear layers (to be included only in the MCNN)">
+      <created>1725553121452</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1725553121452</updated>
+    </task>
+    <option name="localTasksCounter" value="6" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -96,6 +102,7 @@
     <MESSAGE value="first version of the SCNN code implemented" />
     <MESSAGE value="Correcting GPT errors in first block. now its 3x128x128 --&gt; 32x64x64" />
     <MESSAGE value="Correcting GPT errors in 2nd and 3rd block" />
-    <option name="LAST_COMMIT_MESSAGE" value="Correcting GPT errors in 2nd and 3rd block" />
+    <MESSAGE value="removed forward and tests (will add later on) and removed final linear layers (to be included only in the MCNN)" />
+    <option name="LAST_COMMIT_MESSAGE" value="removed forward and tests (will add later on) and removed final linear layers (to be included only in the MCNN)" />
   </component>
 </project>

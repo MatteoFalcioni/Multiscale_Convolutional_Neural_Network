@@ -5,11 +5,41 @@ import torch.nn.functional as F
 
 class SingleScaleCNN(nn.Module):
     """
-    A PyTorch implementation of a Single-Scale Convolutional Neural Network (SCNN) for
-    image-based tasks. The SCNN is designed to process images at a single scale, learning
-    hierarchical features through a series of convolutional, batch normalization, and
-    max-pooling layers.
+    A PyTorch implementation of a Single-Scale Convolutional Neural Network (SCNN) designed
+    for processing input images at a single scale. This model extracts hierarchical features
+    through a series of convolutional layers with batch normalization and ReLU activation,
+    followed by max-pooling layers to downsample the spatial dimensions.
 
+    Architecture Overview:
+    - Input: 3-channel image (e.g., RGB) of size 128x128.
+    - Five sequential convolutional blocks:
+      - Each block consists of:
+        - A 3x3 Convolutional layer with padding of 1.
+        - A Batch Normalization layer.
+        - A ReLU activation function.
+      - Max pooling layers are applied after the first, second, third, and fifth convolutional layers
+        to downsample the spatial dimensions by half.
+    - Output: A feature map of size 8x8x128.
+
+    Attributes:
+        conv1 (nn.Conv2d): First convolutional layer with 32 output channels and a 3x3 kernel.
+        bn1 (nn.BatchNorm2d): Batch normalization for the first convolutional layer.
+        pool1 (nn.MaxPool2d): Max pooling layer with a 2x2 kernel after the first convolutional block.
+
+        conv2 (nn.Conv2d): Second convolutional layer with 64 output channels and a 3x3 kernel.
+        bn2 (nn.BatchNorm2d): Batch normalization for the second convolutional layer.
+        pool2 (nn.MaxPool2d): Max pooling layer with a 2x2 kernel after the second convolutional block.
+
+        conv3 (nn.Conv2d): Third convolutional layer with 128 output channels and a 3x3 kernel.
+        bn3 (nn.BatchNorm2d): Batch normalization for the third convolutional layer.
+        pool3 (nn.MaxPool2d): Max pooling layer with a 2x2 kernel after the third convolutional block.
+
+        conv4 (nn.Conv2d): Fourth convolutional layer with 128 output channels and a 3x3 kernel.
+        bn4 (nn.BatchNorm2d): Batch normalization for the fourth convolutional layer.
+
+        conv5 (nn.Conv2d): Fifth convolutional layer with 128 output channels and a 3x3 kernel.
+        bn5 (nn.BatchNorm2d): Batch normalization for the fifth convolutional layer.
+        pool5 (nn.MaxPool2d): Max pooling layer with a 2x2 kernel after the fifth convolutional block.
     """
 
     def __init__(self):
@@ -42,3 +72,29 @@ class SingleScaleCNN(nn.Module):
         self.bn5 = nn.BatchNorm2d(128)
         self.pool5 = nn.MaxPool2d(kernel_size=2, stride=2)  # Output: 128x8x8
 
+    def forward(self, x):
+        """
+        Defines the forward pass of the SingleScaleCNN model.
+
+        Args:
+            x (torch.Tensor): Input tensor of shape (batch_size, 3, 128, 128) representing a batch of images.
+
+        Returns:
+            torch.Tensor: Output tensor of shape (batch_size, 128, 8, 8) representing the feature map.
+        """
+        # First Convolutional Block
+        x = self.pool1(F.relu(self.bn1(self.conv1(x))))  # Output: 32x64x64
+
+        # Second Convolutional Block
+        x = self.pool2(F.relu(self.bn2(self.conv2(x))))  # Output: 64x32x32
+
+        # Third Convolutional Block
+        x = self.pool3(F.relu(self.bn3(self.conv3(x))))  # Output: 128x16x16
+
+        # Fourth Convolutional Block
+        x = F.relu(self.bn4(self.conv4(x)))  # Output: 128x16x16 (No Max Pooling)
+
+        # Fifth Convolutional Block
+        x = self.pool5(F.relu(self.bn5(self.conv5(x))))  # Output: 128x8x8
+
+        return x
