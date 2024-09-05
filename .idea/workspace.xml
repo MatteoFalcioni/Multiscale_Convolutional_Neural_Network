@@ -4,7 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="04bd5c4e-614c-4a2f-8fba-5d9fd1827ad7" name="Changes" comment="Correcting GPT errors in first block. now its 3x128x128 --&gt; 32x64x64">
+    <list default="true" id="04bd5c4e-614c-4a2f-8fba-5d9fd1827ad7" name="Changes" comment="Correcting GPT errors in 2nd and 3rd block">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/model/single_scale_cnn.py" beforeDir="false" afterPath="$PROJECT_DIR$/model/single_scale_cnn.py" afterDir="false" />
     </list>
@@ -70,7 +70,14 @@
       <option name="project" value="LOCAL" />
       <updated>1725551417026</updated>
     </task>
-    <option name="localTasksCounter" value="4" />
+    <task id="LOCAL-00004" summary="Correcting GPT errors in 2nd and 3rd block">
+      <created>1725551872708</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1725551872708</updated>
+    </task>
+    <option name="localTasksCounter" value="5" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -88,6 +95,7 @@
     <MESSAGE value="creating file separation" />
     <MESSAGE value="first version of the SCNN code implemented" />
     <MESSAGE value="Correcting GPT errors in first block. now its 3x128x128 --&gt; 32x64x64" />
-    <option name="LAST_COMMIT_MESSAGE" value="Correcting GPT errors in first block. now its 3x128x128 --&gt; 32x64x64" />
+    <MESSAGE value="Correcting GPT errors in 2nd and 3rd block" />
+    <option name="LAST_COMMIT_MESSAGE" value="Correcting GPT errors in 2nd and 3rd block" />
   </component>
 </project>
