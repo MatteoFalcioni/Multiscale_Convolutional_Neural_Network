@@ -4,10 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="04bd5c4e-614c-4a2f-8fba-5d9fd1827ad7" name="Changes" comment="creating file separation">
-      <change afterPath="$PROJECT_DIR$/model/__init.py__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/model/mcnn.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/model/single_scale_cnn.py" afterDir="false" />
+    <list default="true" id="04bd5c4e-614c-4a2f-8fba-5d9fd1827ad7" name="Changes" comment="first version of the SCNN code implemented">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -58,7 +55,14 @@
       <option name="project" value="LOCAL" />
       <updated>1725546982591</updated>
     </task>
-    <option name="localTasksCounter" value="2" />
+    <task id="LOCAL-00002" summary="first version of the SCNN code implemented">
+      <created>1725547779590</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1725547779590</updated>
+    </task>
+    <option name="localTasksCounter" value="3" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -74,6 +78,7 @@
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="creating file separation" />
-    <option name="LAST_COMMIT_MESSAGE" value="creating file separation" />
+    <MESSAGE value="first version of the SCNN code implemented" />
+    <option name="LAST_COMMIT_MESSAGE" value="first version of the SCNN code implemented" />
   </component>
 </project>

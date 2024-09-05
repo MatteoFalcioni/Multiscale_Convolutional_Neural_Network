@@ -17,7 +17,7 @@ class SingleScaleCNN(nn.Module):
     - Two fully connected layers for classification at the end.
 
     Attributes:
-        conv1 (nn.Conv2d): First convolutional layer with 64 output channels and a 3x3 kernel.
+        conv1 (nn.Conv2d): First convolutional layer with 32 output channels and a 3x3 kernel.
         bn1 (nn.BatchNorm2d): Batch normalization for the first convolutional layer.
         pool1 (nn.MaxPool2d): Max pooling layer with a 2x2 kernel after the first convolutional block.
 
@@ -43,9 +43,9 @@ class SingleScaleCNN(nn.Module):
         super(SingleScaleCNN, self).__init__()
 
         # First Convolutional Block
-        self.conv1 = nn.Conv2d(in_channels=3, out_channels=64, kernel_size=3, padding=1)
-        self.bn1 = nn.BatchNorm2d(64)
-        self.pool1 = nn.MaxPool2d(kernel_size=2, stride=2)
+        self.conv1 = nn.Conv2d(in_channels=3, out_channels=32, kernel_size=3, padding=1)  # Output: 32x128x128
+        self.bn1 = nn.BatchNorm2d(32)   # Batch normalization doesn't change the spatial dimension
+        self.pool1 = nn.MaxPool2d(kernel_size=2, stride=2)  # Output: 32x64x64 (MaxPool changes spatial dimension)
 
         # Second Convolutional Block
         self.conv2 = nn.Conv2d(in_channels=64, out_channels=32, kernel_size=3, padding=1)
