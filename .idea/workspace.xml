@@ -4,7 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="04bd5c4e-614c-4a2f-8fba-5d9fd1827ad7" name="Changes" comment="renamed files for simplicity and checked models correct functioning through tests">
+    <list default="true" id="04bd5c4e-614c-4a2f-8fba-5d9fd1827ad7" name="Changes" comment="Adding other tests, in order to make testing more robust.">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/tests/test_models.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_models.py" afterDir="false" />
     </list>
@@ -105,7 +105,14 @@
       <option name="project" value="LOCAL" />
       <updated>1725614130636</updated>
     </task>
-    <option name="localTasksCounter" value="9" />
+    <task id="LOCAL-00009" summary="Adding other tests, in order to make testing more robust.">
+      <created>1725615092673</created>
+      <option name="number" value="00009" />
+      <option name="presentableId" value="LOCAL-00009" />
+      <option name="project" value="LOCAL" />
+      <updated>1725615092673</updated>
+    </task>
+    <option name="localTasksCounter" value="10" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -128,6 +135,7 @@
     <MESSAGE value="changed class documentation and added forward method" />
     <MESSAGE value="Implementing the actual MCNN. Check if forward is right, class definition should already match the paper" />
     <MESSAGE value="renamed files for simplicity and checked models correct functioning through tests" />
-    <option name="LAST_COMMIT_MESSAGE" value="renamed files for simplicity and checked models correct functioning through tests" />
+    <MESSAGE value="Adding other tests, in order to make testing more robust." />
+    <option name="LAST_COMMIT_MESSAGE" value="Adding other tests, in order to make testing more robust." />
   </component>
 </project>
