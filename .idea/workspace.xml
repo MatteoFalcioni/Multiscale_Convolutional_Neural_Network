@@ -4,12 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="04bd5c4e-614c-4a2f-8fba-5d9fd1827ad7" name="Changes" comment="Implementing the actual MCNN. Check if forward is right, class definition should already match the paper">
-      <change afterPath="$PROJECT_DIR$/tests/test_models.py" afterDir="false" />
+    <list default="true" id="04bd5c4e-614c-4a2f-8fba-5d9fd1827ad7" name="Changes" comment="renamed files for simplicity and checked models correct functioning through tests">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/model/__init.py__.py" beforeDir="false" afterPath="$PROJECT_DIR$/models/__init.py__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/model/mcnn.py" beforeDir="false" afterPath="$PROJECT_DIR$/models/mcnn.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/model/single_scale_cnn.py" beforeDir="false" afterPath="$PROJECT_DIR$/models/scnn.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/test_models.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_models.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -101,7 +98,14 @@
       <option name="project" value="LOCAL" />
       <updated>1725555359104</updated>
     </task>
-    <option name="localTasksCounter" value="8" />
+    <task id="LOCAL-00008" summary="renamed files for simplicity and checked models correct functioning through tests">
+      <created>1725614130636</created>
+      <option name="number" value="00008" />
+      <option name="presentableId" value="LOCAL-00008" />
+      <option name="project" value="LOCAL" />
+      <updated>1725614130636</updated>
+    </task>
+    <option name="localTasksCounter" value="9" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -123,6 +127,7 @@
     <MESSAGE value="removed forward and tests (will add later on) and removed final linear layers (to be included only in the MCNN)" />
     <MESSAGE value="changed class documentation and added forward method" />
     <MESSAGE value="Implementing the actual MCNN. Check if forward is right, class definition should already match the paper" />
-    <option name="LAST_COMMIT_MESSAGE" value="Implementing the actual MCNN. Check if forward is right, class definition should already match the paper" />
+    <MESSAGE value="renamed files for simplicity and checked models correct functioning through tests" />
+    <option name="LAST_COMMIT_MESSAGE" value="renamed files for simplicity and checked models correct functioning through tests" />
   </component>
 </project>
