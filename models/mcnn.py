@@ -1,7 +1,6 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-from single_scale_cnn import SingleScaleCNN
+from models.scnn import SingleScaleCNN
 
 
 class MultiScaleCNN(nn.Module):
@@ -28,13 +27,13 @@ class MultiScaleCNN(nn.Module):
         self.scnn2 = SingleScaleCNN()
         self.scnn3 = SingleScaleCNN()
 
-        # Fusion Layer (FC + BN + ReLU) to combine SCNN outputs
+        # First MCNN Layer (FC + BN + ReLU) to combine SCNN outputs
         self.fc_fusion = nn.Linear(8 * 8 * 128 * 3, 4096)  # Combining outputs from three SCNNs
         self.bn_fusion = nn.BatchNorm1d(4096)
         self.relu_fusion = nn.ReLU()
 
-        # Fully Connected Layers after Fusion
-        self.fc1 = nn.Linear(4096, 4096)  # Second FC layer
+        # Second MCNN layer (again FC + BN + ReLu)
+        self.fc1 = nn.Linear(4096, 4096)
         self.bn_fc1 = nn.BatchNorm1d(4096)
         self.relu_fc1 = nn.ReLU()
 
@@ -58,6 +57,7 @@ class MultiScaleCNN(nn.Module):
         out2 = self.scnn2(x2)  # Output: (batch_size, 128, 8, 8)
         out3 = self.scnn3(x3)  # Output: (batch_size, 128, 8, 8)
 
+        # Need to fuse together the outputs: we flatten + concatenate
         # Flatten the outputs
         out1 = out1.view(out1.size(0), -1)  # Flatten: (batch_size, 128 * 8 * 8)
         out2 = out2.view(out2.size(0), -1)  # Flatten: (batch_size, 128 * 8 * 8)
@@ -66,17 +66,17 @@ class MultiScaleCNN(nn.Module):
         # Concatenate the flattened outputs
         combined = torch.cat((out1, out2, out3), dim=1)  # Combined: (batch_size, 3 * 128 * 8 * 8)
 
-        # Fusion FC Layer + BatchNorm + ReLU
+        # First FC Layer + BatchNorm + ReLU
         x = self.fc_fusion(combined)
         x = self.bn_fusion(x)
-        x = self.relu_fusion(x)  # Apply ReLU after BatchNorm
+        x = self.relu_fusion(x)
 
         # Second FC Layer + BatchNorm + ReLU
         x = self.fc1(x)
         x = self.bn_fc1(x)
-        x = self.relu_fc1(x)  # Apply ReLU after BatchNorm
+        x = self.relu_fc1(x)
 
-        # Final FC Layer to produce class scores (no ReLU here)
+        # Final FC Layer to produce class scores
         x = self.fc2(x)  # Output layer for 9 classes: (batch_size, 9)
 
         return x

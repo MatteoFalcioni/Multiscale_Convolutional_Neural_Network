@@ -4,9 +4,12 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="04bd5c4e-614c-4a2f-8fba-5d9fd1827ad7" name="Changes" comment="changed class documentation and added forward method">
+    <list default="true" id="04bd5c4e-614c-4a2f-8fba-5d9fd1827ad7" name="Changes" comment="Implementing the actual MCNN. Check if forward is right, class definition should already match the paper">
+      <change afterPath="$PROJECT_DIR$/tests/test_models.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/model/mcnn.py" beforeDir="false" afterPath="$PROJECT_DIR$/model/mcnn.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/model/__init.py__.py" beforeDir="false" afterPath="$PROJECT_DIR$/models/__init.py__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/model/mcnn.py" beforeDir="false" afterPath="$PROJECT_DIR$/models/mcnn.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/model/single_scale_cnn.py" beforeDir="false" afterPath="$PROJECT_DIR$/models/scnn.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -32,14 +35,14 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "RunOnceActivity.OpenProjectViewOnStart": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "last_opened_file_path": "C:/Users/matte/PycharmProjects/MCNN",
-    "settings.editor.selected.configurable": "com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;last_opened_file_path&quot;: &quot;C:/Users/matte/PycharmProjects/MCNN&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable&quot;
   }
-}]]></component>
+}</component>
   <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
   <component name="TaskManager">
     <task active="true" id="Default" summary="Default task">
@@ -91,7 +94,14 @@
       <option name="project" value="LOCAL" />
       <updated>1725553846825</updated>
     </task>
-    <option name="localTasksCounter" value="7" />
+    <task id="LOCAL-00007" summary="Implementing the actual MCNN. Check if forward is right, class definition should already match the paper">
+      <created>1725555359104</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1725555359104</updated>
+    </task>
+    <option name="localTasksCounter" value="8" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -112,6 +122,7 @@
     <MESSAGE value="Correcting GPT errors in 2nd and 3rd block" />
     <MESSAGE value="removed forward and tests (will add later on) and removed final linear layers (to be included only in the MCNN)" />
     <MESSAGE value="changed class documentation and added forward method" />
-    <option name="LAST_COMMIT_MESSAGE" value="changed class documentation and added forward method" />
+    <MESSAGE value="Implementing the actual MCNN. Check if forward is right, class definition should already match the paper" />
+    <option name="LAST_COMMIT_MESSAGE" value="Implementing the actual MCNN. Check if forward is right, class definition should already match the paper" />
   </component>
 </project>
