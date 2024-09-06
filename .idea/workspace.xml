@@ -4,8 +4,16 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="04bd5c4e-614c-4a2f-8fba-5d9fd1827ad7" name="Changes" comment="test for checking for overfitting needed only in MCNN">
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+    <list default="true" id="04bd5c4e-614c-4a2f-8fba-5d9fd1827ad7" name="Changes" comment="configuring data loader and its tests, las files now tracked through git lsf">
+      <change afterPath="$PROJECT_DIR$/.gitattributes" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/data/README.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/data/raw/dtm.ASC" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/data/raw/features_F.las" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/data/raw/original.las" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/data/transforms/data_loader.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/data/transforms/data_preprocessing.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/tests/test_data_loader.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -31,14 +39,19 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;last_opened_file_path&quot;: &quot;C:/Users/matte/PycharmProjects/MCNN&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "RunOnceActivity.OpenProjectViewOnStart": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "last_opened_file_path": "C:/Users/matte/PycharmProjects/MCNN/data/raw",
+    "settings.editor.selected.configurable": "com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable"
   }
-}</component>
+}]]></component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="C:\Users\matte\PycharmProjects\MCNN\data\raw" />
+    </key>
+  </component>
   <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
   <component name="TaskManager">
     <task active="true" id="Default" summary="Default task">
@@ -118,7 +131,49 @@
       <option name="project" value="LOCAL" />
       <updated>1725617146970</updated>
     </task>
-    <option name="localTasksCounter" value="11" />
+    <task id="LOCAL-00011" summary="Added a small initial readme (to be expanded)">
+      <created>1725617287161</created>
+      <option name="number" value="00011" />
+      <option name="presentableId" value="LOCAL-00011" />
+      <option name="project" value="LOCAL" />
+      <updated>1725617287161</updated>
+    </task>
+    <task id="LOCAL-00012" summary="Uploading las data files to be processed + data readme">
+      <created>1725625980813</created>
+      <option name="number" value="00012" />
+      <option name="presentableId" value="LOCAL-00012" />
+      <option name="project" value="LOCAL" />
+      <updated>1725625980813</updated>
+    </task>
+    <task id="LOCAL-00013" summary="configuring data loader and its tests">
+      <created>1725628078933</created>
+      <option name="number" value="00013" />
+      <option name="presentableId" value="LOCAL-00013" />
+      <option name="project" value="LOCAL" />
+      <updated>1725628078933</updated>
+    </task>
+    <task id="LOCAL-00014" summary="configuring data loader and its tests, feature file to heavy to upload?">
+      <created>1725632139773</created>
+      <option name="number" value="00014" />
+      <option name="presentableId" value="LOCAL-00014" />
+      <option name="project" value="LOCAL" />
+      <updated>1725632139773</updated>
+    </task>
+    <task id="LOCAL-00015" summary="configuring data loader and its tests, las files now tracked through git lsf">
+      <created>1725632692046</created>
+      <option name="number" value="00015" />
+      <option name="presentableId" value="LOCAL-00015" />
+      <option name="project" value="LOCAL" />
+      <updated>1725632692046</updated>
+    </task>
+    <task id="LOCAL-00016" summary="configuring data loader and its tests, las files now tracked through git lsf">
+      <created>1725633006280</created>
+      <option name="number" value="00016" />
+      <option name="presentableId" value="LOCAL-00016" />
+      <option name="project" value="LOCAL" />
+      <updated>1725633006280</updated>
+    </task>
+    <option name="localTasksCounter" value="17" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -143,6 +198,11 @@
     <MESSAGE value="renamed files for simplicity and checked models correct functioning through tests" />
     <MESSAGE value="Adding other tests, in order to make testing more robust." />
     <MESSAGE value="test for checking for overfitting needed only in MCNN" />
-    <option name="LAST_COMMIT_MESSAGE" value="test for checking for overfitting needed only in MCNN" />
+    <MESSAGE value="Added a small initial readme (to be expanded)" />
+    <MESSAGE value="Uploading las data files to be processed + data readme" />
+    <MESSAGE value="configuring data loader and its tests" />
+    <MESSAGE value="configuring data loader and its tests, feature file to heavy to upload?" />
+    <MESSAGE value="configuring data loader and its tests, las files now tracked through git lsf" />
+    <option name="LAST_COMMIT_MESSAGE" value="configuring data loader and its tests, las files now tracked through git lsf" />
   </component>
 </project>
