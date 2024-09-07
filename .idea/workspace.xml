@@ -4,7 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="04bd5c4e-614c-4a2f-8fba-5d9fd1827ad7" name="Changes" comment="plot name is always mcnn">
+    <list default="true" id="04bd5c4e-614c-4a2f-8fba-5d9fd1827ad7" name="Changes" comment="added basic testing for training + more edge case tests">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/scripts/train.py" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/train.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/tests/test_training.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_training.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -277,7 +280,14 @@
       <option name="project" value="LOCAL" />
       <updated>1725715739876</updated>
     </task>
-    <option name="localTasksCounter" value="33" />
+    <task id="LOCAL-00033" summary="added basic testing for training + more edge case tests">
+      <created>1725716052598</created>
+      <option name="number" value="00033" />
+      <option name="presentableId" value="LOCAL-00033" />
+      <option name="project" value="LOCAL" />
+      <updated>1725716052598</updated>
+    </task>
+    <option name="localTasksCounter" value="34" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -292,7 +302,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="changed class documentation and added forward method" />
     <MESSAGE value="Implementing the actual MCNN. Check if forward is right, class definition should already match the paper" />
     <MESSAGE value="renamed files for simplicity and checked models correct functioning through tests" />
     <MESSAGE value="Adding other tests, in order to make testing more robust." />
@@ -317,6 +326,7 @@
     <MESSAGE value="added plot of loss at the end of training" />
     <MESSAGE value="improved plotting, created results/plots folder" />
     <MESSAGE value="plot name is always mcnn" />
-    <option name="LAST_COMMIT_MESSAGE" value="plot name is always mcnn" />
+    <MESSAGE value="added basic testing for training + more edge case tests" />
+    <option name="LAST_COMMIT_MESSAGE" value="added basic testing for training + more edge case tests" />
   </component>
 </project>

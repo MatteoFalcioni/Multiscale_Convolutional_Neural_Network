@@ -1,5 +1,5 @@
 import unittest
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -20,8 +20,8 @@ class TestTrainingProcess(unittest.TestCase):
         cls.scheduler = optim.lr_scheduler.StepLR(cls.optimizer, step_size=5, gamma=0.5)
 
         # Mocked DataLoader with random data
-        cls.train_loader = prepare_dataloader(batch_size=4)
-        cls.val_loader = prepare_dataloader(batch_size=4)
+        cls.train_loader = prepare_dataloader(batch_size=4, num_samples=200)
+        cls.val_loader = prepare_dataloader(batch_size=4, num_samples=200)
 
     def test_model_initialization(self):
         """Test if the model initializes correctly."""
@@ -63,25 +63,42 @@ class TestTrainingProcess(unittest.TestCase):
 
     def test_incorrect_input_shape(self):
         """Test the model with incorrect input shapes to ensure it raises an error."""
-        incorrect_loader = [torch.randn(4, 1, 32, 32), torch.randint(0, 10, (4,))]  # Incorrect input shape
+        # Simulate DataLoader yielding incorrect shapes
+        incorrect_loader = [(
+            torch.randn(4, 1, 32, 32),  # Incorrect shape; should be [batch_size, channels, height, width]
+            torch.randint(0, 10, (4,))
+        )]
+
+        # Mock the DataLoader to yield incorrect shapes
+        dataloader_mock = MagicMock()
+        dataloader_mock.__iter__.return_value = iter(incorrect_loader)
+
         with self.assertRaises(RuntimeError):
-            train(self.model, incorrect_loader, self.criterion, self.optimizer, self.device)
+            train(self.model, dataloader_mock, self.criterion, self.optimizer, self.device)
 
     def test_training_with_nan_loss(self):
         """Test training with data that will produce NaN loss to check error handling."""
 
         def mock_criterion(outputs, labels):
-            return torch.tensor(float('nan'))  # Return NaN to simulate an unstable training scenario
+            # Simulate a loss that is NaN but still requires gradients
+            loss = torch.tensor(float('nan'), requires_grad=True)
+            return loss
 
         with patch('torch.nn.CrossEntropyLoss', mock_criterion):
-            with self.assertRaises(ValueError):
+            with self.assertRaises(ValueError):  # Adjust this to match your actual error handling
                 train(self.model, self.train_loader, mock_criterion, self.optimizer, self.device)
 
     def test_early_stopping_trigger(self):
         """Test early stopping when validation loss does not improve."""
-        with patch('train.validate', return_value=1.0):  # Mock validate to always return a constant loss
+        # Mock `validate` to always return the same loss, simulating no improvement
+        with patch('scripts.train.validate', return_value=1.0) as mock_validate:
             train_epochs(self.model, self.train_loader, self.val_loader, self.criterion,
                          self.optimizer, self.scheduler, epochs=10, device=self.device,
                          save_dir='models/saved/', patience=2)
-            self.assertLessEqual(len(self.train_loader), 3, "Early stopping did not trigger correctly.")
+
+            # Check how many times validate was called
+            self.assertLessEqual(mock_validate.call_count, 3, "Early stopping did not trigger correctly.")
+
+
+
 
