@@ -1,7 +1,5 @@
 import torch
-from models.scnn import SingleScaleCNN
-from models.mcnn import MultiScaleCNN
-from utils.utils import get_model_save_path  # Import the utility function
+from utils.utils import save_model
 
 
 def train(model, dataloader, criterion, optimizer, device):
@@ -26,12 +24,9 @@ def train(model, dataloader, criterion, optimizer, device):
         optimizer.zero_grad()
 
         # Forward pass
-        if isinstance(model, MultiScaleCNN):
-            # For MCNN, we need three different inputs (here we use the same synthetic input three times)
-            outputs = model(inputs, inputs, inputs)
-        else:
-            # For SCNN, we use a single input
-            outputs = model(inputs)
+        # For MCNN, we need three different scaled input images
+        # Training the MCNN automatically trains the SCNN because of the architecture
+        outputs = model(inputs, inputs, inputs)
 
         # Compute loss
         loss = criterion(outputs, labels)
@@ -46,9 +41,27 @@ def train(model, dataloader, criterion, optimizer, device):
             running_loss = 0.0
 
 
+def validate(model, dataloader, criterion, device):
+    """
+    Evaluates the model on the validation set and returns the average loss.
+    """
+    model.eval()  # Set model to evaluation mode
+    val_loss = 0.0
+    with torch.no_grad():  # Disable gradient calculation
+        for inputs, labels in dataloader:
+            inputs, labels = inputs.to(device), labels.to(device)
+
+            # Forward pass for MCNN
+            outputs = model(inputs, inputs, inputs)
+            loss = criterion(outputs, labels)
+            val_loss += loss.item()
+    return val_loss / len(dataloader)
+
+
 def train_epochs(model, dataloader, criterion, optimizer, scheduler, epochs, device, save_dir):
     """
-    Trains the model for a specified number of epochs.
+    Trains the model over multiple epochs and applies learning rate decay. It saves the trained model
+    after the training process completes.
 
     Args:
     - model (nn.Module): The PyTorch model to be trained.
@@ -69,10 +82,5 @@ def train_epochs(model, dataloader, criterion, optimizer, scheduler, epochs, dev
         # Step the scheduler to adjust the learning rate
         scheduler.step()
 
-        print(f"Learning Rate after Epoch {epoch + 1}: {scheduler.get_last_lr()}")
-
-    # Save the model with dynamic name
-    model_name = model.__class__.__name__.lower()
-    model_save_path = get_model_save_path(model_name, save_dir)
-    torch.save(model.state_dict(), model_save_path)
-    print(f'Model saved to {model_save_path}')
+    # Save the model
+    save_model(model, save_dir)
