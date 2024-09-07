@@ -1,5 +1,6 @@
 import torch
 from utils.utils import save_model
+from utils.plot_utils import plot_loss
 
 
 def train(model, dataloader, criterion, optimizer, device):
@@ -13,9 +14,13 @@ def train(model, dataloader, criterion, optimizer, device):
     - criterion (nn.Module): The loss function to optimize.
     - optimizer (optim.Optimizer): The optimizer to use for training.
     - device (torch.device): The device (CPU or GPU) to perform computations on.
+
+    Returns:
+    - float: The average training loss for the epoch.
     """
     model.train()  # Set model to training mode
     running_loss = 0.0
+    total_batches = len(dataloader)  # Total number of batches
 
     for i, (inputs, labels) in enumerate(dataloader):
         inputs, labels = inputs.to(device), labels.to(device)
@@ -24,8 +29,6 @@ def train(model, dataloader, criterion, optimizer, device):
         optimizer.zero_grad()
 
         # Forward pass
-        # For MCNN, we need three different scaled input images
-        # Training the MCNN automatically trains the SCNN because of the architecture
         outputs = model(inputs, inputs, inputs)
 
         # Compute loss
@@ -37,8 +40,11 @@ def train(model, dataloader, criterion, optimizer, device):
 
         running_loss += loss.item()
         if i % 10 == 9:  # Print every 10 batches
-            print(f'Batch [{i + 1}/{len(dataloader)}], Loss: {running_loss / 10:.4f}')
+            print(f'Batch [{i + 1}/{total_batches}], Loss: {running_loss / 10:.4f}')
             running_loss = 0.0
+
+    # Return the average loss over the epoch
+    return running_loss / total_batches
 
 
 def validate(model, dataloader, criterion, device):
@@ -78,6 +84,9 @@ def train_epochs(model, train_loader, val_loader, criterion, optimizer, schedule
     - patience (int): Number of epochs to wait for an improvement in validation loss before early stopping.
     """
 
+    train_losses = []  # To store training losses
+    val_losses = []  # To store validation losses
+
     best_val_loss = float('inf')
     patience_counter = 0
 
@@ -85,11 +94,12 @@ def train_epochs(model, train_loader, val_loader, criterion, optimizer, schedule
         print(f'Epoch {epoch + 1}/{epochs}')
 
         # Training step
-        train(model, train_loader, criterion, optimizer, device)
+        train_loss = train(model, train_loader, criterion, optimizer, device)
+        train_losses.append(train_loss)
 
         # Validation step
         val_loss = validate(model, val_loader, criterion, device)
-        print(f'Validation Loss after Epoch {epoch + 1}: {val_loss:.4f}')
+        val_losses.append(val_loss)
 
         # Early stopping check
         if val_loss < best_val_loss:
@@ -108,4 +118,9 @@ def train_epochs(model, train_loader, val_loader, criterion, optimizer, schedule
 
     # Save the MCNN model after training
     save_model(model, save_dir)
+
+    # Plot the losses at the end of training
+    plot_loss(train_losses, val_losses, save_path=f"{save_dir}/loss_plot.png")
+
+
 
