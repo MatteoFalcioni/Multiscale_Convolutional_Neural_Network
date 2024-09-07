@@ -1,23 +1,23 @@
 from datetime import datetime
 import os
+import torch
 
 
-def get_model_save_path(model_name, base_dir):
+def save_model(model, save_dir):
     """
-    Generates a unique file path for saving the model with its name and a timestamp.
+    Saves the MCNN model in the specified directory with a timestamp.
 
     Args:
-    - model_name (str): The name of the model (e.g., 'scnn' or 'mcnn').
-    - base_dir (str): The base directory where models will be saved.
-
-    Returns:
-    - str: The full path for saving the model.
+    - model (nn.Module): The MCNN model to be saved.
+    - save_dir (str): Directory where the model will be saved.
     """
     # Ensure the save directory exists
-    os.makedirs(base_dir, exist_ok=True)
+    os.makedirs(save_dir, exist_ok=True)
 
-    # Get the current date and time
+    # Create a filename with the current date and time
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    model_save_path = os.path.join(save_dir, f"mcnn_{timestamp}.pth")
 
-    # Return the formatted path with model name and timestamp
-    return os.path.join(base_dir, f"{model_name}_{timestamp}.pth")
+    # Save the model
+    torch.save(model.state_dict(), model_save_path)
+    print(f'Model saved to {model_save_path}')
