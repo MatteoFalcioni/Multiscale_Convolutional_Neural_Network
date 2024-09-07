@@ -4,11 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="04bd5c4e-614c-4a2f-8fba-5d9fd1827ad7" name="Changes" comment="added eval function">
-      <change beforePath="$PROJECT_DIR$/config.py" beforeDir="false" afterPath="$PROJECT_DIR$/config.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/scripts/train.py" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/train.py" afterDir="false" />
-    </list>
+    <list default="true" id="04bd5c4e-614c-4a2f-8fba-5d9fd1827ad7" name="Changes" comment="config is now a yaml file, handled in config_handler.py" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -209,7 +205,28 @@
       <option name="project" value="LOCAL" />
       <updated>1725706160025</updated>
     </task>
-    <option name="localTasksCounter" value="23" />
+    <task id="LOCAL-00023" summary="added early stopping with patiecne.">
+      <created>1725706819003</created>
+      <option name="number" value="00023" />
+      <option name="presentableId" value="LOCAL-00023" />
+      <option name="project" value="LOCAL" />
+      <updated>1725706819003</updated>
+    </task>
+    <task id="LOCAL-00024" summary="device is no longer an hyperparameter">
+      <created>1725706830899</created>
+      <option name="number" value="00024" />
+      <option name="presentableId" value="LOCAL-00024" />
+      <option name="project" value="LOCAL" />
+      <updated>1725706830899</updated>
+    </task>
+    <task id="LOCAL-00025" summary="config is now a yaml file, handled in config_handler.py">
+      <created>1725706860121</created>
+      <option name="number" value="00025" />
+      <option name="presentableId" value="LOCAL-00025" />
+      <option name="project" value="LOCAL" />
+      <updated>1725706860121</updated>
+    </task>
+    <option name="localTasksCounter" value="26" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -245,6 +262,9 @@
     <MESSAGE value="refactoring code for clarity" />
     <MESSAGE value="added parser and cleaned configuration file" />
     <MESSAGE value="added eval function" />
-    <option name="LAST_COMMIT_MESSAGE" value="added eval function" />
+    <MESSAGE value="added early stopping with patiecne." />
+    <MESSAGE value="device is no longer an hyperparameter" />
+    <MESSAGE value="config is now a yaml file, handled in config_handler.py" />
+    <option name="LAST_COMMIT_MESSAGE" value="config is now a yaml file, handled in config_handler.py" />
   </component>
 </project>
