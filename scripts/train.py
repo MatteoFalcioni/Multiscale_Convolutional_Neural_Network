@@ -54,6 +54,15 @@ def train(model, dataloader, criterion, optimizer, device):
 def validate(model, dataloader, criterion, device):
     """
     Evaluates the model on the validation set and returns the average loss.
+
+    Args:
+    - model (nn.Module): The PyTorch model to be trained.
+    - dataloader (DataLoader): DataLoader object containing the validation data.
+    - criterion (nn.Module): The loss function to optimize.
+    - device (torch.device): The device (CPU or GPU) to perform computations on.
+
+    Returns:
+    - float: the average validation loss for each epoch
     """
     model.eval()  # Set model to evaluation mode
     val_loss = 0.0
@@ -68,7 +77,7 @@ def validate(model, dataloader, criterion, device):
     return val_loss / len(dataloader)
 
 
-def train_epochs(model, train_loader, val_loader, criterion, optimizer, scheduler, epochs, patience, device, save_dir):
+def train_epochs(model, train_loader, val_loader, criterion, optimizer, scheduler, epochs, patience, device, save_dir, plot_dir='results/plots/'):
     """
     Trains the MCNN model over multiple epochs with early stopping and applies learning rate decay.
     After each epoch, the model is evaluated on a validation set, and training stops if the validation
@@ -86,6 +95,7 @@ def train_epochs(model, train_loader, val_loader, criterion, optimizer, schedule
     - device (torch.device): The device (CPU or GPU) to perform computations on.
     - save_dir (str): Directory to save the trained model.
     - patience (int): Number of epochs to wait for an improvement in validation loss before early stopping.
+    - plot_dir (str): Directory to save the loss plots. Default is 'results/plots/'.
     """
 
     train_losses = []  # To store training losses
