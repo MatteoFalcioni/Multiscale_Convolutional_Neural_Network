@@ -21,3 +21,21 @@ def save_model(model, save_dir):
     # Save the model
     torch.save(model.state_dict(), model_save_path)
     print(f'Model saved to {model_save_path}')
+
+    def select_device():
+        """
+        Selects the best available device for PyTorch: CUDA > DirectML > CPU.
+
+        Returns:
+        - torch.device: The selected device (CUDA, DirectML, or CPU).
+        """
+        if torch.cuda.is_available():
+            print("Using CUDA device.")
+            return torch.device('cuda')
+        elif torch.directml.is_available():
+            print("CUDA not available. Using DirectML device.")
+            return torch.device('dml')
+        else:
+            print("CUDA and DirectML not available. Using CPU.")
+            return torch.device('cpu')
+

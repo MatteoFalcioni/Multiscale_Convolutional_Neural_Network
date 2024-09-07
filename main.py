@@ -4,7 +4,7 @@ import torch.optim as optim
 from models.mcnn import MultiScaleCNN
 from utils.data_utils import prepare_dataloader
 from scripts.train import train_epochs
-from utils.config_handler import parse_arguments  # Import the argument parser
+from utils.config_handler import parse_arguments
 
 
 def main():
@@ -20,14 +20,15 @@ def main():
     model = MultiScaleCNN().to(device)
 
     # Prepare DataLoader
+    # Replace with actual sets when data will be available
     print("Preparing data loaders...")
     train_loader = prepare_dataloader(args.batch_size)
-    val_loader = prepare_dataloader(args.batch_size)  # Replace with an actual validation set loader
+    val_loader = prepare_dataloader(args.batch_size)
 
     # Set up CrossEntropy loss function
     criterion = nn.CrossEntropyLoss()
 
-    # Set up optimizer (fixed to SGD)
+    # Set up optimizer (Stochastic Gradient Descent)
     optimizer = optim.SGD(model.parameters(), lr=args.learning_rate)
 
     # Learning rate scheduler
@@ -48,8 +49,6 @@ def main():
         args.patience
     )
 
-
-if __name__ == "__main__":
-    main()
+    print("train ended")
 
 
