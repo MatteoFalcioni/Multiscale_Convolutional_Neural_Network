@@ -34,6 +34,10 @@ def train(model, dataloader, criterion, optimizer, device):
         # Compute loss
         loss = criterion(outputs, labels)
 
+        # Check for NaN in loss
+        if torch.isnan(loss):
+            raise ValueError("Encountered NaN loss during training.")
+
         # Backward pass and optimize
         loss.backward()
         optimizer.step()
@@ -120,7 +124,7 @@ def train_epochs(model, train_loader, val_loader, criterion, optimizer, schedule
     save_model(model, save_dir)
 
     # Plot the losses at the end of training
-    plot_loss(train_losses, val_losses, save_path=f"{save_dir}/loss_plot.png")
+    plot_loss(train_losses, val_losses)
 
 
 
