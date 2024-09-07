@@ -26,9 +26,6 @@ This project contains the implementation of a Multi-Scale Convolutional Neural N
 - Installation
 - Usage
 - Structure
-- Future Work
-- Contributing
-- License
 
 ## Installation
 
@@ -37,8 +34,7 @@ To set up the environment and install the necessary dependencies, follow these s
 1. **Clone this repository**:
 
    ```bash
-   git clone https://github.com/yourusername/mcnn-training.git
-   cd mcnn-training 
+   git clone https://github.com/MatteoFalcioni/MCNN.git
    ```
 
 2. **Install the required packages**:
