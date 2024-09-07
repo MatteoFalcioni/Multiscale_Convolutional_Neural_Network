@@ -108,3 +108,4 @@ def train_epochs(model, train_loader, val_loader, criterion, optimizer, schedule
 
     # Save the MCNN model after training
     save_model(model, save_dir)
+
