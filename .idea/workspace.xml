@@ -4,13 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="04bd5c4e-614c-4a2f-8fba-5d9fd1827ad7" name="Changes" comment="configuring data loader and its tests. uploading las and dtm files with git lsf">
-      <change afterPath="$PROJECT_DIR$/models/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/scripts/train.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/utils/utils.py" afterDir="false" />
+    <list default="true" id="04bd5c4e-614c-4a2f-8fba-5d9fd1827ad7" name="Changes" comment="wrote first version of training script, added config file and utilities">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/transforms/data_preprocessing.py" beforeDir="false" afterPath="$PROJECT_DIR$/data/transforms/data_preprocessing.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/models/__init.py__.py" beforeDir="false" afterPath="$PROJECT_DIR$/config.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/scripts/train.py" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/train.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -177,7 +173,14 @@
       <option name="project" value="LOCAL" />
       <updated>1725633789514</updated>
     </task>
-    <option name="localTasksCounter" value="18" />
+    <task id="LOCAL-00018" summary="wrote first version of training script, added config file and utilities">
+      <created>1725702807898</created>
+      <option name="number" value="00018" />
+      <option name="presentableId" value="LOCAL-00018" />
+      <option name="project" value="LOCAL" />
+      <updated>1725702807898</updated>
+    </task>
+    <option name="localTasksCounter" value="19" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -208,6 +211,7 @@
     <MESSAGE value="configuring data loader and its tests, feature file to heavy to upload?" />
     <MESSAGE value="configuring data loader and its tests, las files now tracked through git lsf" />
     <MESSAGE value="configuring data loader and its tests. uploading las and dtm files with git lsf" />
-    <option name="LAST_COMMIT_MESSAGE" value="configuring data loader and its tests. uploading las and dtm files with git lsf" />
+    <MESSAGE value="wrote first version of training script, added config file and utilities" />
+    <option name="LAST_COMMIT_MESSAGE" value="wrote first version of training script, added config file and utilities" />
   </component>
 </project>
