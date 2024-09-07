@@ -4,10 +4,8 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="04bd5c4e-614c-4a2f-8fba-5d9fd1827ad7" name="Changes" comment="added plot of loss at the end of training">
-      <change afterPath="$PROJECT_DIR$/tests/test_training.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/utils/plot_utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/utils/plot_utils.py" afterDir="false" />
+    <list default="true" id="04bd5c4e-614c-4a2f-8fba-5d9fd1827ad7" name="Changes" comment="plot name is always mcnn">
+      <change beforePath="$PROJECT_DIR$/tests/test_training.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_training.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -265,7 +263,21 @@
       <option name="project" value="LOCAL" />
       <updated>1725713343340</updated>
     </task>
-    <option name="localTasksCounter" value="31" />
+    <task id="LOCAL-00031" summary="improved plotting, created results/plots folder">
+      <created>1725715665133</created>
+      <option name="number" value="00031" />
+      <option name="presentableId" value="LOCAL-00031" />
+      <option name="project" value="LOCAL" />
+      <updated>1725715665133</updated>
+    </task>
+    <task id="LOCAL-00032" summary="plot name is always mcnn">
+      <created>1725715739876</created>
+      <option name="number" value="00032" />
+      <option name="presentableId" value="LOCAL-00032" />
+      <option name="project" value="LOCAL" />
+      <updated>1725715739876</updated>
+    </task>
+    <option name="localTasksCounter" value="33" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -280,8 +292,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Correcting GPT errors in 2nd and 3rd block" />
-    <MESSAGE value="removed forward and tests (will add later on) and removed final linear layers (to be included only in the MCNN)" />
     <MESSAGE value="changed class documentation and added forward method" />
     <MESSAGE value="Implementing the actual MCNN. Check if forward is right, class definition should already match the paper" />
     <MESSAGE value="renamed files for simplicity and checked models correct functioning through tests" />
@@ -305,6 +315,8 @@
     <MESSAGE value="added new torch feature tu use intel gpu" />
     <MESSAGE value="corrected order of arguments in train epochs" />
     <MESSAGE value="added plot of loss at the end of training" />
-    <option name="LAST_COMMIT_MESSAGE" value="added plot of loss at the end of training" />
+    <MESSAGE value="improved plotting, created results/plots folder" />
+    <MESSAGE value="plot name is always mcnn" />
+    <option name="LAST_COMMIT_MESSAGE" value="plot name is always mcnn" />
   </component>
 </project>

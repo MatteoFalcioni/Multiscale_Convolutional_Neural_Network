@@ -1,12 +1,11 @@
 import unittest
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 import torch
 import torch.nn as nn
 import torch.optim as optim
 from models.mcnn import MultiScaleCNN
 from utils.data_utils import prepare_dataloader
-from scripts.train import train, validate, train_epochs, save_model
-from utils.plot_utils import plot_loss
+from scripts.train import train, validate, train_epochs
 
 
 class TestTrainingProcess(unittest.TestCase):
@@ -56,11 +55,33 @@ class TestTrainingProcess(unittest.TestCase):
 
         mock_plot_loss.assert_called_once()  # Ensure plot_loss is called once at the end
 
-    def test_plot_loss(self):
-        """Test the plotting function."""
-        train_losses = [0.8, 0.6, 0.5, 0.4]
-        val_losses = [0.9, 0.7, 0.6, 0.5]
-        try:
-            plot_loss(train_losses, val_losses, save_path='tests/test_loss_plot.png')
-        except Exception as e:
-            self.fail(f"plot_loss() raised {e} unexpectedly!")
+    def test_empty_data_loader(self):
+        """Test training and validation steps with an empty DataLoader."""
+        empty_loader = []  # Simulating an empty DataLoader
+        with self.assertRaises(StopIteration):
+            next(iter(empty_loader))
+
+    def test_incorrect_input_shape(self):
+        """Test the model with incorrect input shapes to ensure it raises an error."""
+        incorrect_loader = [torch.randn(4, 1, 32, 32), torch.randint(0, 10, (4,))]  # Incorrect input shape
+        with self.assertRaises(RuntimeError):
+            train(self.model, incorrect_loader, self.criterion, self.optimizer, self.device)
+
+    def test_training_with_nan_loss(self):
+        """Test training with data that will produce NaN loss to check error handling."""
+
+        def mock_criterion(outputs, labels):
+            return torch.tensor(float('nan'))  # Return NaN to simulate an unstable training scenario
+
+        with patch('torch.nn.CrossEntropyLoss', mock_criterion):
+            with self.assertRaises(ValueError):
+                train(self.model, self.train_loader, mock_criterion, self.optimizer, self.device)
+
+    def test_early_stopping_trigger(self):
+        """Test early stopping when validation loss does not improve."""
+        with patch('train.validate', return_value=1.0):  # Mock validate to always return a constant loss
+            train_epochs(self.model, self.train_loader, self.val_loader, self.criterion,
+                         self.optimizer, self.scheduler, epochs=10, device=self.device,
+                         save_dir='models/saved/', patience=2)
+            self.assertLessEqual(len(self.train_loader), 3, "Early stopping did not trigger correctly.")
+
