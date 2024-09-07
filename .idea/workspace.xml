@@ -4,12 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="04bd5c4e-614c-4a2f-8fba-5d9fd1827ad7" name="Changes" comment="corrected order of arguments in train epochs">
-      <change afterPath="$PROJECT_DIR$/utils/plot_utils.py" afterDir="false" />
+    <list default="true" id="04bd5c4e-614c-4a2f-8fba-5d9fd1827ad7" name="Changes" comment="added plot of loss at the end of training">
+      <change afterPath="$PROJECT_DIR$/tests/test_training.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/scripts/train.py" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/train.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/utils/utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/utils/utils.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/utils/plot_utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/utils/plot_utils.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -260,7 +258,14 @@
       <option name="project" value="LOCAL" />
       <updated>1725711838238</updated>
     </task>
-    <option name="localTasksCounter" value="30" />
+    <task id="LOCAL-00030" summary="added plot of loss at the end of training">
+      <created>1725713343340</created>
+      <option name="number" value="00030" />
+      <option name="presentableId" value="LOCAL-00030" />
+      <option name="project" value="LOCAL" />
+      <updated>1725713343340</updated>
+    </task>
+    <option name="localTasksCounter" value="31" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -275,7 +280,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Correcting GPT errors in first block. now its 3x128x128 --&gt; 32x64x64" />
     <MESSAGE value="Correcting GPT errors in 2nd and 3rd block" />
     <MESSAGE value="removed forward and tests (will add later on) and removed final linear layers (to be included only in the MCNN)" />
     <MESSAGE value="changed class documentation and added forward method" />
@@ -300,6 +304,7 @@
     <MESSAGE value="adjusted main to try train script" />
     <MESSAGE value="added new torch feature tu use intel gpu" />
     <MESSAGE value="corrected order of arguments in train epochs" />
-    <option name="LAST_COMMIT_MESSAGE" value="corrected order of arguments in train epochs" />
+    <MESSAGE value="added plot of loss at the end of training" />
+    <option name="LAST_COMMIT_MESSAGE" value="added plot of loss at the end of training" />
   </component>
 </project>
