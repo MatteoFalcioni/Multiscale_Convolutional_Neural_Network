@@ -1,4 +1,14 @@
 import argparse
+import yaml
+
+
+def load_config(file_path='config.yaml'):
+    """
+    Load configuration from a YAML file.
+    """
+    with open(file_path, 'r') as file:
+        config = yaml.safe_load(file)
+    return config
 
 
 def parse_arguments():
@@ -13,7 +23,9 @@ def parse_arguments():
 
     # Adding arguments for hyperparameters and configurations
     parser.add_argument('--batch_size', type=int, default=16, help='Batch size for training')
-    parser.add_argument('--epochs', type=int, default=50, help='Number of training epochs')
+    parser.add_argument('--epochs', type=int, default=3, help='Number of epochs to wait for an improvement in '
+                                                              'validation loss before early stopping')
+    parser.add_argument('--patience', type=int, default=50, help='Number of training epochs')
     parser.add_argument('--learning_rate', type=float, default=0.01, help='Learning rate for the optimizer')
     parser.add_argument('--learning_rate_decay_epochs', type=int, default=5,
                         help='Epochs interval to decay learning rate')
