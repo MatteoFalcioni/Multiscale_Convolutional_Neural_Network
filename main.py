@@ -44,11 +44,13 @@ def main():
         optimizer,
         scheduler,
         args.epochs,
+        args.patience,
         device,
-        args.save_dir,
-        args.patience
+        args.save_dir
     )
 
     print("train ended")
 
+
+main()
 
