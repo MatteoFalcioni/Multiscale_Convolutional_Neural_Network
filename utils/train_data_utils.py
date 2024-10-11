@@ -8,6 +8,7 @@ from datetime import datetime
 import pandas as pd
 import torch.nn as nn
 from scipy.spatial import cKDTree
+import csv
 
 
 def initialize_weights(model):
@@ -157,13 +158,18 @@ def prepare_dataloader(batch_size, data_dir=None,
 
 
 
-def save_model(model, save_dir='models/saved'):
+def save_model(model, save_dir='models/saved', used_features=None, hyperparameters=None):
     """
-    Saves the PyTorch model with a filename that includes the current date and time.
+    Saves the PyTorch model along with the features and hyperparameters used in training.
 
     Args:
     - model (nn.Module): The trained model to be saved.
-    - save_dir (str): The directory where the model will be saved. Default is 'models/saved'.
+    - save_dir (str): The directory where the model and parameters will be saved. Default is 'models/saved'.
+    - used_features (list): List of features used for training the model.
+    - hyperparameters (dict): Dictionary of hyperparameters used during training.
+
+    Returns:
+    - None
     """
     # Ensure the save directory exists
     os.makedirs(save_dir, exist_ok=True)
@@ -171,13 +177,51 @@ def save_model(model, save_dir='models/saved'):
     # Get the current date and time
     current_time = datetime.now().strftime('%Y%m%d_%H%M%S')
 
-    # Create the model filename
-    model_filename = f"mcnn_model_{current_time}.pth"
-    model_save_path = os.path.join(save_dir, model_filename)
+    # Create the model folder with the timestamp
+    model_save_folder = os.path.join(save_dir, f"mcnn_model_{current_time}")
+    os.makedirs(model_save_folder, exist_ok=True)
 
-    # Save the model
+    # Save the model in the folder
+    model_filename = f"model.pth"
+    model_save_path = os.path.join(model_save_folder, model_filename)
     torch.save(model.state_dict(), model_save_path)
     print(f'Model saved to {model_save_path}')
+
+    # Save the used features and hyperparameters
+    if used_features or hyperparameters:
+        save_used_parameters(used_features, hyperparameters, model_save_folder)
+    
+    
+def save_used_parameters(used_features, hyperparameters, save_dir):
+    """
+    Saves the features and hyperparameters used during training to a CSV file.
+
+    Args:
+    - used_features (list): List of features used in training.
+    - hyperparameters (dict): Dictionary (name, value) of hyperparameters used during training. 
+    - save_dir (str): Directory where the used features and the model's hyperparameters are to be saved.
+
+    Returns:
+    - None
+    """
+    # Save the features
+    if used_features:
+        feature_file = os.path.join(save_dir, 'features_used.csv')
+        with open(feature_file, 'w', newline='') as f:
+            writer = csv.writer(f)
+            writer.writerow(['Used Features'])  # Header
+            writer.writerow(used_features)
+        print(f"Features saved to {feature_file}")
+
+    # Save the hyperparameters
+    if hyperparameters:
+        hyperparameters_file = os.path.join(save_dir, 'hyperparameters.csv')
+        with open(hyperparameters_file, 'w', newline='') as f:
+            writer = csv.writer(f)
+            writer.writerow(['Hyperparameter', 'Value'])  # Header
+            for param, value in hyperparameters.items():
+                writer.writerow([param, value])
+        print(f"Hyperparameters saved to {hyperparameters_file}")
 
 
 
