@@ -65,7 +65,8 @@ def main():
         window_sizes=window_sizes,
         grid_resolution=grid_resolution,
         features_to_use=features_to_use,
-        train_split=0.8
+        train_split=0.8,
+        num_workers=16
     )
 
     # Set up CrossEntropy loss function

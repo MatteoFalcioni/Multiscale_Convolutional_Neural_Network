@@ -101,7 +101,7 @@ def custom_collate_fn(batch):
 
 def prepare_dataloader(batch_size, data_dir=None, 
                        window_sizes=None, grid_resolution=128, features_to_use=None, 
-                       train_split=0.8, features_file_path=None):
+                       train_split=0.8, features_file_path=None, num_workers = 0):
     """
     Prepares the DataLoader by loading the raw data and streaming multiscale grid generation.
     
@@ -113,6 +113,7 @@ def prepare_dataloader(batch_size, data_dir=None,
     - features_to_use (list): List of feature names to use for grid generation. Default is None.
     - train_split (float): Ratio of the data to use for training (e.g., 0.8 for 80% training data). Default is 0.8 (80%).
     - features_file_path: File path to feature metadata, needed if using raw data in .npy format. Default is None.
+    - num_workers (int): number of worlkers for parallelized process. Default is 0. 
 
     Returns:
     - train_loader (DataLoader): DataLoader for training.
@@ -145,11 +146,11 @@ def prepare_dataloader(batch_size, data_dir=None,
         train_dataset, eval_dataset = random_split(full_dataset, [train_size, eval_size])
 
         # Step 6: Create DataLoaders for training and evaluation
-        train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, collate_fn=custom_collate_fn)
-        eval_loader = DataLoader(eval_dataset, batch_size=batch_size, shuffle=False, collate_fn=custom_collate_fn)
+        train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, collate_fn=custom_collate_fn, num_workers=num_workers)
+        eval_loader = DataLoader(eval_dataset, batch_size=batch_size, shuffle=False, collate_fn=custom_collate_fn, num_workers=num_workers)
     else:
         # If no train/test split, create one DataLoader for the full dataset
-        train_loader = DataLoader(full_dataset, batch_size=batch_size, shuffle=True, collate_fn=custom_collate_fn)
+        train_loader = DataLoader(full_dataset, batch_size=batch_size, shuffle=True, collate_fn=custom_collate_fn, num_workers=num_workers)
         eval_loader = None
 
     return train_loader, eval_loader
