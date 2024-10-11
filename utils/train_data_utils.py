@@ -99,7 +99,7 @@ def custom_collate_fn(batch):
     
 
 
-def prepare_dataloader(batch_size, data_dir='data/raw/labeled_FSL.las', 
+def prepare_dataloader(batch_size, data_dir=None, 
                        window_sizes=None, grid_resolution=128, features_to_use=None, 
                        train_split=0.8, features_file_path=None):
     """
@@ -107,25 +107,26 @@ def prepare_dataloader(batch_size, data_dir='data/raw/labeled_FSL.las',
     
     Args:
     - batch_size (int): The batch size to be used for training.
-    - data_dir (str): Path to the raw data (e.g., .las or .csv file).
-    - window_sizes (list): List of window sizes to use for grid generation.
+    - data_dir (str): Path to the raw data (e.g., .las or .csv file). Default is None.
+    - window_sizes (list): List of window sizes to use for grid generation. Default is None.
     - grid_resolution (int): Resolution of the grid (e.g., 128x128).
-    - features_to_use (list): List of feature names to use for grid generation.
-    - train_split (float): Ratio of the data to use for training (e.g., 0.8 for 80% training data).
-    - features_file_path: File path to feature metadata, needed if using raw data in .npy format.
+    - features_to_use (list): List of feature names to use for grid generation. Default is None.
+    - train_split (float): Ratio of the data to use for training (e.g., 0.8 for 80% training data). Default is 0.8 (80%).
+    - features_file_path: File path to feature metadata, needed if using raw data in .npy format. Default is None.
 
     Returns:
     - train_loader (DataLoader): DataLoader for training.
     - eval_loader (DataLoader): DataLoader for validation (if train_split > 0).
     """
+    
+    # check if raw data directory was passed as input
+    if data_dir is None:
+        raise ValueError('ERROR: Raw data directory was not passe as input to the dataloader.')
 
     # Step 1: Read the raw point cloud data into memory
-    data_array, known_features = read_file_to_numpy(data_dir=data_dir, features_to_use=features_to_use, features_file_path=features_file_path)
+    data_array, known_features = read_file_to_numpy(data_dir=data_dir, features_to_use=None, features_file_path=features_file_path)   # with None as features_to_use we get the known features (all the feats in the data)
 
-    # Step 2: Compute point cloud bounds for validation during grid generation
-    point_cloud_bounds = compute_point_cloud_bounds(data_array)
-
-    # Step 3: Create the dataset using the new streaming-based approach
+    # Step 2: Create the dataset using the new streaming-based approach
     full_dataset = PointCloudDataset(
         data_array=data_array,
         window_sizes=window_sizes,
@@ -134,7 +135,7 @@ def prepare_dataloader(batch_size, data_dir='data/raw/labeled_FSL.las',
         known_features=known_features,
     )
 
-    # Step 5: Split the dataset into training and evaluation sets (if train_split is provided)
+    # Step 3: Split the dataset into training and evaluation sets (if train_split is provided)
     if train_split > 0.0:
         train_size = int(train_split * len(full_dataset))
         eval_size = len(full_dataset) - train_size
