@@ -117,7 +117,7 @@ def validate(model, dataloader, criterion, device):
     return val_loss / total_samples
 
 
-def train_epochs(model, train_loader, val_loader, criterion, optimizer, scheduler, epochs, patience, device, model_save_dir='models/saved/', plot_dir='results/plots/', save=False):
+def train_epochs(model, train_loader, val_loader, criterion, optimizer, scheduler, epochs, patience, device, model_save_dir='models/saved/', plot_dir='results/plots/', save=False, used_features=None, hyperparameters=None):
     """
     Trains the MCNN model over multiple epochs with early stopping and applies learning rate decay.
     After each epoch, the model is evaluated on a validation set, and training stops if the validation
@@ -137,6 +137,8 @@ def train_epochs(model, train_loader, val_loader, criterion, optimizer, schedule
     - patience (int): Number of epochs to wait for an improvement in validation loss before early stopping.
     - plot_dir (str): Directory to save the loss plots. Default is 'results/plots/'.
     - save (bool): boolean value to allow or disallow saving of the model after training. Default is False.
+    - used_features (list): selected features used during training, to be saved together with the model- Default is None.
+    - hyperparameters (dict): dictionary of hyperparameters (name, values) used during training, to be saved together with the model- Default is None.
     """
 
     train_losses = []  # To store training losses
@@ -174,7 +176,12 @@ def train_epochs(model, train_loader, val_loader, criterion, optimizer, schedule
     # Save the MCNN model after training
     if save:
         print("saving trained model...")
-        save_model(model, model_save_dir)
+        if used_features is None:
+            print('Warning: used features for training were not passed to train_epochs, so they could not be saved together with the model.')
+        if hyperparameters is None:
+            print('Warning: hyperparameters used for training were not passed to train_epochs, so they could not be saved together with the model.')
+            
+        save_model(model, model_save_dir, used_features=used_features, hyperparameters=hyperparameters)
         print("model saved successfully.")
 
     # Plot the losses at the end of training

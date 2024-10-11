@@ -35,7 +35,7 @@ def main():
     load_model = args.load_model   # whether to load model for inference or train a new one
     model_path = args.load_model_filepath
     
-    data_array, known_features = read_file_to_numpy(data_dir=data_dir, features_to_use=None)   # get the np array data and the known features from the raw file path.
+    data_array, known_features = read_file_to_numpy(data_dir=data_dir, features_to_use=None)   # get the known features from the raw file path.
 
     num_channels = len(features_to_use)  # Determine the number of channels based on selected features
     num_classes = extract_num_classes(raw_file_path=data_dir) # determine the number of classes from the raw data
@@ -46,6 +46,19 @@ def main():
     
     print(f'features contained in raw data file: {known_features}')
     print(f'selected features to use during training: {features_to_use}')
+    
+    hyperparameters = {     # store them in dictionary in order to save them together with the model
+        'number of points' : data_array.shape[0],
+        'window_sizes' : window_sizes,
+        'grid_resolution': grid_resolution,
+        'batch_size': batch_size,
+        'epochs' : epochs,
+        'patience' : patience,
+        'learning_rate' : learning_rate,
+        'momentum' : momentum,
+        'step_size' : step_size,
+        'learning_rate_decay_factor' : learning_rate_decay_factor
+    }
 
     # Set device (GPU if available)
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
@@ -93,7 +106,9 @@ def main():
         device,
         save=True,
         plot_dir='results/plots/',
-        model_save_dir="models/saved/"
+        model_save_dir="models/saved/",
+        used_features=features_to_use,
+        hyperparameters=hyperparameters
     )
 
     print("Training finished")
@@ -109,17 +124,22 @@ def main():
         # Set model to evaluation mode (important for inference)
         model.eval()
 
+    # use a file that's never been seen by the model for inference
+    inference_file = 'data/sampled/sampled_data_inference_1000.csv'
+    data_array_inference, _ = read_file_to_numpy(data_dir=inference_file, features_to_use=features_to_use)  # feature indices and num classes in inference should match features in train/eval data
+
     true_labels, predicted_labels = inference(
         model=model,
-        data_array=data_array,
+        data_array=data_array_inference,
         window_sizes=window_sizes,
         grid_resolution=grid_resolution,
         feature_indices=feature_indices,
         save_file='results/inference/inference.csv',
-        subsample_size=15
+        subsample_size=None,
+        device=device
     )
     
-    print(f'Inference process ended. Ground truth labels: {true_labels} \n Predicted labels: {predicted_labels}')
+    print(f'Inference process ended.')  # Ground truth labels: {true_labels} \n Predicted labels: {predicted_labels}
 
 
 if __name__ == "__main__":

@@ -249,23 +249,24 @@ def combine_and_save_csv_files(csv_files, save=False, save_dir='data/combined_da
     return combined_array
 
 
-def sample_data(input_file, sample_size, save=False, save_dir='data/sampled_data', feature_to_use=None, features_file_path=None):
+def sample_data(input_file, sample_size, inference_split=0.1, save=False, save_dir='data/sampled_data', feature_to_use=None, features_file_path=None):
     """
-    Samples a subset of the data from a CSV, NumPy, or LAS file and saves it as a CSV with metadata.
+    Samples a subset of the data from a CSV, NumPy, or LAS file and splits it into two parts: one for training/validation 
+    and one for inference. Saves the sampled data as two CSV files.
 
     Args:
     - input_file (str): Path to the input file (either a CSV, NumPy file, or LAS file).
     - sample_size (int): The number of samples to extract.
-    - file_type (str): The type of the input file ('csv', 'npy', or 'las').
-    - save (bool): Whether to save the sampled data to a file. Default is False.
+    - inference_split (float): The proportion of the data to be used for inference (e.g., 0.1 for 10%).
+    - save (bool): Whether to save the sampled data to files. Default is False.
     - save_dir (str): Directory where the sampled data will be saved. Default is 'data/sampled_data'.
     - feature_to_use (list): List of feature names to select from the data.
     - features_file_path (str): File path to known features of the .npy data (required only if input is NumPy).
 
     Returns:
-    - np.ndarray: The sampled subset of the data.
+    - tuple: (training_data, inference_data)
     """
-    # Load the data 
+    # Load the data
     data_array, feature_names = read_file_to_numpy(data_dir=input_file, features_to_use=feature_to_use, features_file_path=features_file_path)
 
     # Check if sample_size is greater than the dataset size
@@ -276,33 +277,28 @@ def sample_data(input_file, sample_size, save=False, save_dir='data/sampled_data
     print(f"Sampling {sample_size} rows from the dataset...")
     sampled_data = data_array[np.random.choice(data_array.shape[0], sample_size, replace=False)]
 
-    # Optionally save the sampled data as a CSV
+    # Split the sampled data into training/eval and inference sets
+    inference_size = int(sample_size * inference_split)
+    inference_data = sampled_data[:inference_size]
+    train_eval_data = sampled_data[inference_size:]
+
+    # Optionally save the sampled data as two CSV files
     if save:
         os.makedirs(save_dir, exist_ok=True)
-        output_file_path = os.path.join(save_dir, f'sampled_data_{sample_size}.csv')
-        df_sampled = pd.DataFrame(sampled_data, columns=feature_names)  # Convert to DataFrame with column names
-        df_sampled.to_csv(output_file_path, index=False)
-        print(f"Sampled data saved to {output_file_path}")
 
-    return sampled_data
+        # Save training/eval data
+        train_eval_file_path = os.path.join(save_dir, f'sampled_data_train_eval_{sample_size - inference_size}.csv')
+        df_train_eval = pd.DataFrame(train_eval_data, columns=feature_names)
+        df_train_eval.to_csv(train_eval_file_path, index=False)
+        print(f"Training/eval data saved to {train_eval_file_path}")
 
-'''
-def save_features_used(features_to_use, save_dir):
-    """
-    Saves the features used during grid generation to a CSV file.
+        # Save inference data
+        inference_file_path = os.path.join(save_dir, f'sampled_data_inference_{inference_size}.csv')
+        df_inference = pd.DataFrame(inference_data, columns=feature_names)
+        df_inference.to_csv(inference_file_path, index=False)
+        print(f"Inference data saved to {inference_file_path}")
 
-    Args:
-    - features_to_use (list): List of features used in grid generation.
-    - save_dir (str): Directory where the grids are saved.
-
-    Returns:
-    - None
-    """
-    feature_file = os.path.join(save_dir, 'features_used.csv')
-    with open(feature_file, 'w', newline='') as f:
-        writer = csv.writer(f)
-        writer.writerow(features_to_use)
-    print(f"Features saved: {features_to_use}")'''
+    return train_eval_data, inference_data
 
 
 def load_features_used(features_file_path):

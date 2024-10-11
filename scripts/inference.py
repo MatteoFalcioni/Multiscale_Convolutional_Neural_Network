@@ -8,7 +8,7 @@ import os
 from scipy.spatial import cKDTree
 
 
-def inference(model, data_array, window_sizes, grid_resolution, feature_indices, device, save_file=None, subsample_size=200):
+def inference(model, data_array, window_sizes, grid_resolution, feature_indices, device, save_file=None, subsample_size=None):
     """
     Perform inference with the MCNN model, generating grids from point cloud points and comparing predicted labels with known true labels.
 
@@ -35,8 +35,11 @@ def inference(model, data_array, window_sizes, grid_resolution, feature_indices,
     # Compute point cloud bounds once
     point_cloud_bounds = compute_point_cloud_bounds(data_array)
 
-    # Subsample points for inference
-    subsample_indices = np.random.choice(len(data_array), subsample_size, replace=False)
+    if subsample_size is not None:
+        # Subsample points for inference
+        subsample_indices = np.random.choice(data_array.shape[0], subsample_size, replace=False)
+    else: 
+        subsample_indices = range(data_array.shape[0])
 
     # Initialize lists to store predicted and true labels
     predicted_labels_list = []
