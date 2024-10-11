@@ -13,7 +13,10 @@ def train(model, dataloader, criterion, optimizer, device):
     # Initialize tqdm progress bar for the training loop
     progress_bar = tqdm(enumerate(dataloader), total=total_batches, desc='Training', leave=False)
 
-    for i, (small_grids, medium_grids, large_grids, labels) in progress_bar:
+    for i, batch in progress_bar:
+        if batch is None:  # Skip if the batch is None
+            continue
+        
         small_grids, medium_grids, large_grids, labels = (
             small_grids.to(device), medium_grids.to(device), large_grids.to(device), labels.to(device)
         )
@@ -63,7 +66,10 @@ def validate(model, dataloader, criterion, device):
     model.eval()  # Set model to evaluation mode
     val_loss = 0.0
     with torch.no_grad():  # Disable gradient calculation
-        for small_grids, medium_grids, large_grids, labels in dataloader:
+        for batch in dataloader:
+            if batch is None:  # Skip if the batch is None
+                continue
+
             small_grids, medium_grids, large_grids, labels = (
                 small_grids.to(device), medium_grids.to(device), large_grids.to(device), labels.to(device)
             )
