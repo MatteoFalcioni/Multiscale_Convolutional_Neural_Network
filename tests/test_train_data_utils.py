@@ -1,9 +1,11 @@
 import unittest
+from unittest import mock
 from torch.utils.data import DataLoader
 from utils.point_cloud_data_utils import read_file_to_numpy, remap_labels
 from scripts.point_cloud_to_image import compute_point_cloud_bounds
 from scipy.spatial import cKDTree
-from utils.train_data_utils import PointCloudDataset, prepare_dataloader
+from utils.train_data_utils import PointCloudDataset, prepare_dataloader, custom_collate_fn
+import torch
 
 
 class TestPointCloudDataset(unittest.TestCase):
@@ -50,6 +52,33 @@ class TestPointCloudDataset(unittest.TestCase):
             self.assertEqual(label, self.data_array[sample_idx, -1])
         else:
             self.assertIsNone(result, "The point should have been skipped.")
+            
+        
+    @mock.patch('utils.train_data_utils.PointCloudDataset.__getitem__')
+    def test_dataloader_with_none(self, mock_getitem):
+        # Mock __getitem__ to return None for certain indices
+        def side_effect(idx):
+            if idx % 2 == 0:  # Simulate returning None for every other point
+                return None
+            else:
+                # Return a valid tuple with grid data and label
+                return torch.randn(3, self.grid_resolution, self.grid_resolution), \
+                       torch.randn(3, self.grid_resolution, self.grid_resolution), \
+                       torch.randn(3, self.grid_resolution, self.grid_resolution), \
+                       torch.tensor(1)  # Simulate a label
+
+        mock_getitem.side_effect = side_effect
+
+        # Prepare DataLoader using the mocked dataset and your custom collate function
+        dataloader = DataLoader(self.dataset, batch_size=4, collate_fn=custom_collate_fn)
+
+        # Fetch batches and ensure None entries are skipped
+        for batch in dataloader:
+            if batch is not None:
+                small_grid, medium_grid, large_grid, labels = batch
+                # None values should be skipped, so we expect 2 valid entries per batch
+                self.assertEqual(small_grid.size(0), 2, "Batch size should be 2 after skipping None entries.")
+
 
 
 class TestPrepareDataloader(unittest.TestCase):
