@@ -125,7 +125,7 @@ def main():
         model.eval()
 
     # use a file that's never been seen by the model for inference
-    inference_file = 'data/sampled/sampled_data_inference_1000.csv'
+    inference_file = 'data/sampled/sampled_data_inference_10000.csv'
     data_array_inference, _ = read_file_to_numpy(data_dir=inference_file, features_to_use=features_to_use)  # feature indices and num classes in inference should match features in train/eval data
 
     true_labels, predicted_labels = inference(
