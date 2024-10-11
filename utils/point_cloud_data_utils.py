@@ -372,52 +372,35 @@ def remap_labels(data_array, label_column_index=-1):
     return data_array, label_mapping
 
 
-def extract_num_classes(pre_process_data, preprocessed_data_dir=None, raw_file_path=None):
+def extract_num_classes(raw_file_path=None):
     """
-    Extracts the number of unique classes from raw data (LAS, CSV, or NPY) or from preprocessed labels.
+    Extracts the number of unique classes from raw data (LAS, CSV, or NPY).
 
     Args:
     - raw_file_path (str): Path to the input LAS, CSV, or NPY file.
-    - pre_process_data (bool): If True, extract classes from raw data; if False, extract classes from preprocessed files.
-    - preprocessed_data_dir (str, optional): Path to the preprocessed data directory (required if pre_process_data=False).
 
     Returns:
     - int: The number of unique classes.
     """
 
-    if pre_process_data:
-        # Load data from raw files
-        data_array, _ = read_file_to_numpy(raw_file_path)
-        
-        # Extract class labels from the last column of the data array
-        class_labels = data_array[:, -1]
+    if raw_file_path is None: 
+        raise ValueError('ERROR: File path to raw data must be provided to extract the number of classes.')
 
-        # Extract the unique number of classes
-        num_classes = len(np.unique(class_labels))
-        
-    else: 
-        if preprocessed_data_dir is None:
-            raise ValueError("preprocessed_data_dir is required when pre_process_data is False.")
+    # Load data from raw files
+    data_array, _ = read_file_to_numpy(raw_file_path)
+    
+    # Extract class labels from the last column of the data array
+    class_labels = data_array[:, -1]
 
-        # Load the labels from the unified 'labels.csv' file
-        labels_file = os.path.join(preprocessed_data_dir, 'labels.csv')
-        
-        if not os.path.exists(labels_file):
-            raise FileNotFoundError(f"Labels file not found in {labels_file}")
-        
-        # Read the labels CSV and extract the class labels
-        labels_df = pd.read_csv(labels_file)
-        class_labels = labels_df['label'].values
-
-        # Extract the unique number of classes from the labels
-        num_classes = len(np.unique(class_labels))
+    # Extract the unique number of classes
+    num_classes = len(np.unique(class_labels))
 
     print(f"Number of unique classes: {num_classes}")
     
     return num_classes
 
 
-def extract_num_channels(preprocessed_data_dir):
+'''def extract_num_channels(preprocessed_data_dir):
     """
     Extracts the number of channels from the preprocessed grid files.
 
@@ -439,4 +422,4 @@ def extract_num_channels(preprocessed_data_dir):
     # The number of channels is the first dimension in the shape (assuming format: [channels, height, width])
     num_channels = sample_grid.shape[0]
     
-    return num_channels
+    return num_channels'''
