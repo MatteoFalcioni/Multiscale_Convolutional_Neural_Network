@@ -6,7 +6,7 @@ from utils.train_data_utils import prepare_dataloader, initialize_weights
 from scripts.train import train_epochs
 from scripts.inference import inference
 from utils.config_handler import parse_arguments
-from utils.point_cloud_data_utils import read_file_to_numpy, read_las_file_to_numpy, remap_labels, extract_num_classes
+from utils.point_cloud_data_utils import read_file_to_numpy, extract_num_classes, get_feature_indices
 import numpy as np
 
 
@@ -20,6 +20,7 @@ def main():
     # feature images creation params
     window_sizes = args.window_sizes
     features_to_use = args.features_to_use
+    grid_resolution = 128   # hard-coded value, following reference article
     
     # training params
     batch_size = args.batch_size
@@ -34,10 +35,12 @@ def main():
     load_model = args.load_model   # whether to load model for inference or train a new one
     model_path = args.load_model_filepath
     
-    _, known_features = read_file_to_numpy(data_dir=data_dir, features_to_use=None)   # get the known features from the raw file path.
+    data_array, known_features = read_file_to_numpy(data_dir=data_dir, features_to_use=None)   # get the np array data and the known features from the raw file path.
 
     num_channels = len(features_to_use)  # Determine the number of channels based on selected features
     num_classes = extract_num_classes(raw_file_path=data_dir) # determine the number of classes from the raw data
+    
+    feature_indices = get_feature_indices(features_to_use=features_to_use, known_features=known_features)   # get the corresponding indices of the chosen features in known features
     
     print(f'window sizes: {window_sizes}')
     
@@ -60,7 +63,7 @@ def main():
         batch_size=batch_size,
         data_dir=data_dir,
         window_sizes=window_sizes,
-        grid_resolution=128,
+        grid_resolution=grid_resolution,
         features_to_use=features_to_use,
         train_split=0.8
     )
@@ -75,7 +78,7 @@ def main():
     scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=step_size,
                                           gamma=learning_rate_decay_factor)
 
-    # Start training with early stopping
+    # Training loop
     print("Starting training process...")
     train_epochs(
         model,
@@ -96,15 +99,7 @@ def main():
 
     # Run inference on a sample
     print("Starting inference process...")
-
-    data_array, _ = read_las_file_to_numpy(args.raw_data_filepath)
-    # need to remap labels to match the ones in training. Maybe consider remapping already when doing las -> numpy ?
-    remapped_array, _ = remap_labels(data_array)
-    sample_array = remapped_array[np.random.choice(remapped_array.shape[0], 200, replace=False)]
-    ground_truth_labels = sample_array[:, -1]  # Assuming labels are in the last column
-
-    load_model = args.load_model   # whether to load model for inference or train a new one
-    model_path = args.load_model_filepath
+    
     if load_model:
         loaded_model = MultiScaleCNN(channels=num_channels, classes=num_classes).to(device)
         # Load the saved model state dictionary
@@ -113,21 +108,17 @@ def main():
         # Set model to evaluation mode (important for inference)
         model.eval()
 
-    predicted_labels = inference(
-        model,
-        data_array=sample_array,
-        window_sizes=[('small', 2.5), ('medium', 5.0), ('large', 10.0)],
-        grid_resolution=128,
-        channels=num_channels,
-        device=device,
-        true_labels=ground_truth_labels, 
-        save_file=f'results/labels/'
+    true_labels, predicted_labels = inference(
+        model=model,
+        data_array=data_array,
+        window_sizes=window_sizes,
+        grid_resolution=grid_resolution,
+        feature_indices=feature_indices,
+        save_file='results/inference/inference.csv',
+        subsample_size=15
     )
-
-    for i in len(ground_truth_labels):
-        print(f'predicted label: {predicted_labels[i]}, true label: {ground_truth_labels[i]}')
-    print('process ended successfully.')
-
+    
+    print(f'Inference process ended. Ground truth labels: {true_labels} \n Predicted labels: {predicted_labels}')
 
 
 if __name__ == "__main__":

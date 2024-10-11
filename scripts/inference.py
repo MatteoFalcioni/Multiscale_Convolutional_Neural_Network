@@ -23,7 +23,7 @@ def inference(model, data_array, window_sizes, grid_resolution, feature_indices,
     - subsample_size (int): Number of points to randomly sample for inference.
 
     Returns:
-    - predicted_labels (torch.Tensor): Predicted class labels.
+    - true_labels_list, predicted_labels_list (lists): True and predicted class labels.
     """
     
     # remap labels to match the remapping in the original data (it was eneded to use cross entropy loss)
@@ -96,9 +96,6 @@ def inference(model, data_array, window_sizes, grid_resolution, feature_indices,
             for true, pred in zip(true_labels_list, predicted_labels_list):
                 writer.writerow([int(true), int(pred)])
 
-    # Convert the predicted labels to a tensor and return
-    predicted_labels_tensor = torch.tensor(predicted_labels_list, dtype=torch.long)
-
-    return predicted_labels_tensor
+    return true_labels_list, predicted_labels_list
 
 
