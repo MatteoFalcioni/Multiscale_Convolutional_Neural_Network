@@ -6,30 +6,47 @@ from utils.train_data_utils import prepare_dataloader, initialize_weights
 from scripts.train import train_epochs
 from scripts.inference import inference
 from utils.config_handler import parse_arguments
-from utils.point_cloud_data_utils import read_las_file_to_numpy, remap_labels, extract_num_classes, extract_num_channels
+from utils.point_cloud_data_utils import read_file_to_numpy, read_las_file_to_numpy, remap_labels, extract_num_classes
 import numpy as np
 
 
 def main():
     # Parse arguments with defaults from config.yaml
     args = parse_arguments()
-    print(f'window sizes: {args.window_sizes}')
+    
+    # raw data file path
+    data_dir = args.raw_data_filepath   
+    
+    # feature images creation params
+    window_sizes = args.window_sizes
+    features_to_use = args.features_to_use
+    
+    # training params
+    batch_size = args.batch_size
+    epochs = args.epochs
+    patience = args.patience
+    learning_rate = args.learning_rate
+    momentum = args.momentum
+    step_size = args.learning_rate_decay_epochs
+    learning_rate_decay_factor = args.learning_rate_decay_factor
+    
+    # inference params
+    load_model = args.load_model   # whether to load model for inference or train a new one
+    model_path = args.load_model_filepath
+    
+    _, known_features = read_file_to_numpy(data_dir=data_dir, features_to_use=None)   # get the known features from the raw file path.
+
+    num_channels = len(features_to_use)  # Determine the number of channels based on selected features
+    num_classes = extract_num_classes(raw_file_path=data_dir) # determine the number of classes from the raw data
+    
+    print(f'window sizes: {window_sizes}')
+    
+    print(f'features contained in raw data file: {known_features}')
+    print(f'selected features to use during training: {features_to_use}')
 
     # Set device (GPU if available)
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-    print(f"Using device: {device}")
-
-
-    # Extract user-selected features from the config, only if pre-processing data: 
-    if args.preprocess_data:
-        features_to_use = args.features_to_use  # List of features chosen by the user
-        num_channels = len(features_to_use)  # Determine the number of channels based on selected features
-    else:
-        features_to_use = None    # no need to select features if training data already exists
-        num_channels=extract_num_channels(args.preprocessed_data_dir)   # extract number of channels from existing grids
-
-    # determine the number of classes
-    num_classes = extract_num_classes(raw_file_path=args.raw_data_filepath, pre_process_data=args.preprocess_data, preprocessed_data_dir=args.preprocessed_data_dir)   
+    print(f"Using device: {device}")  
 
     # Initialize model 
     print("Initializing MultiScaleCNN (MCNN) model...")
@@ -40,11 +57,9 @@ def main():
     print("Preparing data loaders...")
 
     train_loader, val_loader = prepare_dataloader(
-        batch_size=args.batch_size,
-        data_dir=args.raw_data_filepath,
-        grid_save_dir=args.preprocessed_data_dir,
-        pre_process_data=args.preprocess_data,
-        window_sizes=args.window_sizes,
+        batch_size=batch_size,
+        data_dir=data_dir,
+        window_sizes=window_sizes,
         grid_resolution=128,
         features_to_use=features_to_use,
         train_split=0.8
@@ -54,11 +69,11 @@ def main():
     criterion = nn.CrossEntropyLoss()
 
     # Set up optimizer (Stochastic Gradient Descent)
-    optimizer = optim.SGD(model.parameters(), lr=args.learning_rate, momentum=args.momentum)
+    optimizer = optim.SGD(model.parameters(), lr=learning_rate, momentum=momentum)
 
     # Learning rate scheduler
-    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=args.learning_rate_decay_epochs,
-                                          gamma=args.learning_rate_decay_factor)
+    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=step_size,
+                                          gamma=learning_rate_decay_factor)
 
     # Start training with early stopping
     print("Starting training process...")
@@ -69,8 +84,8 @@ def main():
         criterion,
         optimizer,
         scheduler,
-        args.epochs,
-        args.patience,
+        epochs,
+        patience,
         device,
         save=True,
         plot_dir='results/plots/',

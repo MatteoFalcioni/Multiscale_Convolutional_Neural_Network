@@ -19,7 +19,7 @@ def inference(model, data_array, window_sizes, grid_resolution, feature_indices,
     - grid_resolution (int): Resolution of the grid (e.g., 128x128).
     - feature_indices (list): List of feature indices to be selected from the full list of features.
     - device (torch.device): The device (CPU or GPU) to perform inference on.
-    - save_file (str): Path to the file where labels will be saved.
+    - save_file (str): The full path to the file where labels will be saved.
     - subsample_size (int): Number of points to randomly sample for inference.
 
     Returns:
@@ -79,12 +79,17 @@ def inference(model, data_array, window_sizes, grid_resolution, feature_indices,
             true_labels_list.append(true_label)
 
     # Optionally save the true and predicted labels to a file
+    # If save_file is provided, ensure the directory exists
     if save_file:
-        os.makedirs(save_file, exist_ok=True)
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")  # Add timestamp to filename
+        save_dir = os.path.dirname(save_file)
+        os.makedirs(save_dir, exist_ok=True)
+
+        # Add timestamp to filename to avoid overwriting
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         file_name, file_extension = os.path.splitext(save_file)
         save_file_with_timestamp = f"{file_name}_{timestamp}{file_extension}"
 
+        # Open the file for writing and save the true/predicted labels
         with open(save_file_with_timestamp, 'w', newline='') as f:
             writer = csv.writer(f)
             writer.writerow(['True Label', 'Predicted Label'])  # Header
