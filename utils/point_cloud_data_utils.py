@@ -399,6 +399,26 @@ def extract_num_classes(raw_file_path=None):
     
     return num_classes
 
+def get_feature_indices(features_to_use, known_features):
+    """
+    Given a list of chosen features and the known features in the data array, this function
+    returns the indices of the chosen features.
+
+    Args:
+    - features_to_use (list of str): List of feature names to use (e.g., ['intensity', 'red', 'green', 'blue']).
+    - known_features (list of str): List of all known features in the point cloud data (e.g., ['x', 'y', 'z', 'intensity', 'red', 'green', 'blue']).
+
+    Returns:
+    - list of int: The indices of the chosen features in the known features array.
+    """
+    try:
+        feature_indices = [known_features.index(feature) for feature in features_to_use]
+    except ValueError as e:
+        raise ValueError(f"Feature {str(e).split()[0]} not found in known features: {known_features}")
+    
+    return feature_indices
+
+
 
 '''def extract_num_channels(preprocessed_data_dir):
     """
