@@ -286,7 +286,7 @@ def sample_data(input_file, sample_size, save=False, save_dir='data/sampled_data
 
     return sampled_data
 
-
+'''
 def save_features_used(features_to_use, save_dir):
     """
     Saves the features used during grid generation to a CSV file.
@@ -302,7 +302,7 @@ def save_features_used(features_to_use, save_dir):
     with open(feature_file, 'w', newline='') as f:
         writer = csv.writer(f)
         writer.writerow(features_to_use)
-    print(f"Features saved: {features_to_use}")
+    print(f"Features saved: {features_to_use}")'''
 
 
 def load_features_used(features_file_path):

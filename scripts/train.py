@@ -17,6 +17,10 @@ def train(model, dataloader, criterion, optimizer, device):
         if batch is None:  # Skip if the batch is None
             continue
         
+        # Unpack the batch
+        small_grids, medium_grids, large_grids, labels = batch
+
+        
         small_grids, medium_grids, large_grids, labels = (
             small_grids.to(device), medium_grids.to(device), large_grids.to(device), labels.to(device)
         )
@@ -69,6 +73,9 @@ def validate(model, dataloader, criterion, device):
         for batch in dataloader:
             if batch is None:  # Skip if the batch is None
                 continue
+            
+            # Unpack the batch
+            small_grids, medium_grids, large_grids, labels = batch
 
             small_grids, medium_grids, large_grids, labels = (
                 small_grids.to(device), medium_grids.to(device), large_grids.to(device), labels.to(device)
