@@ -2,7 +2,7 @@ import torch
 from torch.utils.data import Dataset, DataLoader, random_split
 import os
 import numpy as np
-from utils.point_cloud_data_utils import read_file_to_numpy
+from utils.point_cloud_data_utils import read_file_to_numpy, remap_labels
 from scripts.point_cloud_to_image import generate_multiscale_grids, compute_point_cloud_bounds
 from datetime import datetime
 import pandas as pd
@@ -28,7 +28,7 @@ class PointCloudDataset(Dataset):
         Dataset class for streaming multiscale grid generation from point cloud data.
 
         Args:
-        - data_array (numpy.ndarray): The entire point cloud data array.
+        - data_array (numpy.ndarray): The entire point cloud data array (already remapped).
         - window_sizes (list): List of tuples for grid window sizes (e.g., [('small', 2.5), ('medium', 5.0), ('large', 10.0)]).
         - grid_resolution (int): Grid resolution (e.g., 128x128).
         - features_to_use (list): List of feature names for generating grids.
@@ -125,6 +125,9 @@ def prepare_dataloader(batch_size, data_dir=None,
 
     # Step 1: Read the raw point cloud data into memory
     data_array, known_features = read_file_to_numpy(data_dir=data_dir, features_to_use=None, features_file_path=features_file_path)   # with None as features_to_use we get the known features (all the feats in the data)
+    
+    # Step 2: remap labels to esnure they vary continously 
+    data_array, _ = remap_labels(data_array)
 
     # Step 2: Create the dataset using the new streaming-based approach
     full_dataset = PointCloudDataset(
