@@ -5,13 +5,28 @@ from tqdm import tqdm
 
 
 def train(model, dataloader, criterion, optimizer, device):
+    """
+    Trains the MultiScale CNN model for one epoch.
+
+    Args:
+    - model (nn.Module): The PyTorch model to be trained.
+    - dataloader (DataLoader): The DataLoader object containing the training data.
+    - criterion (nn.Module): The loss function to compute the error between predicted and true labels.
+    - optimizer (torch.optim.Optimizer): The optimizer used to update the model's weights (e.g., SGD, Adam).
+    - device (torch.device): The device (CPU or GPU) where the computations will be performed.
+
+    Returns:
+    - float: The average loss for the entire epoch, computed as the total weighted loss divided by the total number of processed samples.
+
+    Raises:
+    - ValueError: If NaN or Inf loss is encountered during training.
+    """
     model.train()  # Set model to training mode
     total_loss = 0.0  # This will accumulate the loss for the entire epoch
-    running_loss = 0.0  # This will be used for logging every 10 batches
-    total_batches = len(dataloader)  # Total number of batches
+    total_samples = 0  # This will keep track of the total number of samples processed
 
     # Initialize tqdm progress bar for the training loop
-    progress_bar = tqdm(enumerate(dataloader), total=total_batches, desc='Training', leave=False)
+    progress_bar = tqdm(enumerate(dataloader), total=len(dataloader), desc='Training', leave=False)
 
     for i, batch in progress_bar:
         if batch is None:  # Skip if the batch is None
@@ -24,6 +39,8 @@ def train(model, dataloader, criterion, optimizer, device):
         small_grids, medium_grids, large_grids, labels = (
             small_grids.to(device), medium_grids.to(device), large_grids.to(device), labels.to(device)
         )
+        
+        batch_size = labels.size(0) # get the actual batch size
 
         # Zero the parameter gradients
         optimizer.zero_grad()
@@ -42,16 +59,18 @@ def train(model, dataloader, criterion, optimizer, device):
         loss.backward()
         optimizer.step()
 
-        total_loss += loss.item()  # Accumulate total loss
-        running_loss += loss.item()  # Accumulate running loss for logging
+        total_loss += loss.item() * batch_size  # Accumulate weighted loss (by batch size)
+        total_samples += batch_size  # Accumulate the number of samples processed
 
-        # Update progress bar description every batch
-        if i % 10 == 9:
-            progress_bar.set_postfix({'Batch Loss': running_loss / 10})
-            running_loss = 0.0  # Reset running loss after logging
+        # Update progress bar every 10 batches
+        if (i + 1) % 10 == 0:
+            progress_bar.set_postfix({
+                'Current Batch Loss': loss.item(),  # loss.item() is the loss for the current batch
+                'Avg Loss So Far': total_loss / total_samples   # total_loss / total_samples is the the avg loss per point proces so far in the epoch
+            })
 
-    # Return the average loss over the epoch
-    return total_loss / total_batches
+    # Return the average loss over all samples
+    return total_loss / total_samples
 
 
 def validate(model, dataloader, criterion, device):
@@ -68,7 +87,9 @@ def validate(model, dataloader, criterion, device):
     - float: the average validation loss for each epoch
     """
     model.eval()  # Set model to evaluation mode
-    val_loss = 0.0
+    val_loss = 0.0  # To accumulate the total loss
+    total_samples = 0  # To track the total number of samples processed
+
     with torch.no_grad():  # Disable gradient calculation
         for batch in dataloader:
             if batch is None:  # Skip if the batch is None
@@ -81,12 +102,19 @@ def validate(model, dataloader, criterion, device):
                 small_grids.to(device), medium_grids.to(device), large_grids.to(device), labels.to(device)
             )
 
-            # Forward pass with three inputs
+            # Get the batch size
+            batch_size = labels.size(0)
+
+            # Forward pass
             outputs = model(small_grids, medium_grids, large_grids)
             loss = criterion(outputs, labels)
-            val_loss += loss.item()
 
-    return val_loss / len(dataloader)
+            # Accumulate the loss weighted by batch size
+            val_loss += loss.item() * batch_size
+            total_samples += batch_size
+
+    # Return the average validation loss per sample
+    return val_loss / total_samples
 
 
 def train_epochs(model, train_loader, val_loader, criterion, optimizer, scheduler, epochs, patience, device, model_save_dir='models/saved/', plot_dir='results/plots/', save=False):
