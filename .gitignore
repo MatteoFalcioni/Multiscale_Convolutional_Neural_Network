@@ -26,3 +26,6 @@ __pycache__/
 *.pth
 *.csv
 *.npy
+*.las
+*.asc
+
