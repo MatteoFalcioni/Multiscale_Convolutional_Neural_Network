@@ -13,7 +13,7 @@ window_sizes:    # window sizes to be used for grids
   - [medium, 5.0]
   - [large, 10.0] 
 
-features_to_use: ['intensity', 'R', 'G' , 'B' ,'nvi' ,'ndwi']  # features to be used for training
+features_to_use: ['intensity', 'red', 'green' , 'blue' ,'nvi' ,'ndwi']  # features to be used for training
 
 # -- (!) -- note: features_to_use includes only the additional features, meaning that x,y,z are always already included and not counted in the channels -------- 
 # -- (!) -------  but notice that x,y,z are employed in grid's feature assignment (through nearest neighbour search), but are not assigned as features to the grids
