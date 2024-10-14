@@ -6,9 +6,59 @@ import csv
 from datetime import datetime
 import os
 from scipy.spatial import cKDTree
+from sklearn.metrics import confusion_matrix, classification_report
 
 
-def inference(model, data_array, window_sizes, grid_resolution, feature_indices, device, save_file=None, subsample_size=200):
+def inference(model, dataloader, device, save=False, save_dir=None):
+    """
+    Runs inference on the provided data and returns the predicted and true labels.
+
+    Args:
+    - model (nn.Module): The trained PyTorch model.
+    - dataloader (DataLoader): DataLoader containing the data for inference.
+    - device (torch.device): The device (CPU or GPU) where computations will be performed.
+
+    Returns:
+    - Confusion matrix and classification report
+    """
+
+    model.eval()  # Set model to evaluation mode
+    all_preds = []  # To store all predictions
+    all_labels = []  # To store all true labels
+
+    with torch.no_grad():  # No gradient calculation during inference
+        for batch in dataloader:
+            if batch is None:
+                continue
+
+            # Unpack the batch
+            small_grids, medium_grids, large_grids, labels = batch
+            small_grids, medium_grids, large_grids, labels = (
+                small_grids.to(device), medium_grids.to(device), large_grids.to(device), labels.to(device)
+            )
+
+            # Forward pass to get outputs
+            outputs = model(small_grids, medium_grids, large_grids)
+            preds = torch.argmax(outputs, dim=1)  # Get predicted labels
+
+            # Append predictions and true labels to lists
+            all_preds.append(preds.cpu().numpy())
+            all_labels.append(labels.cpu().numpy())
+
+    # Concatenate lists to arrays
+    all_preds = np.concatenate(all_preds)
+    all_labels = np.concatenate(all_labels)
+
+    # Confusion matrix
+    conf_matrix = confusion_matrix(all_labels, all_preds)
+    
+    # Classification report (including precision, recall, F1-score)
+    class_report = classification_report(all_labels, all_preds)
+
+    return conf_matrix, class_report
+
+
+def inference_with_csv(model, data_array, window_sizes, grid_resolution, feature_indices, device, save_file=None, subsample_size=200):
     """
     Perform inference with the MCNN model, generating grids from point cloud points and comparing predicted labels with known true labels.
 
@@ -97,5 +147,3 @@ def inference(model, data_array, window_sizes, grid_resolution, feature_indices,
                 writer.writerow([int(true), int(pred)])
 
     return true_labels_list, predicted_labels_list
-
-
