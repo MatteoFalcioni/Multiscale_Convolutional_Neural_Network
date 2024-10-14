@@ -10,6 +10,7 @@ from scipy.spatial import cKDTree
 import csv
 import matplotlib.pyplot as plt
 import seaborn as sns
+from models.mcnn import MultiScaleCNN
 
 
 def initialize_weights(model):
@@ -158,7 +159,6 @@ def prepare_dataloader(batch_size, data_dir=None,
     return train_loader, eval_loader
 
 
-
 def save_model(model, save_dir='models/saved', used_features=None, hyperparameters=None):
     """
     Saves the PyTorch model along with the features and hyperparameters used in training.
@@ -193,6 +193,32 @@ def save_model(model, save_dir='models/saved', used_features=None, hyperparamete
         save_used_parameters(used_features, hyperparameters, model_save_folder)
 
     return model_save_folder
+
+
+def load_model(model_path, device, num_channels, num_classes):
+    """
+    Loads a saved PyTorch model, initializes it, and sets it to evaluation mode.
+
+    Args:
+    - model_path (str): Path to the saved model state dictionary.
+    - device (torch.device): Device where the model will be loaded (CPU or GPU).
+    - num_channels (int): Number of input channels for the model.
+    - num_classes (int): Number of output classes for the model.
+
+    Returns:
+    - model (torch.nn.Module): The loaded and initialized model set to evaluation mode.
+    """
+    # Initialize the model
+    model = MultiScaleCNN(channels=num_channels, classes=num_classes).to(device)
+    
+    # Load the saved model state dictionary
+    model.load_state_dict(torch.load(model_path, map_location=device))
+    
+    # Set the model to evaluation mode
+    model.eval()
+    
+    return model
+
     
     
 def save_used_parameters(used_features=None, hyperparameters=None, save_dir='models/saved'):
