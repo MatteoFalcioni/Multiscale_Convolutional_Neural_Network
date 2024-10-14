@@ -1,6 +1,4 @@
 import numpy as np
-import os
-from tqdm import tqdm
 
 def compute_point_cloud_bounds(data_array, padding=0.0):
     """
@@ -120,8 +118,7 @@ def generate_multiscale_grids(center_point, data_array, window_sizes, grid_resol
     grids_dict = {}  # To store grids for each scale
     channels = len(feature_indices)
     
-    skipped = False
-    
+    skipped = False    
 
     for size_label, window_size in window_sizes:
         half_window = window_size / 2
