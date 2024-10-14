@@ -7,7 +7,7 @@ from scripts.train import train_epochs
 from scripts.inference import inference
 from utils.config_handler import parse_arguments
 from utils.point_cloud_data_utils import read_file_to_numpy, extract_num_classes, get_feature_indices
-import numpy as np
+import time
 
 
 def main():
@@ -41,8 +41,6 @@ def main():
     num_channels = len(features_to_use)  # Determine the number of channels based on selected features
     num_classes = extract_num_classes(raw_file_path=data_dir) # determine the number of classes from the raw data
     
-    feature_indices = get_feature_indices(features_to_use=features_to_use, known_features=known_features)   # get the corresponding indices of the chosen features in known features
-    
     print(f'window sizes: {window_sizes}')
     
     print(f'features contained in raw data file: {known_features}')
@@ -58,7 +56,8 @@ def main():
         'learning_rate' : learning_rate,
         'momentum' : momentum,
         'step_size' : step_size,
-        'learning_rate_decay_factor' : learning_rate_decay_factor
+        'learning_rate_decay_factor' : learning_rate_decay_factor,
+        'num_workers' : num_workers
     }
 
     # Set device (GPU if available)
@@ -95,6 +94,8 @@ def main():
 
     # Training loop
     print("Starting training process...")
+    start_time = time.time()
+
     model_save_folder = train_epochs(
                                         model,
                                         train_loader,
@@ -113,6 +114,10 @@ def main():
                                     )
 
     print("Training finished")
+
+    end_time = time.time()
+    elapsed_time = end_time - start_time
+    print(f"Training time: {elapsed_time:.2f} seconds")
 
     # Run inference 
     print("Starting inference process...")
