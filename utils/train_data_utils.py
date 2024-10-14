@@ -121,7 +121,6 @@ def prepare_dataloader(batch_size, data_dir=None,
     Returns:
     - train_loader (DataLoader): DataLoader for training.
     - eval_loader (DataLoader): DataLoader for validation (if train_split > 0).
-    - label_dictionary (dict): Dictionary encoding the initial labels, which were remapped for CrossEntropyLoss. 
     """
     
     # check if raw data directory was passed as input
@@ -132,7 +131,7 @@ def prepare_dataloader(batch_size, data_dir=None,
     data_array, known_features = read_file_to_numpy(data_dir=data_dir, features_to_use=None, features_file_path=features_file_path)   # with None as features_to_use we get the known features (all the feats in the data)
     
     # Step 2: remap labels to esnure they vary continously (needed for CrossEntropyLoss)
-    data_array, labels_dictionary = remap_labels(data_array)
+    data_array, _ = remap_labels(data_array)
 
     # Step 2: Create the dataset using the new streaming-based approach
     full_dataset = PointCloudDataset(
@@ -157,7 +156,7 @@ def prepare_dataloader(batch_size, data_dir=None,
         train_loader = DataLoader(full_dataset, batch_size=batch_size, shuffle=True, collate_fn=custom_collate_fn, num_workers=num_workers)
         eval_loader = None
 
-    return train_loader, eval_loader, labels_dictionary
+    return train_loader, eval_loader
 
 
 def save_model(model, save_dir='models/saved', used_features=None, hyperparameters=None):

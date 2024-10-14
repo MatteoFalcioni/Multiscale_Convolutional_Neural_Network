@@ -94,7 +94,7 @@ class TestPrepareDataloader(unittest.TestCase):
 
     def test_dataloader_full_dataset(self):
         # Prepare DataLoader without train/test split (using full dataset)
-        train_loader, eval_loader, _ = prepare_dataloader(
+        train_loader, eval_loader = prepare_dataloader(
             batch_size=self.batch_size,
             data_dir=self.data_dir,
             window_sizes=self.window_sizes,
@@ -119,7 +119,7 @@ class TestPrepareDataloader(unittest.TestCase):
 
     def test_train_eval_dataloader(self):
         # Load both train and eval DataLoader
-        train_loader, eval_loader, _ = prepare_dataloader(
+        train_loader, eval_loader = prepare_dataloader(
             batch_size=self.batch_size,
             data_dir=self.data_dir,
             window_sizes=self.window_sizes,
