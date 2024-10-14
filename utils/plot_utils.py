@@ -2,6 +2,8 @@ import matplotlib.pyplot as plt
 import os
 from datetime import datetime
 import numpy as np
+import seaborn as sns
+import pandas as pd
 
 
 def plot_loss(train_losses, val_losses, save_dir='results/plots/'):
