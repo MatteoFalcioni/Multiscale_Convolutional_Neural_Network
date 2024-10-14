@@ -47,8 +47,8 @@ def main():
     print(f'features contained in raw data file: {known_features}')
     print(f'selected features to use during training: {features_to_use}')
     
-    hyperparameters = {     # store them in dictionary in order to save them together with the model
-        'number of points' : data_array.shape[0],
+    hyperparameters = {     # store hyperparameters in dictionary in order to save them together with the model
+        'number of total points' : data_array.shape[0],
         'window_sizes' : window_sizes,
         'grid_resolution': grid_resolution,
         'batch_size': batch_size,
@@ -94,22 +94,22 @@ def main():
 
     # Training loop
     print("Starting training process...")
-    train_epochs(
-        model,
-        train_loader,
-        val_loader,
-        criterion,
-        optimizer,
-        scheduler,
-        epochs,
-        patience,
-        device,
-        save=True,
-        plot_dir='results/plots/',
-        model_save_dir="models/saved/",
-        used_features=features_to_use,
-        hyperparameters=hyperparameters
-    )
+    model_save_folder = train_epochs(
+                                        model,
+                                        train_loader,
+                                        val_loader,
+                                        criterion,
+                                        optimizer,
+                                        scheduler,
+                                        epochs,
+                                        patience,
+                                        device,
+                                        save=True,
+                                        plot_dir='results/plots/',
+                                        model_save_dir="models/saved/",
+                                        used_features=features_to_use,
+                                        hyperparameters=hyperparameters
+                                    )
 
     print("Training finished")
 
@@ -124,20 +124,6 @@ def main():
         # Set model to evaluation mode (important for inference)
         model.eval()
 
-    # use a file that's never been seen by the model for inference
-    inference_file = 'data/sampled/sampled_data_inference_10000.csv'
-    data_array_inference, _ = read_file_to_numpy(data_dir=inference_file, features_to_use=features_to_use)  # feature indices and num classes in inference should match features in train/eval data
-
-    true_labels, predicted_labels = inference(
-        model=model,
-        data_array=data_array_inference,
-        window_sizes=window_sizes,
-        grid_resolution=grid_resolution,
-        feature_indices=feature_indices,
-        save_file='results/inference/inference.csv',
-        subsample_size=None,
-        device=device
-    )
     
     print(f'Inference process ended.')  # Ground truth labels: {true_labels} \n Predicted labels: {predicted_labels}
 
