@@ -14,8 +14,8 @@ window_sizes:    # window sizes to be used for grids
 
 features_to_use: ['intensity', 'R', 'G' , 'B' ,'nvi' ,'ndwi']  # features to be used for training
 
-# -- (!) -- note: features to use include only the additional features, meaning that x,y,z are always already included and not counted in the channels -------- 
-
+# -- (!) -- note: features_to_use includes only the additional features, meaning that x,y,z are always already included and not counted in the channels -------- 
+# -- (!) -------  but notice that x,y,z are employed in grid's feature assignment (through nearest neighbour search), but are not assigned as features to the grids
 
 # User options
 models_save_dir: "models/saved/"      # Model save path base directory
