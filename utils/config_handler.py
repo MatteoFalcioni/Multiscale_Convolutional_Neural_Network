@@ -41,6 +41,8 @@ def parse_arguments():
                         help='Learning rate decay factor')
     parser.add_argument('--momentum', type=float, default=config.get('momentum', 0.9),
                         help='Momentum factor for the optimizer')
+    parser.add_argument('--num_workers', type=int, default=config.get('num_workers', 16),
+                        help='Number of workers for parallel processing')
     parser.add_argument('--models_save_dir', type=str, default=config.get('models_save_dir', 'models/saved/'),
                         help='Directory to save trained models')
     parser.add_argument('--save_model', action='store_true', default=config.get('save_model', False),
@@ -56,7 +58,7 @@ def parse_arguments():
                     default=config.get('window_sizes', [('small', 2.5), ('medium', 5.0), ('large', 10.0)]),
                     help="List of window sizes for grid generation (e.g., [('small', 2.5), ('medium', 5.0), ('large', 10.0)])")
     parser.add_argument('--features_to_use', type=str, nargs='+', default=config.get('features_to_use'),
-                    help='List of feature names to use for training (e.g., intensity R G B)')
+                    help='List of feature names to use for training (e.g., intensity red green blue)')
 
     # Parsing arguments
     args = parser.parse_args()

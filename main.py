@@ -30,6 +30,7 @@ def main():
     momentum = args.momentum
     step_size = args.learning_rate_decay_epochs
     learning_rate_decay_factor = args.learning_rate_decay_factor
+    num_workers = args.num_workers
     
     # inference params
     use_loaded_model = args.load_model   # whether to load model for inference or train a new one
@@ -79,7 +80,7 @@ def main():
         grid_resolution=grid_resolution,
         features_to_use=features_to_use,
         train_split=0.8,
-        num_workers=16
+        num_workers=num_workers
     )
 
     # Set up CrossEntropy loss function

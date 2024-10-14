@@ -104,7 +104,7 @@ def custom_collate_fn(batch):
 
 def prepare_dataloader(batch_size, data_dir=None, 
                        window_sizes=None, grid_resolution=128, features_to_use=None, 
-                       train_split=0.8, features_file_path=None, num_workers = 0):
+                       train_split=0.8, features_file_path=None, num_workers = 4):
     """
     Prepares the DataLoader by loading the raw data and streaming multiscale grid generation.
     
