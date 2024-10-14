@@ -24,3 +24,6 @@ saved/
 __pycache__/
 *.pyc
 *.pth
+*.las
+*.csv
+*.npy
