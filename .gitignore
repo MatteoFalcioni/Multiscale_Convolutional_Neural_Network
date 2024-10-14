@@ -20,3 +20,6 @@ tests/debug/GPU_grids/labels.csv
 tests/debug/CPU_grids
 tests/debug/GPU_grids
 saved/
+# Ignore Python cache files
+__pycache__/
+*.pyc
