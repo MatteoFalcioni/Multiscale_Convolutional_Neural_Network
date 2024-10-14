@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from models.mcnn import MultiScaleCNN
-from utils.train_data_utils import prepare_dataloader, initialize_weights
+from utils.train_data_utils import prepare_dataloader, initialize_weights, load_model 
 from scripts.train import train_epochs
 from scripts.inference import inference
 from utils.config_handler import parse_arguments
@@ -32,7 +32,7 @@ def main():
     learning_rate_decay_factor = args.learning_rate_decay_factor
     
     # inference params
-    load_model = args.load_model   # whether to load model for inference or train a new one
+    use_loaded_model = args.load_model   # whether to load model for inference or train a new one
     model_path = args.load_model_filepath
     
     data_array, known_features = read_file_to_numpy(data_dir=data_dir, features_to_use=None)   # get the known features from the raw file path.
@@ -113,19 +113,16 @@ def main():
 
     print("Training finished")
 
-    # Run inference on a sample
+    # Run inference 
     print("Starting inference process...")
-    
-    if load_model:
-        loaded_model = MultiScaleCNN(channels=num_channels, classes=num_classes).to(device)
-        # Load the saved model state dictionary
-        loaded_model.load_state_dict(torch.load(model_path, map_location=device))
-        model = loaded_model
-        # Set model to evaluation mode (important for inference)
-        model.eval()
 
+    # load pre-trained model if chosen by the user
+    if use_loaded_model:
+        model = load_model(model_path=model_path, device=device, num_channels=num_channels, num_classes=num_classes)
+
+    conf_matrix, class_report = inference(model=model, dataloader=val_loader, device=device, class_names='', model_save_folder=model_save_folder, save=True)
     
-    print(f'Inference process ended.')  # Ground truth labels: {true_labels} \n Predicted labels: {predicted_labels}
+    print(f'Inference process ended.') 
 
 
 if __name__ == "__main__":
