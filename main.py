@@ -120,13 +120,11 @@ def main():
     if use_loaded_model:
         model = load_model(model_path=model_path, device=device, num_channels=num_channels, num_classes=num_classes)
 
-    conf_matrix, class_report = inference(model=model, dataloader=val_loader, device=device, class_names='', model_save_folder=model_save_folder, save=True)
+    conf_matrix, class_report = inference(model=model, dataloader=val_loader, device=device, class_names=['Grass', 'High Vegetation', 'Building', 'Railway', 'Road', 'Car'], model_save_folder=model_save_folder, save=True)
     
     print(f'Inference process ended.') 
 
 
 if __name__ == "__main__":
     main()
-
-
 
