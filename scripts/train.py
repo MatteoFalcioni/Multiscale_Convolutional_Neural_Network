@@ -139,6 +139,9 @@ def train_epochs(model, train_loader, val_loader, criterion, optimizer, schedule
     - save (bool): boolean value to allow or disallow saving of the model after training. Default is False.
     - used_features (list): selected features used during training, to be saved together with the model- Default is None.
     - hyperparameters (dict): dictionary of hyperparameters (name, values) used during training, to be saved together with the model- Default is None.
+    
+    Returns:
+    - model_save_foder (str): Name of the folder where the model has been saved. Needed later for inference.
     """
 
     train_losses = []  # To store training losses
@@ -176,16 +179,13 @@ def train_epochs(model, train_loader, val_loader, criterion, optimizer, schedule
     # Save the MCNN model after training
     if save:
         print("saving trained model...")
-        if used_features is None:
-            print('Warning: used features for training were not passed to train_epochs, so they could not be saved together with the model.')
-        if hyperparameters is None:
-            print('Warning: hyperparameters used for training were not passed to train_epochs, so they could not be saved together with the model.')
-            
-        save_model(model, model_save_dir, used_features=used_features, hyperparameters=hyperparameters)
+        model_save_folder = save_model(model, model_save_dir, used_features=used_features, hyperparameters=hyperparameters)
         print("model saved successfully.")
 
     # Plot the losses at the end of training
     plot_loss(train_losses, val_losses, plot_dir)
+
+    return model_save_folder
 
 
 
