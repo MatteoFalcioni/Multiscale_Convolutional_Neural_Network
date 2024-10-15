@@ -26,6 +26,9 @@ def inference(model, dataloader, device, class_names, model_save_folder, save=Fa
     Returns:
     - Confusion matrix and classification report.
     """
+    # Check that model_save_folder is the actual directory and not a filepath to the model
+    if model_save_folder.endswith('.pth'):
+        model_save_folder = os.path.dirname(model_save_folder)
     
     # Create 'inference' subfolder within the model save folder
     inference_dir = os.path.join(model_save_folder, 'inference')
