@@ -2,11 +2,11 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from models.mcnn import MultiScaleCNN
-from utils.train_data_utils import prepare_dataloader, initialize_weights, load_model 
+from utils.train_data_utils import prepare_dataloader, initialize_weights, load_model, load_features_used
 from scripts.train import train_epochs
 from scripts.inference import inference
 from utils.config_handler import parse_arguments
-from utils.point_cloud_data_utils import read_file_to_numpy, extract_num_classes, get_feature_indices
+from utils.point_cloud_data_utils import read_file_to_numpy, extract_num_classes
 import time
 
 
@@ -15,12 +15,7 @@ def main():
     args = parse_arguments()
     
     # raw data file path
-    data_dir = args.raw_data_filepath   
-    
-    # feature images creation params
-    window_sizes = args.window_sizes
-    features_to_use = args.features_to_use
-    grid_resolution = 128   # hard-coded value, following reference article
+    data_dir = args.raw_data_filepath  
     
     # training params
     batch_size = args.batch_size
@@ -34,32 +29,17 @@ def main():
     
     # inference params
     use_loaded_model = args.load_model   # whether to load model for inference or train a new one
-    model_path = args.load_model_filepath
-    run_inference_after_training = args.run_inference_after_training  # new flag to run inference after training
+    loaded_model_path = args.load_model_filepath
+    run_inference_after_training = args.perform_inference_after_training 
     
-    data_array, known_features = read_file_to_numpy(data_dir=data_dir, features_to_use=None)   # get the known features from the raw file path.
-
-    num_channels = len(features_to_use)  # Determine the number of channels based on selected features
-    num_classes = extract_num_classes(raw_file_path=data_dir) # determine the number of classes from the raw data
-    
-    print(f'window sizes: {window_sizes}')
-    
-    print(f'features contained in raw data file: {known_features}')
-    print(f'selected features to use during training: {features_to_use}')
-    
-    hyperparameters = {     # store hyperparameters in dictionary in order to save them together with the model
-        'number of total points' : data_array.shape[0],
-        'window_sizes' : window_sizes,
-        'grid_resolution': grid_resolution,
-        'batch_size': batch_size,
-        'epochs' : epochs,
-        'patience' : patience,
-        'learning_rate' : learning_rate,
-        'momentum' : momentum,
-        'step_size' : step_size,
-        'learning_rate_decay_factor' : learning_rate_decay_factor,
-        'num_workers' : num_workers
-    }
+    # feature images creation params
+    window_sizes = args.window_sizes
+     
+    if use_loaded_model:    # if we only do inference we dont input features_to_use, we prepare the dataloader on the features we chose during the past training
+        features_to_use = load_features_used(loaded_model_path)
+    else:
+        features_to_use = args.features_to_use
+    grid_resolution = 128   # hard-coded value, following reference article  
 
     # Set device (GPU if available)
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
@@ -79,6 +59,30 @@ def main():
     )
     
     if not use_loaded_model:  # Training
+        
+        data_array, known_features = read_file_to_numpy(data_dir=data_dir, features_to_use=None)   # get the known features from the raw file path.
+
+        num_channels = len(features_to_use)  # Determine the number of channels based on selected features
+        num_classes = extract_num_classes(raw_file_path=data_dir) # determine the number of classes from the raw data
+        
+        print(f'window sizes: {window_sizes}')
+        
+        print(f'features contained in raw data file: {known_features}')
+        print(f'selected features to use during training: {features_to_use}')
+        
+        hyperparameters = {     # store hyperparameters in dictionary in order to save them together with the model
+            'number of total points' : data_array.shape[0],
+            'window_sizes' : window_sizes,
+            'grid_resolution': grid_resolution,
+            'batch_size': batch_size,
+            'epochs' : epochs,
+            'patience' : patience,
+            'learning_rate' : learning_rate,
+            'momentum' : momentum,
+            'step_size' : step_size,
+            'learning_rate_decay_factor' : learning_rate_decay_factor,
+            'num_workers' : num_workers
+        }
         
         # Initialize model 
         print("Initializing MultiScaleCNN (MCNN) model...")
@@ -140,14 +144,14 @@ def main():
         print("Starting inference process...")
 
         # load pre-trained model 
-        model = load_model(model_path=model_path, device=device, num_channels=num_channels, num_classes=num_classes)
+        model = load_model(model_path=loaded_model_path, device=device, num_channels=num_channels, num_classes=num_classes)
 
         conf_matrix, class_report = inference(
             model=model, 
             dataloader=val_loader, 
             device=device, 
             class_names=['Grass', 'High Vegetation', 'Building', 'Railway', 'Road', 'Car'], 
-            model_save_folder=model_path, 
+            model_save_folder=loaded_model_path, 
             save=True
         )
         

@@ -314,6 +314,50 @@ def save_inference_results(conf_matrix, class_report, save_dir, class_names):
 
 
 
+def load_features_used(model_folder):
+    """
+    Loads the features used for training from a saved CSV file.
+
+    Args:
+    - model_folder (str): Path to the folder containing the saved model and the metadata (hyperparameters, used features).
+
+    Returns:
+    - features_list (list): List of features loaded from the CSV file.
+
+    Raises:
+    - FileNotFoundError: If the features file is not found.
+    - ValueError: If the file is empty or not in the expected format.
+    """
+    
+    # Check that model_folder is the actual directory and not a filepath to the model
+    if model_folder.endswith('.pth'):
+        model_folder = os.path.dirname(model_folder)
+
+    # Check if the folder exists
+    if not os.path.exists(model_folder):
+        raise FileNotFoundError(f"The specified model folder '{model_folder}' does not exist.")
+
+    # Construct the path to features_used.csv file
+    features_file_path = os.path.join(model_folder, 'features_used.csv')
+
+    # Check if the file exists
+    if not os.path.exists(features_file_path):
+        raise FileNotFoundError(f"Features file not found at {features_file_path}")
+
+    # Load the features from the CSV file
+    try:
+        with open(features_file_path, 'r') as f:
+            reader = csv.reader(f)
+            features_list = next(reader)  # Assuming the first row contains the feature names
+
+        if not features_list:
+            raise ValueError(f"The features file at {features_file_path} is empty or invalid.")
+
+        return features_list
+
+    except Exception as e:
+        raise ValueError(f"Error loading features from {features_file_path}: {e}")
+
 
 
 

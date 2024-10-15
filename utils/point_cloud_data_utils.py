@@ -176,6 +176,40 @@ def read_csv_file_to_numpy(file_path, features_to_extract=None):
     return combined_data, feature_names
 
 
+def load_features_for_np(features_file_path):
+    """
+    Loads features from a CSV file. Needed when raw data is in .npy format to get the info for features used.
+
+    Args:
+    - features_file_path (str): Path to the CSV file containing the features.
+
+    Returns:
+    - list: The loaded features as a list.
+
+    Raises:
+    - FileNotFoundError: If the features file is not found.
+    - ValueError: If the file is empty or not in the expected format.
+    """
+    
+    # Check if the file exists
+    if not os.path.exists(features_file_path):
+        raise FileNotFoundError(f"Features file not found at {features_file_path}")
+
+    # Load the features from the CSV file
+    try:
+        with open(features_file_path, 'r') as f:
+            reader = csv.reader(f)
+            features_list = next(reader)  # Assuming the first row contains the feature names
+
+        if not features_list:
+            raise ValueError(f"The features file at {features_file_path} is empty or invalid.")
+
+        return features_list
+
+    except Exception as e:
+        raise ValueError(f"Error loading features from {features_file_path}: {e}")
+
+
 def read_file_to_numpy(data_dir, features_to_use=None, features_file_path=None):
     """
     Loads the raw data from a .npy, .las, or .csv file and returns the data array along with the known features.
@@ -193,7 +227,7 @@ def read_file_to_numpy(data_dir, features_to_use=None, features_file_path=None):
         print("Loading raw data from numpy file...")
         data_array = np.load(data_dir)
         try:
-            known_features = load_features_used(features_file_path)
+            known_features = load_features_for_np(features_file_path)
             print(f"Features loaded from {features_file_path}: {known_features}")
         except Exception as e:
             raise ValueError(f"Unable to load features from {features_file_path}: {e}")
@@ -284,41 +318,6 @@ def sample_data(input_file, sample_size, save=False, save_dir='data/sampled_data
         print(f"Sampled data saved to {sample_file_path}")
 
     return sampled_data
-
-
-
-def load_features_used(features_file_path):
-    """
-    Loads the features used for grid generation from a saved CSV file.
-
-    Args:
-    - features_file_path (str): Path to the CSV file containing the saved features.
-
-    Returns:
-    - features_list (list): List of features loaded from the CSV file.
-
-    Raises:
-    - FileNotFoundError: If the features file is not found.
-    - ValueError: If the file is empty or not in the expected format.
-    """
-
-    # Check if the file exists
-    if not os.path.exists(features_file_path):
-        raise FileNotFoundError(f"Features file not found at {features_file_path}")
-
-    # Load the features from the CSV file
-    try:
-        with open(features_file_path, 'r') as f:
-            reader = csv.reader(f)
-            features_list = next(reader)  # Assuming the first row contains the feature names
-
-        if not features_list:
-            raise ValueError(f"The features file at {features_file_path} is empty or invalid.")
-
-        return features_list
-
-    except Exception as e:
-        raise ValueError(f"Error loading features from {features_file_path}: {e}")
 
 
 def remap_labels(data_array, label_column_index=-1):

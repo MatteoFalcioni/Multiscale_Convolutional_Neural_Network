@@ -19,10 +19,10 @@ features_to_use: ['intensity', 'red', 'green' , 'blue' ,'nvi' ,'ndwi']  # featur
 # -- (!) -------  but notice that x,y,z are employed in grid's feature assignment (through nearest neighbour search), but are not assigned as features to the grids
 
 # User options
-models_save_dir: "models/saved/"      # Model save path base directory
+models_save_dir: "models/saved/"   # Directory where the model is to be saved after training
 save_model: false    # whether to save the model or to discard. Default is False, i.e., discard the trained model.
 perform_inference_after_training : false    # whether to perform inference directly after training the model
 raw_data_filepath: "data/raw/features_F.las"   # directory where raw data (to be eventually processed) is stored
-load_model: false # whether to use an already trained model for inference or not
-load_model_filepath : "models/saved/mcnn_model_20240922_231624.pth" # file path to the model to load for inference
+load_model: false   # whether to use an already trained model for inference or not
+load_model_filepath : "models/saved/mcnn_model_20240922_231624.pth"   # file path to the model to load for inference
 
