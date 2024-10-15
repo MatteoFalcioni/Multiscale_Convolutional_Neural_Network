@@ -1,7 +1,7 @@
 from utils.point_cloud_data_utils import sample_data, combine_and_save_csv_files
 import pandas as pd
 
-sample_data(input_file='data/training_data/train_21.csv', sample_size=1000000, save_dir='data/sampled/', save=True)
+# sample_data(input_file='data/training_data/train_21.csv', sample_size=1000000, save_dir='data/sampled/', save=True)
 
 csv_file_path = 'data/sampled/sampled_data_1000000.csv'  
 df = pd.read_csv(csv_file_path)

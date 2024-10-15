@@ -54,7 +54,7 @@ def parse_arguments():
     parser.add_argument('--models_save_dir', type=str, default=config.get('models_save_dir', 'models/saved/'),
                         help='Directory to save trained models')
     
-    parser.add_argument('--save_model', action='store_true', default=config.get('save_model', False),
+    parser.add_argument('--save_model', action='store_true', default=config.get('save_model', True),
                         help='If set, save the trained model.')
     
     parser.add_argument('--raw_data_filepath', type=str, default=config.get('raw_data_dir', 'data/raw'),
