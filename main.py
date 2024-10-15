@@ -63,12 +63,7 @@ def main():
     # Set device (GPU if available)
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     print(f"Using device: {device}")  
-
-    # Initialize model 
-    print("Initializing MultiScaleCNN (MCNN) model...")
-    model = MultiScaleCNN(channels=num_channels, classes=num_classes).to(device)  
-    model.apply(initialize_weights)     # initialize model weights (optional, but recommended)
-
+    
     # Prepare DataLoader
     print("Preparing data loaders...")
 
@@ -81,54 +76,68 @@ def main():
         train_split=0.8,
         num_workers=num_workers
     )
+    
+    if not use_loaded_model:  # Training
+        
+        # Initialize model 
+        print("Initializing MultiScaleCNN (MCNN) model...")
+        model = MultiScaleCNN(channels=num_channels, classes=num_classes).to(device)  
+        model.apply(initialize_weights)     # initialize model weights (optional, but recommended)
 
-    # Set up CrossEntropy loss function
-    criterion = nn.CrossEntropyLoss()
+        # Set up CrossEntropy loss function
+        criterion = nn.CrossEntropyLoss()
 
-    # Set up optimizer (Stochastic Gradient Descent)
-    optimizer = optim.SGD(model.parameters(), lr=learning_rate, momentum=momentum)
+        # Set up optimizer (Stochastic Gradient Descent)
+        optimizer = optim.SGD(model.parameters(), lr=learning_rate, momentum=momentum)
 
-    # Learning rate scheduler
-    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=step_size,
-                                          gamma=learning_rate_decay_factor)
+        # Learning rate scheduler
+        scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=step_size,
+                                            gamma=learning_rate_decay_factor)
 
-    # Training loop
-    print("Starting training process...")
-    start_time = time.time()
+        # Training and validation loop
+        print("Starting training process...")
+        start_time = time.time()
 
-    model_save_folder = train_epochs(
-                                        model,
-                                        train_loader,
-                                        val_loader,
-                                        criterion,
-                                        optimizer,
-                                        scheduler,
-                                        epochs,
-                                        patience,
-                                        device,
-                                        save=True,
-                                        plot_dir='results/plots/',
-                                        model_save_dir="models/saved/",
-                                        used_features=features_to_use,
-                                        hyperparameters=hyperparameters
-                                    )
+        model_save_folder = train_epochs(
+                                            model,
+                                            train_loader,
+                                            val_loader,
+                                            criterion,
+                                            optimizer,
+                                            scheduler,
+                                            epochs,
+                                            patience,
+                                            device,
+                                            save=True,
+                                            plot_dir='results/plots/',
+                                            model_save_dir="models/saved/",
+                                            used_features=features_to_use,
+                                            hyperparameters=hyperparameters
+                                        )
 
-    print("Training finished")
+        print("Training finished")
 
-    end_time = time.time()
-    elapsed_time = end_time - start_time
-    print(f"Training time: {elapsed_time:.2f} seconds")
+        end_time = time.time()
+        elapsed_time = end_time - start_time
+        print(f"Training time: {elapsed_time:.2f} seconds")
 
-    # Run inference 
-    print("Starting inference process...")
+    else:  # Inference
+        
+        print("Starting inference process...")
 
-    # load pre-trained model if chosen by the user
-    if use_loaded_model:
+        # load pre-trained model if chosen by the user
         model = load_model(model_path=model_path, device=device, num_channels=num_channels, num_classes=num_classes)
 
-    conf_matrix, class_report = inference(model=model, dataloader=val_loader, device=device, class_names=['Grass', 'High Vegetation', 'Building', 'Railway', 'Road', 'Car'], model_save_folder=model_save_folder, save=True)
-    
-    print(f'Inference process ended.') 
+        conf_matrix, class_report = inference(
+            model=model, 
+            dataloader=val_loader, 
+            device=device, 
+            class_names=['Grass', 'High Vegetation', 'Building', 'Railway', 'Road', 'Car'], 
+            model_save_folder=model_save_folder, 
+            save=True
+        )
+        
+        print(f'Inference process ended.') 
 
 
 if __name__ == "__main__":

@@ -9,7 +9,6 @@ import pandas as pd
 from scipy.spatial import cKDTree
 import csv
 import matplotlib.pyplot as plt
-import seaborn as sns
 from models.mcnn import MultiScaleCNN
 
 
@@ -270,15 +269,27 @@ def save_inference_results(conf_matrix, class_report, save_dir, class_names):
     """
     os.makedirs(save_dir, exist_ok=True)
 
-    # Save confusion matrix as an image
-    plt.figure(figsize=(10, 7))
-    sns.heatmap(conf_matrix, annot=True, fmt='g', cmap='Blues', cbar=False, 
-                xticklabels=class_names, yticklabels=class_names)
+        # Save confusion matrix as an image using Matplotlib
+    fig, ax = plt.subplots(figsize=(10, 7))
+    cax = ax.matshow(conf_matrix, cmap='Blues')
+    plt.colorbar(cax)
+
+    ax.set_xticks(range(len(class_names)))
+    ax.set_yticks(range(len(class_names)))
+    ax.set_xticklabels(class_names, rotation=45, ha="right")
+    ax.set_yticklabels(class_names)
+
     plt.xlabel('Predicted Labels')
     plt.ylabel('True Labels')
     plt.title('Confusion Matrix')
+
+    # Annotate each cell with the count value
+    for i in range(len(class_names)):
+        for j in range(len(class_names)):
+            ax.text(j, i, format(conf_matrix[i, j], 'd'), ha="center", va="center")
+
     confusion_matrix_path = os.path.join(save_dir, 'confusion_matrix.png')
-    plt.savefig(confusion_matrix_path)
+    plt.savefig(confusion_matrix_path, bbox_inches='tight')
     print(f"Confusion matrix saved at {confusion_matrix_path}")
     plt.close()
 
