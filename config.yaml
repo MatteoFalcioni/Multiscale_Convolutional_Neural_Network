@@ -6,13 +6,14 @@ learning_rate: 0.01    # Initial learning rate as mentioned in both articles
 learning_rate_decay_factor: 0.5   # mentioned in first article as 0.0005
 learning_rate_decay_epochs: 5    # not mentioned, so assuming that lr decay is performed through each epoch
 momentum: 0.9    # used in first article
+num_workers : 16  # number of workers for parallel processing
 
 window_sizes:    # window sizes to be used for grids
   - [small, 2.5]
   - [medium, 5.0]
   - [large, 10.0] 
 
-features_to_use: ['intensity', 'R', 'G' , 'B' ,'nvi' ,'ndwi']  # features to be used for training
+features_to_use: ['intensity', 'red', 'green' , 'blue' ,'nvi' ,'ndwi']  # features to be used for training
 
 # -- (!) -- note: features_to_use includes only the additional features, meaning that x,y,z are always already included and not counted in the channels -------- 
 # -- (!) -------  but notice that x,y,z are employed in grid's feature assignment (through nearest neighbour search), but are not assigned as features to the grids

@@ -1,6 +1,7 @@
 import torch
 from scripts.point_cloud_to_image import generate_multiscale_grids, compute_point_cloud_bounds
 from utils.point_cloud_data_utils import remap_labels
+from utils.train_data_utils import save_inference_results
 import numpy as np
 import csv
 from datetime import datetime
@@ -9,18 +10,27 @@ from scipy.spatial import cKDTree
 from sklearn.metrics import confusion_matrix, classification_report
 
 
-def inference(model, dataloader, device, save=False, save_dir=None):
+def inference(model, dataloader, device, class_names, model_save_folder, save=False):
     """
-    Runs inference on the provided data and returns the predicted and true labels.
+    Runs inference on the provided data, returns the confusion matrix and classification report,
+    and optionally saves them to the 'inference' subfolder of the model save directory.
 
     Args:
     - model (nn.Module): The trained PyTorch model.
     - dataloader (DataLoader): DataLoader containing the data for inference.
     - device (torch.device): The device (CPU or GPU) where computations will be performed.
+    - class_names (list): List of class names for displaying in the confusion matrix.
+    - model_save_folder (str): The folder where the model is saved and where inference results will be saved.
+    - save (bool): If True, saves the confusion matrix and classification report.
 
     Returns:
-    - Confusion matrix and classification report
+    - Confusion matrix and classification report.
     """
+    
+    # Create 'inference' subfolder within the model save folder
+    inference_dir = os.path.join(model_save_folder, 'inference')
+    if save and not os.path.exists(inference_dir):
+        os.makedirs(inference_dir)
 
     model.eval()  # Set model to evaluation mode
     all_preds = []  # To store all predictions
@@ -52,10 +62,15 @@ def inference(model, dataloader, device, save=False, save_dir=None):
     # Confusion matrix
     conf_matrix = confusion_matrix(all_labels, all_preds)
     
-    # Classification report (including precision, recall, F1-score)
+    # Classification report
     class_report = classification_report(all_labels, all_preds)
 
+    # Save the confusion matrix and classification report together
+    if save:
+        save_inference_results(conf_matrix, class_report, inference_dir, class_names)
+
     return conf_matrix, class_report
+
 
 
 def inference_with_csv(model, data_array, window_sizes, grid_resolution, feature_indices, device, save_file=None, subsample_size=None):
