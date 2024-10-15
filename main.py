@@ -34,12 +34,15 @@ def main():
     
     # feature images creation params
     window_sizes = args.window_sizes
+    grid_resolution = 128   # hard-coded value, following reference article 
      
     if use_loaded_model:    # if we only do inference we dont input features_to_use, we prepare the dataloader on the features we chose during the past training
         features_to_use = load_features_used(loaded_model_path)
     else:
         features_to_use = args.features_to_use
-    grid_resolution = 128   # hard-coded value, following reference article  
+        
+    num_channels = len(features_to_use)  # Determine the number of channels based on selected features
+    num_classes = extract_num_classes(raw_file_path=data_dir) # determine the number of classes from the raw data
 
     # Set device (GPU if available)
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
@@ -61,9 +64,6 @@ def main():
     if not use_loaded_model:  # Training
         
         data_array, known_features = read_file_to_numpy(data_dir=data_dir, features_to_use=None)   # get the known features from the raw file path.
-
-        num_channels = len(features_to_use)  # Determine the number of channels based on selected features
-        num_classes = extract_num_classes(raw_file_path=data_dir) # determine the number of classes from the raw data
         
         print(f'window sizes: {window_sizes}')
         
@@ -144,7 +144,9 @@ def main():
         print("Starting inference process...")
 
         # load pre-trained model 
+        print(f'Loading pre-trained model from path: {loaded_model_path}')
         model = load_model(model_path=loaded_model_path, device=device, num_channels=num_channels, num_classes=num_classes)
+        print('Model loaded successfully')
 
         conf_matrix, class_report = inference(
             model=model, 

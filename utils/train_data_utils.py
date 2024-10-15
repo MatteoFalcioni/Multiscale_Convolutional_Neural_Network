@@ -344,11 +344,12 @@ def load_features_used(model_folder):
     if not os.path.exists(features_file_path):
         raise FileNotFoundError(f"Features file not found at {features_file_path}")
 
-    # Load the features from the CSV file
+    # Load the features from the CSV file, skipping the header
     try:
         with open(features_file_path, 'r') as f:
             reader = csv.reader(f)
-            features_list = next(reader)  # Assuming the first row contains the feature names
+            next(reader)  # Skip the header row
+            features_list = next(reader)  # Load the actual features row
 
         if not features_list:
             raise ValueError(f"The features file at {features_file_path} is empty or invalid.")
