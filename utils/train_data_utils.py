@@ -296,9 +296,12 @@ def save_inference_results(conf_matrix, class_report, save_dir, class_names):
     # Parse and save classification report as CSV
     report_data = []
     lines = class_report.split('\n')
+    
     for line in lines[2:-3]:
         row_data = line.split()
-        if len(row_data) > 0:
+        
+        # Ensure the line has enough elements (5 in this case)
+        if len(row_data) == 5:
             report_data.append({
                 'class': row_data[0],
                 'precision': row_data[1],
@@ -306,6 +309,8 @@ def save_inference_results(conf_matrix, class_report, save_dir, class_names):
                 'f1-score': row_data[3],
                 'support': row_data[4],
             })
+        else:
+            print(f"Skipping line due to unexpected format: {line}")
     
     df = pd.DataFrame.from_records(report_data)
     class_report_path = os.path.join(save_dir, 'classification_report.csv')

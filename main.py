@@ -157,6 +157,7 @@ def main():
             save=True
         )
         
+        print(f'Class report output:{class_report}')
         print(f'Inference process ended.') 
 
 
