@@ -35,6 +35,7 @@ def main():
     # inference params
     use_loaded_model = args.load_model   # whether to load model for inference or train a new one
     model_path = args.load_model_filepath
+    run_inference_after_training = args.run_inference_after_training  # new flag to run inference after training
     
     data_array, known_features = read_file_to_numpy(data_dir=data_dir, features_to_use=None)   # get the known features from the raw file path.
 
@@ -121,11 +122,24 @@ def main():
         elapsed_time = end_time - start_time
         print(f"Training time: {elapsed_time:.2f} seconds")
 
-    else:  # Inference
+        # Check if inference is required after training
+        if run_inference_after_training:
+            print("Starting inference after training...")
+            conf_matrix, class_report = inference(
+                model=model, 
+                dataloader=val_loader, 
+                device=device, 
+                class_names=['Grass', 'High Vegetation', 'Building', 'Railway', 'Road', 'Car'], 
+                model_save_folder=model_save_folder, 
+                save=True
+            )
+            print(f'Inference process ended.')
+        
+    else:  # Standalone inference
         
         print("Starting inference process...")
 
-        # load pre-trained model if chosen by the user
+        # load pre-trained model 
         model = load_model(model_path=model_path, device=device, num_channels=num_channels, num_classes=num_classes)
 
         conf_matrix, class_report = inference(
@@ -133,7 +147,7 @@ def main():
             dataloader=val_loader, 
             device=device, 
             class_names=['Grass', 'High Vegetation', 'Building', 'Railway', 'Road', 'Car'], 
-            model_save_folder=model_save_folder, 
+            model_save_folder=model_path, 
             save=True
         )
         
