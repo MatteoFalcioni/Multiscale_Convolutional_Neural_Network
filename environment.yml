@@ -13,8 +13,6 @@ dependencies:
   - scikit-learn
   - pytorch
   - torchvision
-  - cupy
-  - cuml=23.08
   - tqdm
   - yaml
   - pip

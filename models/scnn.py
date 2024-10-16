@@ -12,6 +12,7 @@ class SingleScaleCNN(nn.Module):
 
     Architecture Overview:
     - Input: n-channel image (e.g., 3 for RGB) of size 128x128.
+    
     - Five sequential convolutional blocks:
       - Each block (except for the 4th*) consists of:
         - A 3x3 Convolutional layer with padding of 1.
@@ -20,6 +21,7 @@ class SingleScaleCNN(nn.Module):
       - Max pooling layers are applied after the first, second, third, and fifth convolutional layers
         to downsample the spatial dimensions by half.
       * 4th block consists only of Batch Normalization and ReLu
+      
     - Output: A feature map of size 8x8x128.
 
     Attributes:
