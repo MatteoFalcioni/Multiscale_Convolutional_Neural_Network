@@ -137,7 +137,8 @@ def main():
                 model_save_folder=model_save_folder, 
                 save=True
             )
-            print(f'Inference process ended.')
+            print(f'Class report output:{class_report}')
+            print(f'Inference process ended.') 
         
     else:  # Standalone inference
         
