@@ -149,6 +149,7 @@ def main():
         model = load_model(model_path=loaded_model_path, device=device, num_channels=num_channels, num_classes=num_classes)
         print('Model loaded successfully')
 
+        print('Performing inference...')
         conf_matrix, class_report = inference(
             model=model, 
             dataloader=val_loader, 

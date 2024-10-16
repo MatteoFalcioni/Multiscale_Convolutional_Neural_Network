@@ -8,6 +8,7 @@ from datetime import datetime
 import os
 from scipy.spatial import cKDTree
 from sklearn.metrics import confusion_matrix, classification_report
+from tqdm import tqdm
 
 
 def inference(model, dataloader, device, class_names, model_save_folder, save=False):
@@ -40,7 +41,7 @@ def inference(model, dataloader, device, class_names, model_save_folder, save=Fa
     all_labels = []  # To store all true labels
 
     with torch.no_grad():  # No gradient calculation during inference
-        for batch in dataloader:
+        for batch in tqdm(dataloader, desc="Running inference"):
             if batch is None:
                 continue
 
