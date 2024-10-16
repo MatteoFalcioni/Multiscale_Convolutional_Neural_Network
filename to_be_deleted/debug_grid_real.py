@@ -2,7 +2,7 @@ import numpy as np
 import torch
 from torch.utils.data import DataLoader, TensorDataset
 import pandas as pd  # Import pandas for DataFrame
-from scripts.optimized_pc_to_img import prepare_grids_dataloader
+from to_be_deleted.optimized_pc_to_img import prepare_grids_dataloader
 from scripts.point_cloud_to_image import generate_multiscale_grids, assign_features_to_grid, create_feature_grid, compute_point_cloud_bounds, load_saved_grids
 from utils.point_cloud_data_utils import read_file_to_numpy, remap_labels
 from scipy.spatial import cKDTree as KDTree

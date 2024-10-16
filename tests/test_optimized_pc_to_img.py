@@ -1,7 +1,7 @@
 import unittest
 import numpy as np
 import torch
-from scripts.optimized_pc_to_img import gpu_generate_multiscale_grids, prepare_grids_dataloader
+from to_be_deleted.optimized_pc_to_img import gpu_generate_multiscale_grids, prepare_grids_dataloader
 from utils.point_cloud_data_utils import read_las_file_to_numpy, remap_labels
 from scipy.spatial import KDTree
 from utils.plot_utils import visualize_grid

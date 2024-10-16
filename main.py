@@ -123,8 +123,8 @@ def main():
         print("Training finished")
 
         end_time = time.time()
-        elapsed_time = end_time - start_time
-        print(f"Training time: {elapsed_time:.2f} seconds")
+        elapsed_time = (end_time - start_time) /3600    # in hours
+        print(f"Training time: {elapsed_time} hours")
 
         # Check if inference is required after training
         if run_inference_after_training:
