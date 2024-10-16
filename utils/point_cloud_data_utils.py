@@ -52,9 +52,10 @@ def read_las_file_to_numpy(file_path, features_to_extract=None):
     # Set default features if none are provided
     if features_to_extract is None:
         features_to_extract = ['intensity', 'return_number', 'red', 'green', 'blue', 'nir',
-                               'ndvi', 'ndwi', 'ssi', 'l1_b', 'l2_b', 'l3_b', 'planarity_b', 'sphericity_b',
+                               'ndvi', 'ndwi', 'ssi', 'l1', 'l2', 'l3', 'planarity', 'sphericity',
+                               'linearity', 'entropy', 'theta', 'theta_variance', 'mad', 'delta_z', 'l1_b', 'l2_b', 'l3_b', 'planarity_b', 'sphericity_b',
                                'linearity_b', 'entropy_b', 'theta_b', 'theta_variance_b', 'mad_b', 'delta_z_b', 'N_h',
-                               'delta_z_fl']
+                               'delta_z_fl']    # in 'old' las files the features were saved with a suffix '_b'
 
     # Read the LAS file
     print(f"Processing {file_path}...")
@@ -121,10 +122,11 @@ def numpy_to_dataframe(data_array, feature_names=None):
 
     # Define default feature names if not provided
     if feature_names is None:
-        feature_names = ['x', 'y', 'z', 'intensity', 'number_of_returns',
-                         'red', 'green', 'blue', 'nir', 'ndvi', 'ndwi', 'ssi', 'l1_b', 'l2_b',
-                         'l3_b', 'planarity_b', 'sphericity_b', 'linearity_b', 'entropy_b',
-                         'theta_b', 'theta_variance_b', 'mad_b', 'delta_z_b', 'N_h', 'delta_z_fl']
+        feature_names = ['intensity', 'return_number', 'red', 'green', 'blue', 'nir',
+                               'ndvi', 'ndwi', 'ssi', 'l1', 'l2', 'l3', 'planarity', 'sphericity',
+                               'linearity', 'entropy', 'theta', 'theta_variance', 'mad', 'delta_z', 'l1_b', 'l2_b', 'l3_b', 'planarity_b', 'sphericity_b',
+                               'linearity_b', 'entropy_b', 'theta_b', 'theta_variance_b', 'mad_b', 'delta_z_b', 'N_h',
+                               'delta_z_fl']
 
     # Convert the numpy array to a pandas DataFrame
     return pd.DataFrame(data_array, columns=feature_names)
@@ -146,7 +148,8 @@ def read_csv_file_to_numpy(file_path, features_to_extract=None):
     # Set default features if none are provided
     if features_to_extract is None:
         features_to_extract = ['intensity', 'return_number', 'red', 'green', 'blue', 'nir',
-                               'ndvi', 'ndwi', 'ssi', 'l1_b', 'l2_b', 'l3_b', 'planarity_b', 'sphericity_b',
+                               'ndvi', 'ndwi', 'ssi', 'l1', 'l2', 'l3', 'planarity', 'sphericity',
+                               'linearity', 'entropy', 'theta', 'theta_variance', 'mad', 'delta_z', 'l1_b', 'l2_b', 'l3_b', 'planarity_b', 'sphericity_b',
                                'linearity_b', 'entropy_b', 'theta_b', 'theta_variance_b', 'mad_b', 'delta_z_b', 'N_h',
                                'delta_z_fl']
 

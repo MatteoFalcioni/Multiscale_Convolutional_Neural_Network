@@ -36,7 +36,7 @@ def main():
     window_sizes = args.window_sizes
     grid_resolution = 128   # hard-coded value, following reference article 
      
-    if use_loaded_model:    # if we only do inference we dont input features_to_use, we prepare the dataloader on the features we chose during the past training
+    if use_loaded_model:    # if we only do inference we don't input features_to_use, we prepare the dataloader on the features we chose during the past training
         features_to_use = load_features_used(loaded_model_path)
     else:
         features_to_use = args.features_to_use
