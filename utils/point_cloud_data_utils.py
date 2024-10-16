@@ -51,7 +51,7 @@ def read_las_file_to_numpy(file_path, features_to_extract=None):
     """
     # Set default features if none are provided
     if features_to_extract is None:
-        features_to_extract = ['intensity', 'return_number', 'red', 'green', 'blue', 'nir',
+        features_to_extract = ['intensity', 'return_number', 'number_of_returns', 'red', 'green', 'blue', 'nir',
                                'ndvi', 'ndwi', 'ssi', 'l1', 'l2', 'l3', 'planarity', 'sphericity',
                                'linearity', 'entropy', 'theta', 'theta_variance', 'mad', 'delta_z', 'l1_b', 'l2_b', 'l3_b', 'planarity_b', 'sphericity_b',
                                'linearity_b', 'entropy_b', 'theta_b', 'theta_variance_b', 'mad_b', 'delta_z_b', 'N_h',
@@ -89,8 +89,8 @@ def read_las_file_to_numpy(file_path, features_to_extract=None):
         if feature in las_data.point_format.dimension_names:
             data.append(las_data[feature])
             feature_names.append(feature)
-        else:
-            print(f"Feature '{feature}' is not available in {file_path}.")
+        # else:
+            # print(f"Feature '{feature}' is not available in {file_path}.")
 
     # Check for segment_id and label fields
     if 'segment_id' in las_data.point_format.dimension_names:
@@ -122,7 +122,7 @@ def numpy_to_dataframe(data_array, feature_names=None):
 
     # Define default feature names if not provided
     if feature_names is None:
-        feature_names = ['intensity', 'return_number', 'red', 'green', 'blue', 'nir',
+        feature_names = ['intensity', 'return_number', 'number_of_returns', 'red', 'green', 'blue', 'nir',
                                'ndvi', 'ndwi', 'ssi', 'l1', 'l2', 'l3', 'planarity', 'sphericity',
                                'linearity', 'entropy', 'theta', 'theta_variance', 'mad', 'delta_z', 'l1_b', 'l2_b', 'l3_b', 'planarity_b', 'sphericity_b',
                                'linearity_b', 'entropy_b', 'theta_b', 'theta_variance_b', 'mad_b', 'delta_z_b', 'N_h',
@@ -147,7 +147,7 @@ def read_csv_file_to_numpy(file_path, features_to_extract=None):
     """
     # Set default features if none are provided
     if features_to_extract is None:
-        features_to_extract = ['intensity', 'return_number', 'red', 'green', 'blue', 'nir',
+        features_to_extract = ['intensity', 'return_number', 'number_of_returns', 'red', 'green', 'blue', 'nir',
                                'ndvi', 'ndwi', 'ssi', 'l1', 'l2', 'l3', 'planarity', 'sphericity',
                                'linearity', 'entropy', 'theta', 'theta_variance', 'mad', 'delta_z', 'l1_b', 'l2_b', 'l3_b', 'planarity_b', 'sphericity_b',
                                'linearity_b', 'entropy_b', 'theta_b', 'theta_variance_b', 'mad_b', 'delta_z_b', 'N_h',
