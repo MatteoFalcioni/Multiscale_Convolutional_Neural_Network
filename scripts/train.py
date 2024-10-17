@@ -117,7 +117,7 @@ def validate(model, dataloader, criterion, device):
     return val_loss / total_samples
 
 
-def train_epochs(model, train_loader, val_loader, criterion, optimizer, scheduler, epochs, patience, device, model_save_dir='models/saved/', plot_dir='results/plots/', save=False, used_features=None, hyperparameters=None):
+def train_epochs(model, train_loader, val_loader, criterion, optimizer, scheduler, epochs, patience, device, model_save_dir='models/saved/', save=False, used_features=None, hyperparameters=None):
     """
     Trains the MCNN model over multiple epochs with early stopping and applies learning rate decay.
     After each epoch, the model is evaluated on a validation set, and training stops if the validation
@@ -135,7 +135,6 @@ def train_epochs(model, train_loader, val_loader, criterion, optimizer, schedule
     - device (torch.device): The device (CPU or GPU) to perform computations on.
     - save_dir (str): Directory to save the trained model.
     - patience (int): Number of epochs to wait for an improvement in validation loss before early stopping.
-    - plot_dir (str): Directory to save the loss plots. Default is 'results/plots/'.
     - save (bool): boolean value to allow or disallow saving of the model after training. Default is False.
     - used_features (list): selected features used during training, to be saved together with the model- Default is None.
     - hyperparameters (dict): dictionary of hyperparameters (name, values) used during training, to be saved together with the model- Default is None.

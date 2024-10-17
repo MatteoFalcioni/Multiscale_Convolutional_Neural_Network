@@ -36,7 +36,7 @@ def main():
     window_sizes = args.window_sizes
     grid_resolution = 128   # hard-coded value, following reference article 
      
-    if use_loaded_model:    # if we only do inference we don't input features_to_use, we prepare the dataloader on the features we chose during the past training
+    if use_loaded_model:    # if we run inference on a pre-trained model we don't input features_to_use; instead, we prepare the dataloader on the features we used during the past training
         features_to_use = load_features_used(loaded_model_path)
     else:
         features_to_use = args.features_to_use
@@ -48,20 +48,20 @@ def main():
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     print(f"Using device: {device}")  
     
-    # Prepare DataLoader
-    print("Preparing data loaders...")
-
-    train_loader, val_loader = prepare_dataloader(
-        batch_size=batch_size,
-        data_dir=data_dir,
-        window_sizes=window_sizes,
-        grid_resolution=grid_resolution,
-        features_to_use=features_to_use,
-        train_split=0.8,
-        num_workers=num_workers
-    )
-    
     if not use_loaded_model:  # Training
+        
+        # Prepare DataLoaders for training and validation
+        print("Preparing data loaders...")
+
+        train_loader, val_loader = prepare_dataloader(
+            batch_size=batch_size,
+            data_dir=data_dir,
+            window_sizes=window_sizes,
+            grid_resolution=grid_resolution,
+            features_to_use=features_to_use,
+            train_split=0.8,
+            num_workers=num_workers
+        )
         
         data_array, known_features = read_file_to_numpy(data_dir=data_dir, features_to_use=None)   # get the known features from the raw file path.
         
@@ -70,7 +70,8 @@ def main():
         print(f'features contained in raw data file: {known_features}')
         print(f'selected features to use during training: {features_to_use}')
         
-        hyperparameters = {     # store hyperparameters in dictionary in order to save them together with the model
+        hyperparameters = {     # store hyperparameters and metadata in dictionary in order to save them together with the model
+            'training file': data_dir,
             'number of total points' : data_array.shape[0],
             'window_sizes' : window_sizes,
             'grid_resolution': grid_resolution,
@@ -114,33 +115,45 @@ def main():
                                             patience,
                                             device,
                                             save=True,
-                                            plot_dir='results/plots/',
                                             model_save_dir="models/saved/",
                                             used_features=features_to_use,
                                             hyperparameters=hyperparameters
                                         )
 
-        print("Training finished")
+        print("Training completed")
 
         end_time = time.time()
-        elapsed_time = (end_time - start_time) /3600    # in hours
+        elapsed_time = (end_time - start_time) /3600   # in hours
         print(f"Training time: {elapsed_time} hours")
 
         # Check if inference is required after training
         if run_inference_after_training:
             print("Starting inference after training...")
+            
+            print('preparing inference dataloader...')      # Inference on the test file
+            inference_loader, _ = prepare_dataloader(
+                    batch_size=batch_size,
+                    data_dir='data/training_data/test_21.csv',  # test file
+                    window_sizes=window_sizes,
+                    grid_resolution=grid_resolution,
+                    features_to_use=features_to_use,
+                    train_split=None,   # prepare the dataloader with the full data for inference (no train/eval split)
+                    num_workers=num_workers
+                )
+            
+            print('Performing inference...')
             conf_matrix, class_report = inference(
                 model=model, 
-                dataloader=val_loader, 
+                dataloader=inference_loader, 
                 device=device, 
                 class_names=['Grass', 'High Vegetation', 'Building', 'Railway', 'Road', 'Car'], 
                 model_save_folder=model_save_folder, 
                 save=True
             )
-            print(f'Class report output:{class_report}')
+            print(f'Class report output:\n{class_report}')
             print(f'Inference process ended.') 
         
-    else:  # Standalone inference
+    else:  # Standalone inference (with a loaded model)
         
         print("Starting inference process...")
 
@@ -148,14 +161,26 @@ def main():
         print(f'Loading pre-trained model from path: {loaded_model_path}')
         model = load_model(model_path=loaded_model_path, device=device, num_channels=num_channels, num_classes=num_classes)
         print('Model loaded successfully')
-
+        
+        print('Preparing inference dataloader...')      # Inference on the test file
+        inference_loader, _ = prepare_dataloader(
+                batch_size=batch_size,
+                data_dir='data/training_data/test_21.csv',  # test file
+                window_sizes=window_sizes,
+                grid_resolution=grid_resolution,
+                features_to_use=features_to_use,
+                train_split=None,   # prepare the dataloader with the full data for inference (no train/eval split)
+                num_workers=num_workers
+            )
+        
         print('Performing inference...')
         conf_matrix, class_report = inference(
             model=model, 
-            dataloader=val_loader, 
+            dataloader=inference_loader, 
             device=device, 
             class_names=['Grass', 'High Vegetation', 'Building', 'Railway', 'Road', 'Car'], 
-            model_save_folder=loaded_model_path, 
+            # model_save_folder=loaded_model_path, 
+            model_save_folder='tests/test_inference/',  # temporarily save in this folder to look at results
             save=True
         )
         

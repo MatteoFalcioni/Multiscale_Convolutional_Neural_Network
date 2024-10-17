@@ -1,7 +1,7 @@
 from utils.point_cloud_data_utils import sample_data, combine_and_save_csv_files, read_file_to_numpy
 import pandas as pd
 
-sample_data(input_file='data/training_data/to_compare/32_684000_4930500_FP21.las', sample_size=1000000, save_dir='data/sampled/to_compare/', save=True)
+sample_data(input_file='data/training_data/train_21.csv', sample_size=2000000, save_dir='data/sampled/', save=True)
 
 data_array, features = read_file_to_numpy('data/training_data/to_compare/32_684000_4930500_FP21.las')
 print(f'features {features}')

@@ -103,7 +103,7 @@ def custom_collate_fn(batch):
 
 def prepare_dataloader(batch_size, data_dir=None, 
                        window_sizes=None, grid_resolution=128, features_to_use=None, 
-                       train_split=0.8, features_file_path=None, num_workers = 4):
+                       train_split=None, features_file_path=None, num_workers = 4):
     """
     Prepares the DataLoader by loading the raw data and streaming multiscale grid generation.
     
@@ -113,7 +113,7 @@ def prepare_dataloader(batch_size, data_dir=None,
     - window_sizes (list): List of window sizes to use for grid generation. Default is None.
     - grid_resolution (int): Resolution of the grid (e.g., 128x128).
     - features_to_use (list): List of feature names to use for grid generation. Default is None.
-    - train_split (float): Ratio of the data to use for training (e.g., 0.8 for 80% training data). Default is 0.8 (80%).
+    - train_split (float): Ratio of the data to use for training (e.g., 0.8 for 80% training data). Default is None.
     - features_file_path: File path to feature metadata, needed if using raw data in .npy format. Default is None.
     - num_workers (int): number of worlkers for parallelized process. Default is 0. 
 
@@ -126,10 +126,10 @@ def prepare_dataloader(batch_size, data_dir=None,
     if data_dir is None:
         raise ValueError('ERROR: Raw data directory was not passe as input to the dataloader.')
 
-    # Step 1: Read the raw point cloud data into memory
+    # Step 1: Read the raw point cloud data 
     data_array, known_features = read_file_to_numpy(data_dir=data_dir, features_to_use=None, features_file_path=features_file_path)   # with None as features_to_use we get the known features (all the feats in the data)
     
-    # Step 2: remap labels to esnure they vary continously (needed for CrossEntropyLoss)
+    # Step 2: remap labels to ensure they vary continously (needed for CrossEntropyLoss)
     data_array, _ = remap_labels(data_array)
 
     # Step 2: Create the dataset using the new streaming-based approach
@@ -142,7 +142,7 @@ def prepare_dataloader(batch_size, data_dir=None,
     )
 
     # Step 3: Split the dataset into training and evaluation sets (if train_split is provided)
-    if train_split > 0.0:
+    if train_split is not None:
         train_size = int(train_split * len(full_dataset))
         eval_size = len(full_dataset) - train_size
         train_dataset, eval_dataset = random_split(full_dataset, [train_size, eval_size])
