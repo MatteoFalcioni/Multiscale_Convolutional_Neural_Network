@@ -130,7 +130,7 @@ def main():
         if run_inference_after_training:
             print("Starting inference after training...")
             
-            print('preparing inference dataloader...')      # Inference on the test file
+            print('Preparing inference dataloader...')      # Inference on the test file
             inference_loader, _ = prepare_dataloader(
                     batch_size=batch_size,
                     data_dir='data/training_data/test_21.csv',  # test file
