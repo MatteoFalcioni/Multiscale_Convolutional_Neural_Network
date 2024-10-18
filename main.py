@@ -180,7 +180,7 @@ def main():
             model=model, 
             dataloader=inference_loader, 
             device=device, 
-            class_names=['Grass', 'High Vegetation', 'Building', 'Railway', 'Road', 'Car'], 
+            class_names=['Grass', 'High Vegetation', 'Building', 'Road', 'Car'],    # 'Railway' temporarily discarded
             # model_save_folder=loaded_model_path, 
             model_save_folder='tests/test_inference/',  # temporarily save in this folder to look at results
             save=True

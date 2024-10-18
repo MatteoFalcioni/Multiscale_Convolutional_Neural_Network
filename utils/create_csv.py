@@ -3,11 +3,12 @@ import pandas as pd
 import numpy as np
 import laspy
 import glob
-from tqdm import tqdm  # For progress bar
+from tqdm import tqdm
 
 # Path to the directory containing LAS files
 LAS_DIRECTORY = 'data/training_data/overfitting_test/inference/'
 
+# Features and labels to keep
 VARIABLES = ['x', 'y', 'z', 'intensity', 'return_number', 'number_of_returns',
              'classification', 'red', 'green', 'blue', 'nir',
              'ndvi', 'ndwi', 'ssi',
@@ -15,40 +16,58 @@ VARIABLES = ['x', 'y', 'z', 'intensity', 'return_number', 'number_of_returns',
              'entropy_b', 'theta_b', 'theta_variance_b', 'mad_b', 'delta_z_b',
              'N_h', 'delta_z_fl', 'label']
 
-RENAME = {'l1_b': 'l1', 'l2_b' : 'l2', 'l3_b' : 'l3',
-          'planarity_b' : 'planarity', 'sphericity_b' : 'sphericity',
-          'linearity_b' : 'linearity', 'entropy_b' : 'entropy',
-          'theta_b' : 'theta', 'theta_variance_b' : 'theta_variance',
-          'mad_b' : 'mad', 'delta_z_b' : 'delta_z'}
+# Mapping to rename columns
+RENAME = {'l1_b': 'l1', 'l2_b': 'l2', 'l3_b': 'l3', 'planarity_b': 'planarity',
+          'sphericity_b': 'sphericity', 'linearity_b': 'linearity', 'entropy_b': 'entropy',
+          'theta_b': 'theta', 'theta_variance_b': 'theta_variance', 'mad_b': 'mad',
+          'delta_z_b': 'delta_z'}
+
+# Define the classes of interest and the desired sample size per class
+CLASS_MAP = {
+    'grass': 3,
+    'trees': 5,
+    'buildings': 6,
+    'roads': 11,
+    'cars': 64
+}
+
+sample_size = 500000
+target_class_size = int(sample_size / len(CLASS_MAP))  # For defined classes
 
 # Get a list of all LAS files in the directory
 las_files = glob.glob(LAS_DIRECTORY + '32_*00/32_*Ln.las')
 
-print(f"Processing {len(las_files)} LAS files.")
+# Initialize lists to accumulate data for each class
+class_data = {class_name: [] for class_name in CLASS_MAP}
 
-# List to store all the data
-all_data = []
-
-# Iterate over each LAS file
-for las_file in tqdm(las_files, desc="Processing LAS files", unit="file"):
+# Iterate over each LAS file and extract the relevant classes
+for las_file in tqdm(las_files, desc="Processing LAS files"):
     las_data = laspy.read(las_file)
 
-    # Convert the LAS data to a DataFrame
-    las_df = pd.DataFrame({name: np.array(las_data[name]) for name in VARIABLES})
+    for class_name, label in CLASS_MAP.items():
+        class_las = las_data.points[las_data.points['label'] == label]
+        if len(class_las.x) > 0:
+            class_df = pd.DataFrame({name: np.array(class_las[name]) for name in VARIABLES})
+            class_df.rename(columns=RENAME, inplace=True)
+            class_data[class_name].append(class_df)
 
-    # Rename columns to match the required format
-    las_df.rename(columns=RENAME, inplace=True)
+# Rebalance classes: sample target_class_size points from each class
+sampled_dataframes = []
+for class_name, dfs in tqdm(class_data.items(), desc="Rebalancing classes"):
+    combined_class_df = pd.concat(dfs, ignore_index=True)  # Concatenate all dataframes for this class at once
+    if len(combined_class_df) > target_class_size:
+        sampled_dataframes.append(combined_class_df.sample(target_class_size))
+    else:
+        sampled_dataframes.append(combined_class_df)
 
-    # Append this file's data to the all_data list
-    all_data.append(las_df)
+# Combine the rebalanced samples into a single DataFrame
+combined_data = pd.concat(sampled_dataframes, ignore_index=True)
 
-print('combining data into a single file')
-# Combine all the data into a single DataFrame
-combined_data = pd.concat(all_data, ignore_index=True)
+# Shuffle the final dataset to mix the classes
+combined_data = combined_data.sample(frac=1).reset_index(drop=True)
 
-# Save the combined data to a CSV file
-combined_data.to_csv('data/training_data/overfitting_test/inference/inference_data.csv', index=False)
-
-print(f"Combined data saved with {len(combined_data)} points.")
-
-
+# Save the combined, rebalanced dataset
+output_dir = 'data/training_data/overfitting_test/inference/'
+makedirs(output_dir, exist_ok=True)
+combined_data.to_csv(f'{output_dir}/sampled_rebalanced_data.csv', index=False)
+print(f'Sampled and rebalanced data saved to {output_dir}/sampled_rebalanced_data.csv')
