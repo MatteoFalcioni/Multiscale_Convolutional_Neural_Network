@@ -14,8 +14,8 @@ def main():
     # Parse arguments with defaults from config.yaml
     args = parse_arguments()
     
-    # raw data file path
-    data_dir = args.raw_data_filepath  
+    # training data file path
+    training_data_filepath = args.training_data_filepath  
     
     # training params
     batch_size = args.batch_size
@@ -26,11 +26,13 @@ def main():
     step_size = args.learning_rate_decay_epochs
     learning_rate_decay_factor = args.learning_rate_decay_factor
     num_workers = args.num_workers
+    save_dir = args.model_save_dir
     
     # inference params
     use_loaded_model = args.load_model   # whether to load model for inference or train a new one
     loaded_model_path = args.load_model_filepath
     run_inference_after_training = args.perform_inference_after_training 
+    inference_filepath = args.inference_data_filepath
     
     # feature images creation params
     window_sizes = args.window_sizes
@@ -42,7 +44,7 @@ def main():
         features_to_use = args.features_to_use
         
     num_channels = len(features_to_use)  # Determine the number of channels based on selected features
-    num_classes = extract_num_classes(raw_file_path=data_dir) # determine the number of classes from the raw data
+    num_classes = extract_num_classes(raw_file_path=training_data_filepath) # determine the number of classes from the raw data
 
     # Set device (GPU if available)
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
@@ -55,7 +57,7 @@ def main():
 
         train_loader, val_loader = prepare_dataloader(
             batch_size=batch_size,
-            data_dir=data_dir,
+            data_dir=training_data_filepath,
             window_sizes=window_sizes,
             grid_resolution=grid_resolution,
             features_to_use=features_to_use,
@@ -63,7 +65,7 @@ def main():
             num_workers=num_workers
         )
         
-        data_array, known_features = read_file_to_numpy(data_dir=data_dir, features_to_use=None)   # get the known features from the raw file path.
+        data_array, known_features = read_file_to_numpy(data_dir=training_data_filepath, features_to_use=None)   # get the known features from the raw file path.
         
         print(f'window sizes: {window_sizes}')
         
@@ -71,7 +73,7 @@ def main():
         print(f'selected features to use during training: {features_to_use}')
         
         hyperparameters = {     # store hyperparameters and metadata in dictionary in order to save them together with the model
-            'training file': data_dir,
+            'training file': training_data_filepath,
             'number of total points' : data_array.shape[0],
             'window_sizes' : window_sizes,
             'grid_resolution': grid_resolution,
@@ -105,17 +107,17 @@ def main():
         start_time = time.time()
 
         model_save_folder = train_epochs(
-                                            model,
-                                            train_loader,
-                                            val_loader,
-                                            criterion,
-                                            optimizer,
-                                            scheduler,
-                                            epochs,
-                                            patience,
-                                            device,
+                                            model=model,
+                                            train_loader=train_loader,
+                                            val_loader=val_loader,
+                                            criterion=criterion,
+                                            optimizer=optimizer,
+                                            scheduler=scheduler,
+                                            epochs=epochs,
+                                            patience=patience,
+                                            device=device,
                                             save=True,
-                                            model_save_dir="models/saved/",
+                                            model_save_dir=save_dir,
                                             used_features=features_to_use,
                                             hyperparameters=hyperparameters
                                         )
@@ -162,10 +164,10 @@ def main():
         model = load_model(model_path=loaded_model_path, device=device, num_channels=num_channels, num_classes=num_classes)
         print('Model loaded successfully')
         
-        print('Preparing inference dataloader...')      # Inference on the test file
+        print('Preparing inference dataloader...')      # Inference on the inference file
         inference_loader, _ = prepare_dataloader(
                 batch_size=batch_size,
-                data_dir='data/training_data/test_21.csv',  # test file
+                data_dir=inference_filepath,  
                 window_sizes=window_sizes,
                 grid_resolution=grid_resolution,
                 features_to_use=features_to_use,
@@ -173,7 +175,7 @@ def main():
                 num_workers=num_workers
             )
         
-        print('Performing inference...')
+        print(f'Performing inference on data contained in {inference_filepath}...')
         conf_matrix, class_report = inference(
             model=model, 
             dataloader=inference_loader, 
@@ -184,7 +186,7 @@ def main():
             save=True
         )
         
-        print(f'Class report output:{class_report}')
+        print(f'Class report output:\n{class_report}')
         print(f'Inference process ended.') 
 
 
