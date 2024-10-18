@@ -1,12 +1,17 @@
-from utils.point_cloud_data_utils import sample_data, combine_and_save_csv_files, read_file_to_numpy
+from utils.point_cloud_data_utils import sample_data, combine_and_save_csv_files, read_file_to_numpy, reservoir_sample_data
 import pandas as pd
 
-sample_data(input_file='data/training_data/train_21.csv', sample_size=500000, save_dir='data/sampled/', save=True)
+input_file = 'data/training_data/overfitting_test/train/combined_data.csv'
 
-'''data_array, features = read_file_to_numpy('data/training_data/to_compare/32_684000_4930500_FP21.las')
+
+sampled_data = reservoir_sample_data(input_file, sample_size=1000000, save=True, save_dir='data/training_data/overfitting_test/train/', feature_to_use=None, chunk_size=1000000)
+# sample_data(input_file=input_file, sample_size=1000000, save_dir='data/training_data/overfitting_test/train/', save=True, chunk_size=100000)
+
+'''
+data_array, features = read_file_to_numpy(input_file)
 print(f'features {features}')
 
-csv_file_path = 'data/sampled/sampled_data_1000000.csv'  
+csv_file_path = 'data/training_data/overfitting_test/train/sampled_data_1000000.csv'  
 df = pd.read_csv(csv_file_path)
 
 # Check for NaN values in the entire DataFrame

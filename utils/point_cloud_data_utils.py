@@ -2,6 +2,7 @@ import laspy
 import numpy as np
 import pandas as pd
 import os
+import random
 from tqdm import tqdm
 import csv
 
@@ -318,6 +319,51 @@ def sample_data(input_file, sample_size, save=False, save_dir='data/sampled_data
         sample_file_path = os.path.join(save_dir, f'sampled_data_{sample_size}.csv')
         df_sample = pd.DataFrame(sampled_data, columns=feature_names)
         df_sample.to_csv(sample_file_path, index=False)
+        print(f"Sampled data saved to {sample_file_path}")
+
+    return sampled_data
+
+
+def reservoir_sample_data(input_file, sample_size, save=False, save_dir='data/sampled_data', feature_to_use=None, chunk_size=100000):
+    """
+    Samples a random subset of the data from a large CSV file using reservoir sampling.
+
+    Args:
+    - input_file (str): Path to the input CSV file.
+    - sample_size (int): The number of samples to extract.
+    - save (bool): Whether to save the sampled data to a file. Default is False.
+    - save_dir (str): Directory where the sampled data will be saved. Default is 'data/sampled_data'.
+    - feature_to_use (list): List of feature names to select from the data.
+    - chunk_size (int): Number of rows to process per chunk. Default is 100000.
+
+    Returns:
+    - pd.DataFrame: The sampled data DataFrame.
+    """
+    reservoir = []  # List to store the sampled rows
+    total_rows = 0  # Total number of rows processed
+
+    # Iterate over chunks of the data and add tqdm for the progress bar
+    for chunk in tqdm(pd.read_csv(input_file, chunksize=chunk_size, usecols=feature_to_use), desc="Processing chunks"):
+        total_rows += len(chunk)
+
+        for row in chunk.itertuples(index=False):
+            if len(reservoir) < sample_size:
+                # If the reservoir is not full, add the row
+                reservoir.append(row)
+            else:
+                # Randomly decide whether to replace an existing element in the reservoir
+                replace_idx = random.randint(0, total_rows - 1)
+                if replace_idx < sample_size:
+                    reservoir[replace_idx] = row
+
+    # Convert the reservoir to a DataFrame
+    sampled_data = pd.DataFrame(reservoir, columns=chunk.columns)
+
+    # Optionally save the sampled data
+    if save:
+        os.makedirs(save_dir, exist_ok=True)
+        sample_file_path = os.path.join(save_dir, f'sampled_data_{sample_size}.csv')
+        sampled_data.to_csv(sample_file_path, index=False)
         print(f"Sampled data saved to {sample_file_path}")
 
     return sampled_data
