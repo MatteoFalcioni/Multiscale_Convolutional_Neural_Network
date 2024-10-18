@@ -133,7 +133,7 @@ def main():
             print('Preparing inference dataloader...')      # Inference on the test file
             inference_loader, _ = prepare_dataloader(
                     batch_size=batch_size,
-                    data_dir='data/training_data/test_21.csv',  # test file
+                    data_dir='data/training_data/21/test_21.csv',  # test file
                     window_sizes=window_sizes,
                     grid_resolution=grid_resolution,
                     features_to_use=features_to_use,
