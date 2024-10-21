@@ -6,7 +6,7 @@ import glob
 from tqdm import tqdm
 
 # Path to the directory containing LAS files
-LAS_DIRECTORY = 'data/training_data/overfitting_test/inference/'
+LAS_DIRECTORY = 'data/training_data/overfitting_test/train/'
 
 # Features and labels to keep
 VARIABLES = ['x', 'y', 'z', 'intensity', 'return_number', 'number_of_returns',
@@ -27,11 +27,12 @@ CLASS_MAP = {
     'grass': 3,
     'trees': 5,
     'buildings': 6,
+    'railway' : 10,
     'roads': 11,
     'cars': 64
-}
+}   
 
-sample_size = 500000
+sample_size = 2500000
 target_class_size = int(sample_size / len(CLASS_MAP))  # For defined classes
 
 # Get a list of all LAS files in the directory
@@ -67,7 +68,7 @@ combined_data = pd.concat(sampled_dataframes, ignore_index=True)
 combined_data = combined_data.sample(frac=1).reset_index(drop=True)
 
 # Save the combined, rebalanced dataset
-output_dir = 'data/training_data/overfitting_test/inference/'
+output_dir = LAS_DIRECTORY
 makedirs(output_dir, exist_ok=True)
 combined_data.to_csv(f'{output_dir}/sampled_rebalanced_data.csv', index=False)
 print(f'Sampled and rebalanced data saved to {output_dir}/sampled_rebalanced_data.csv')

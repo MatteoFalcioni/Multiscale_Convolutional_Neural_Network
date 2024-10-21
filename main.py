@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from models.mcnn import MultiScaleCNN
-from utils.train_data_utils import prepare_dataloader, initialize_weights, load_model, load_features_used
+from utils.train_data_utils import prepare_dataloader, initialize_weights, load_model, load_features_used, send_sms_notification
 from scripts.train import train_epochs
 from scripts.inference import inference
 from utils.config_handler import parse_arguments
@@ -180,7 +180,7 @@ def main():
             model=model, 
             dataloader=inference_loader, 
             device=device, 
-            class_names=['Grass', 'High Vegetation', 'Building', 'Road', 'Car'],    # 'Railway' temporarily discarded
+            class_names=['Grass', 'High Vegetation', 'Building', 'Railway', 'Road', 'Car'],  
             # model_save_folder=loaded_model_path, 
             model_save_folder='tests/test_inference/',  # temporarily save in this folder to look at results
             save=True
@@ -188,6 +188,8 @@ def main():
         
         print(f'Class report output:\n{class_report}')
         print(f'Inference process ended.') 
+        
+        send_sms_notification("The model's training has been completed.")
 
 
 if __name__ == "__main__":
