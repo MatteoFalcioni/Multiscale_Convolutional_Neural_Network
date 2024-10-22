@@ -38,7 +38,7 @@ def load_asc_data(file_path):
 
 def read_las_file_to_numpy(file_path, features_to_extract=None):
     """
-    Reads a LAS file, extracts coordinate data (x, y, z) and specific features,
+    Reads a LAS file, extracts coordinate data (x, y, z), specific features and labels,
     and returns them as a numpy array.
 
     Parameters:
@@ -114,34 +114,9 @@ def read_las_file_to_numpy(file_path, features_to_extract=None):
     return data_array, feature_names
 
 
-def numpy_to_dataframe(data_array, feature_names=None):
-    """
-    Converts a NumPy array to a pandas DataFrame.
-
-    Args:
-    - data_array (numpy.ndarray): The NumPy array to convert.
-    - feature_names (list): List of column names for the DataFrame. If None, default names will be generated.
-
-    Returns:
-    - pandas.DataFrame: The resulting DataFrame.
-    """
-    # Check the number of columns in the data array
-    num_columns = data_array.shape[1]
-
-    # If feature_names is None, generate default names
-    if feature_names is None:
-        feature_names = [f'feature_{i}' for i in range(num_columns)]
-    elif len(feature_names) != num_columns:
-        raise ValueError(f"Number of feature names ({len(feature_names)}) does not match the number of columns in data_array ({num_columns}).")
-
-    # Convert the numpy array to a pandas DataFrame
-    return pd.DataFrame(data_array, columns=feature_names)
-
-
-
 def read_csv_file_to_numpy(file_path, features_to_extract=None):
     """
-    Reads a CSV file and extracts the specified features along with coordinates.
+    Reads a CSV file and extracts the specified features along with coordinates and labels.
 
     Args:
     - file_path (str): Path to the CSV file.
@@ -201,6 +176,30 @@ def read_csv_file_to_numpy(file_path, features_to_extract=None):
         raise ValueError('Labels are not present in the csv files. Process aborted.')
 
     return combined_data, feature_names
+
+
+def numpy_to_dataframe(data_array, feature_names=None):
+    """
+    Converts a NumPy array to a pandas DataFrame.
+
+    Args:
+    - data_array (numpy.ndarray): The NumPy array to convert.
+    - feature_names (list): List of column names for the DataFrame. If None, default names will be generated.
+
+    Returns:
+    - pandas.DataFrame: The resulting DataFrame.
+    """
+    # Check the number of columns in the data array
+    num_columns = data_array.shape[1]
+
+    # If feature_names is None, generate default names
+    if feature_names is None:
+        feature_names = [f'feature_{i}' for i in range(num_columns)]
+    elif len(feature_names) != num_columns:
+        raise ValueError(f"Number of feature names ({len(feature_names)}) does not match the number of columns in data_array ({num_columns}).")
+
+    # Convert the numpy array to a pandas DataFrame
+    return pd.DataFrame(data_array, columns=feature_names)
 
 
 def load_features_for_np(features_file_path):
