@@ -89,6 +89,8 @@ def validate(model, dataloader, criterion, device):
     model.eval()  # Set model to evaluation mode
     val_loss = 0.0  # To accumulate the total loss
     total_samples = 0  # To track the total number of samples processed
+    
+    print('Evaluation step...')
 
     with torch.no_grad():  # Disable gradient calculation
         for batch in dataloader:
@@ -164,6 +166,7 @@ def train_epochs(model, train_loader, val_loader, criterion, optimizer, schedule
         if val_loss < best_val_loss:
             best_val_loss = val_loss
             patience_counter = 0  # Reset patience counter if improvement
+            print(f'Validation loss is decreasing. Current value: {val_loss}. Continuining training... ')
         else:
             patience_counter += 1
             print(f'No improvement in validation loss for {patience_counter} epoch(s).')
