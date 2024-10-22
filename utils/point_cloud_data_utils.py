@@ -220,7 +220,7 @@ def read_file_to_numpy(data_dir, features_to_use=None, features_file_path=None):
 
     Args:
     - data_dir (str): Path to the raw data file.
-    - features_to_use (list): List of features to extract (only used for .las files).
+    - features_to_use (list): List of features to extract from the file.
     - features_file_path (str): Path to the features file (only used for .npy files).
 
     Returns:
@@ -236,15 +236,13 @@ def read_file_to_numpy(data_dir, features_to_use=None, features_file_path=None):
         except Exception as e:
             raise ValueError(f"Unable to load features from {features_file_path}: {e}")
 
-    elif data_dir.endswith('.las'):  # Raw LAS file
+    elif data_dir.endswith('.las'):  # LAS file
         print("Loading raw data from LAS file...")
         data_array, known_features = read_las_file_to_numpy(data_dir, features_to_extract=features_to_use)
 
-    elif data_dir.endswith('.csv'):  # Raw CSV file
+    elif data_dir.endswith('.csv'):  # CSV file
         print("Loading raw data from CSV file...")
-        df = pd.read_csv(data_dir)
-        data_array = df.values
-        known_features = df.columns.tolist()
+        data_array, known_features = read_csv_file_to_numpy(data_dir, features_to_extract=features_to_use)
 
     else:
         raise ValueError("Unsupported data format. Please provide a .npy, .las, or .csv file.")

@@ -42,6 +42,9 @@ def main():
         features_to_use = load_features_used(loaded_model_path)
     else:
         features_to_use = args.features_to_use
+
+    # Ensure x, y, z are not included in the selected features
+    features_to_use = [feature for feature in features_to_use if feature not in ['x', 'y', 'z']]    
         
     num_channels = len(features_to_use)  # Determine the number of channels based on selected features
     num_classes = extract_num_classes(raw_file_path=training_data_filepath) # determine the number of classes from the raw data
