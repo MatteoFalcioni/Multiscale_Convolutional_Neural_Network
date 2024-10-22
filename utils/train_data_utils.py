@@ -132,7 +132,7 @@ def prepare_dataloader(batch_size, data_dir=None,
     # Step 2: remap labels to ensure they vary continously (needed for CrossEntropyLoss)
     data_array, _ = remap_labels(data_array)
 
-    # Step 2: Create the dataset using the new streaming-based approach
+    # Step 2: Create the dataset 
     full_dataset = PointCloudDataset(
         data_array=data_array,
         window_sizes=window_sizes,

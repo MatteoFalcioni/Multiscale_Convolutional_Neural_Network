@@ -41,7 +41,7 @@ def inference(model, dataloader, device, class_names, model_save_folder, save=Fa
     all_labels = []  # To store all true labels
 
     with torch.no_grad():  # No gradient calculation during inference
-        for batch in tqdm(dataloader, desc="Running inference"):
+        for batch in tqdm(dataloader, desc="Performing inference"):
             if batch is None:
                 continue
 
