@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from models.mcnn import MultiScaleCNN
-from utils.train_data_utils import prepare_dataloader, initialize_weights, load_model, load_features_used, send_sms_notification
+from utils.train_data_utils import prepare_dataloader, initialize_weights, load_model, load_features_used
 from scripts.train import train_epochs
 from scripts.inference import inference
 from utils.config_handler import parse_arguments
@@ -90,7 +90,7 @@ def main():
         # Initialize model 
         print("Initializing MultiScaleCNN (MCNN) model...")
         model = MultiScaleCNN(channels=num_channels, classes=num_classes).to(device)  
-        model.apply(initialize_weights)     # initialize model weights (optional, but recommended)
+        # model.apply(initialize_weights)     # initialize model weights (optional)
 
         # Set up CrossEntropy loss function
         criterion = nn.CrossEntropyLoss()
@@ -189,7 +189,7 @@ def main():
         print(f'Class report output:\n{class_report}')
         print(f'Inference process ended.') 
         
-        send_sms_notification("The model's training has been completed.")
+        # send_sms_notification("The model's training has been completed.")
 
 
 if __name__ == "__main__":

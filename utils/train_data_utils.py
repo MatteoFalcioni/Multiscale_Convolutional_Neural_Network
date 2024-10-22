@@ -10,8 +10,6 @@ from scipy.spatial import cKDTree
 import csv
 import matplotlib.pyplot as plt
 from models.mcnn import MultiScaleCNN
-from dotenv import load_dotenv
-from twilio.rest import Client
 
 
 def initialize_weights(model):
@@ -367,7 +365,7 @@ def load_features_used(model_folder):
         raise ValueError(f"Error loading features from {features_file_path}: {e}")
 
 
-def send_sms_notification(body):
+'''def send_sms_notification(body):
     # Load environment variables from .env file
     load_dotenv()
 
@@ -383,7 +381,7 @@ def send_sms_notification(body):
         body=body,
         from_=from_number,  # Your Twilio phone number
         to=to_number        # Recipient's phone number
-    )
+    )'''
 
 
 
