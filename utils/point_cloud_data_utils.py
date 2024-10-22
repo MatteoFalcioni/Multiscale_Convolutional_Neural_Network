@@ -56,7 +56,7 @@ def read_las_file_to_numpy(file_path, features_to_extract=None):
                                'ndvi', 'ndwi', 'ssi', 'l1', 'l2', 'l3', 'planarity', 'sphericity',
                                'linearity', 'entropy', 'theta', 'theta_variance', 'mad', 'delta_z', 'l1_b', 'l2_b', 'l3_b', 'planarity_b', 'sphericity_b',
                                'linearity_b', 'entropy_b', 'theta_b', 'theta_variance_b', 'mad_b', 'delta_z_b', 'N_h',
-                               'delta_z_fl']    # in 'old' las files the features were saved with a suffix '_b'
+                               'delta_z_fl', 'label']    # in 'old' las files the features were saved with a suffix '_b'
 
     # Read the LAS file
     print(f"Processing {file_path}...")
@@ -94,13 +94,15 @@ def read_las_file_to_numpy(file_path, features_to_extract=None):
             # print(f"Feature '{feature}' is not available in {file_path}.")
 
     # Check for segment_id and label fields
-    if 'segment_id' in las_data.point_format.dimension_names:
+    """if 'segment_id' in las_data.point_format.dimension_names:    no need for segment id right now
         data.append(las_data['segment_id'])
-        feature_names.append('segment_id')
+        feature_names.append('segment_id')"""
 
     if 'label' in las_data.point_format.dimension_names:
         data.append(las_data['label'])
         feature_names.append('label')
+    else: 
+        raise ValueError('The las data does not contain a label column, which is needed for training. Process stopped.')
 
     # Convert the data list to a numpy array and transpose to match the expected shape (N, num_features)
     data_array = np.vstack(data).T
@@ -127,7 +129,7 @@ def numpy_to_dataframe(data_array, feature_names=None):
                                'ndvi', 'ndwi', 'ssi', 'l1', 'l2', 'l3', 'planarity', 'sphericity',
                                'linearity', 'entropy', 'theta', 'theta_variance', 'mad', 'delta_z', 'l1_b', 'l2_b', 'l3_b', 'planarity_b', 'sphericity_b',
                                'linearity_b', 'entropy_b', 'theta_b', 'theta_variance_b', 'mad_b', 'delta_z_b', 'N_h',
-                               'delta_z_fl']
+                               'delta_z_fl', 'label']
 
     # Convert the numpy array to a pandas DataFrame
     return pd.DataFrame(data_array, columns=feature_names)
@@ -152,7 +154,7 @@ def read_csv_file_to_numpy(file_path, features_to_extract=None):
                                'ndvi', 'ndwi', 'ssi', 'l1', 'l2', 'l3', 'planarity', 'sphericity',
                                'linearity', 'entropy', 'theta', 'theta_variance', 'mad', 'delta_z', 'l1_b', 'l2_b', 'l3_b', 'planarity_b', 'sphericity_b',
                                'linearity_b', 'entropy_b', 'theta_b', 'theta_variance_b', 'mad_b', 'delta_z_b', 'N_h',
-                               'delta_z_fl']
+                               'delta_z_fl', 'label']
 
     # Read the CSV file into a pandas DataFrame
     df = pd.read_csv(file_path)
@@ -168,8 +170,25 @@ def read_csv_file_to_numpy(file_path, features_to_extract=None):
     available_features = [f for f in features_to_extract if f in df.columns]
     if not available_features:
         raise ValueError(f"No valid features found in {file_path} from the provided list.")
-
+    
     feature_data = df[available_features].values
+    
+    """if 'segment_id' in df.columns:   correct this if you want to include segment_id
+        segment_id = df[['segment_id']].values
+        # Combine coordinates, features, and labels into a single array
+        combined_data = np.hstack((coords, feature_data, labels))
+        # Add the label to the feature names
+        feature_names = ['x', 'y', 'z'] + available_features + ['label']"""
+
+    # Check if the label column exists in the CSV
+    if 'label' in df.columns:
+        labels = df[['label']].values
+        # Combine coordinates, features, and labels into a single array
+        combined_data = np.hstack((coords, feature_data, labels))
+        # Add the label to the feature names
+        feature_names = ['x', 'y', 'z'] + available_features + ['label']
+    else: 
+        raise ValueError('The csv data does not contain a label column, which is needed for training. Process stopped.')
 
     # Combine coordinates and selected features into a single array
     combined_data = np.hstack((coords, feature_data))
@@ -303,6 +322,10 @@ def sample_data(input_file, sample_size, save=False, save_dir='data/sampled_data
     # Load the data
     data_array, feature_names = read_file_to_numpy(data_dir=input_file, features_to_use=feature_to_use, features_file_path=features_file_path)
 
+    # Ensure the label column is included in the features
+    if 'label' not in feature_names:
+        feature_names.append('label')
+
     # Check if sample_size is greater than the dataset size
     if sample_size > data_array.shape[0]:
         raise ValueError(f"Sample size {sample_size} is larger than the dataset size {data_array.shape[0]}.")
@@ -415,7 +438,7 @@ def extract_num_classes(raw_file_path=None):
         raise ValueError('ERROR: File path to raw data must be provided to extract the number of classes.')
 
     # Load data from raw files
-    data_array, _ = read_file_to_numpy(raw_file_path)
+    data_array, _ = read_file_to_numpy(raw_file_path, features_to_use=None, features_file_path=None)
     
     # Extract class labels from the last column of the data array
     class_labels = data_array[:, -1]
