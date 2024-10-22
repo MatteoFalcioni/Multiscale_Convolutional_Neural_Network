@@ -11,6 +11,14 @@ import time
 
 
 def main():
+    
+    many_features = []
+    
+    few_features = ['intensity', 'nir', 'delta_z']
+    
+    features_for_loop = [many_features, few_features]
+    
+    
     # Parse arguments with defaults from config.yaml
     args = parse_arguments()
     

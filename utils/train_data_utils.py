@@ -126,13 +126,13 @@ def prepare_dataloader(batch_size, data_dir=None,
     if data_dir is None:
         raise ValueError('ERROR: Raw data directory was not passe as input to the dataloader.')
 
-    # Step 1: Read the raw point cloud data 
+    # Read the raw point cloud data 
     data_array, known_features = read_file_to_numpy(data_dir=data_dir, features_to_use=None, features_file_path=features_file_path)   # with None as features_to_use we get the known features (all the feats in the data)
     
-    # Step 2: remap labels to ensure they vary continously (needed for CrossEntropyLoss)
+    # remap labels to ensure they vary continously (needed for CrossEntropyLoss)
     data_array, _ = remap_labels(data_array)
 
-    # Step 2: Create the dataset 
+    # Create the dataset 
     full_dataset = PointCloudDataset(
         data_array=data_array,
         window_sizes=window_sizes,
@@ -141,13 +141,13 @@ def prepare_dataloader(batch_size, data_dir=None,
         known_features=known_features,
     )
 
-    # Step 3: Split the dataset into training and evaluation sets (if train_split is provided)
+    # Split the dataset into training and evaluation sets (if train_split is provided)
     if train_split is not None:
         train_size = int(train_split * len(full_dataset))
         eval_size = len(full_dataset) - train_size
         train_dataset, eval_dataset = random_split(full_dataset, [train_size, eval_size])
 
-        # Step 6: Create DataLoaders for training and evaluation
+        # Create DataLoaders for training and evaluation
         train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, collate_fn=custom_collate_fn, num_workers=num_workers)
         eval_loader = DataLoader(eval_dataset, batch_size=batch_size, shuffle=False, collate_fn=custom_collate_fn, num_workers=num_workers)
     else:

@@ -142,59 +142,53 @@ def read_csv_file_to_numpy(file_path, features_to_extract=None):
     Args:
     - file_path (str): Path to the CSV file.
     - features_to_extract (list of str): List of feature names to extract. 
-                                         If None, default features will be extracted.
+                                         If None, all columns will be selected.
 
     Returns:
     - np.ndarray: Numpy array containing the extracted features and coordinates.
     - feature_names (list of str): List of feature names corresponding to the columns in the array.
     """
-    # Set default features if none are provided
-    if features_to_extract is None:
-        features_to_extract = ['intensity', 'return_number', 'number_of_returns', 'red', 'green', 'blue', 'nir',
-                               'ndvi', 'ndwi', 'ssi', 'l1', 'l2', 'l3', 'planarity', 'sphericity',
-                               'linearity', 'entropy', 'theta', 'theta_variance', 'mad', 'delta_z', 'l1_b', 'l2_b', 'l3_b', 'planarity_b', 'sphericity_b',
-                               'linearity_b', 'entropy_b', 'theta_b', 'theta_variance_b', 'mad_b', 'delta_z_b', 'N_h',
-                               'delta_z_fl', 'label']
-
     # Read the CSV file into a pandas DataFrame
     df = pd.read_csv(file_path)
     
     # Ensure 'x', 'y', 'z' coordinates are present
     if not all(coord in df.columns for coord in ['x', 'y', 'z']):
         raise ValueError(f"CSV file {file_path} is missing required coordinates ('x', 'y', 'z').")
-
-    # Extract the coordinates
-    coords = df[['x', 'y', 'z']].values
-
-    # Extract the features, checking if they exist in the CSV
-    available_features = [f for f in features_to_extract if f in df.columns]
-    if not available_features:
-        raise ValueError(f"No valid features found in {file_path} from the provided list.")
     
+    # Always include 'x', 'y', 'z' coordinates
+    coords = df[['x', 'y', 'z']].values
+    
+    # Initialize feature_names with 'x', 'y', 'z'
+    feature_names = ['x', 'y', 'z']
+    
+    # If features_to_extract is None, select all columns except 'x', 'y', 'z', 'segment_id' and 'label' (since these are always included)
+    if features_to_extract is None:
+        features_to_extract = [col for col in df.columns if col not in ['x', 'y', 'z', 'segment_id', 'label']]
+
+    # Extract the features
+    available_features = [f for f in features_to_extract if f in df.columns]
     feature_data = df[available_features].values
     
-    """if 'segment_id' in df.columns:   correct this if you want to include segment_id
+    # Add selected features to feature_names
+    feature_names += available_features
+    
+    # Optionally handle segment_id if present
+    if 'segment_id' in df.columns:
         segment_id = df[['segment_id']].values
-        # Combine coordinates, features, and labels into a single array
-        combined_data = np.hstack((coords, feature_data, labels))
-        # Add the label to the feature names
-        feature_names = ['x', 'y', 'z'] + available_features + ['label']"""
-
+        combined_data = np.hstack((coords, feature_data, segment_id))
+        feature_names += ['segment_id']
+    else:
+        combined_data = np.hstack((coords, feature_data))
+    
     # Check if the label column exists in the CSV
     if 'label' in df.columns:
         labels = df[['label']].values
-        # Combine coordinates, features, and labels into a single array
-        combined_data = np.hstack((coords, feature_data, labels))
+        # Combine coordinates, features, segment_id and labels into a single array
+        combined_data = np.hstack((combined_data, labels))
         # Add the label to the feature names
-        feature_names = ['x', 'y', 'z'] + available_features + ['label']
+        feature_names += ['label']
     else: 
-        raise ValueError('The csv data does not contain a label column, which is needed for training. Process stopped.')
-
-    # Combine coordinates and selected features into a single array
-    combined_data = np.hstack((coords, feature_data))
-    
-    # Combine 'x', 'y', 'z' with the feature names to keep track of the columns
-    feature_names = ['x', 'y', 'z'] + available_features
+        raise ValueError('Labels are not present in the csv files. Process aborted.')
 
     return combined_data, feature_names
 
