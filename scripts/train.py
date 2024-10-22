@@ -166,7 +166,7 @@ def train_epochs(model, train_loader, val_loader, criterion, optimizer, schedule
         if val_loss < best_val_loss:
             best_val_loss = val_loss
             patience_counter = 0  # Reset patience counter if improvement
-            print(f'Validation loss is decreasing. Current value: {val_loss}. Continuining training... ')
+            print(f'Validation loss is decreasing. Current value: {val_loss:.6f}. Continuining training... ')
         else:
             patience_counter += 1
             print(f'No improvement in validation loss for {patience_counter} epoch(s).')
