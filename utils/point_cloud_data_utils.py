@@ -44,38 +44,27 @@ def read_las_file_to_numpy(file_path, features_to_extract=None):
     Parameters:
     - file_path (str): The path to the LAS file.
     - features_to_extract (list): List of features to extract from the LAS file.
-                                  If None, default features will be extracted.
+                                  If None, all available features except 'x', 'y', 'z', 'segment_id', and 'label' will be selected.
 
     Returns:
     - np.ndarray: A numpy array containing the extracted data from the LAS file.
     - feature_names (list of str): List of feature names corresponding to the columns in the array.
     """
-    # Set default features if none are provided
-    if features_to_extract is None:
-        features_to_extract = ['intensity', 'return_number', 'number_of_returns', 'red', 'green', 'blue', 'nir',
-                               'ndvi', 'ndwi', 'ssi', 'l1', 'l2', 'l3', 'planarity', 'sphericity',
-                               'linearity', 'entropy', 'theta', 'theta_variance', 'mad', 'delta_z', 'l1_b', 'l2_b', 'l3_b', 'planarity_b', 'sphericity_b',
-                               'linearity_b', 'entropy_b', 'theta_b', 'theta_variance_b', 'mad_b', 'delta_z_b', 'N_h',
-                               'delta_z_fl', 'label']    # in 'old' las files the features were saved with a suffix '_b'
-
     # Read the LAS file
     print(f"Processing {file_path}...")
     las_data = laspy.read(file_path)
 
     # Initialize a list to store the features and their names
     data = []
-    feature_names = []
+    feature_names = ['x', 'y', 'z']  # Always include coordinates
 
-    # Check if x, y, z coordinates are present and not empty
+    # Check if x, y, z coordinates are present
     if hasattr(las_data, 'x') and hasattr(las_data, 'y') and hasattr(las_data, 'z'):
         if len(las_data.x) > 0 and len(las_data.y) > 0 and len(las_data.z) > 0:
             # Add x, y, z as the first columns
             data.append(las_data.x)
-            feature_names.append('x')
             data.append(las_data.y)
-            feature_names.append('y')
             data.append(las_data.z)
-            feature_names.append('z')
         else:
             print(f"Warning: One of the coordinate arrays (x, y, z) is empty in {file_path}.")
             return None
@@ -83,32 +72,47 @@ def read_las_file_to_numpy(file_path, features_to_extract=None):
         print(f"Warning: LAS data in {file_path} does not have 'x', 'y', or 'z' attributes.")
         return None
 
+    # If features_to_extract is None, select all available features except 'x', 'y', 'z', 'label', and 'segment_id'
+    if features_to_extract is None:
+        features_to_extract = [dim for dim in las_data.point_format.dimension_names if dim not in ['x', 'y', 'z', 'label', 'segment_id']]
+
     # Extract additional features
+    available_features = []
+    missing_features = []
     for feature in features_to_extract:
         if feature in ['x', 'y', 'z']:
             continue  # Skip if feature is x, y, or z since they are already added
         if feature in las_data.point_format.dimension_names:
             data.append(las_data[feature])
-            feature_names.append(feature)
-        # else:
-            # print(f"Feature '{feature}' is not available in {file_path}.")
+            available_features.append(feature)
+        else:
+            missing_features.append(feature)
 
-    # Check for segment_id and label fields
-    """if 'segment_id' in las_data.point_format.dimension_names:    no need for segment id right now
+    # Warn if any requested features are missing
+    if missing_features:
+        print(f"Warning: The following features were not found in the LAS file: {missing_features}")
+
+    # Add selected features to feature_names
+    feature_names += available_features
+    
+    # Check for segment_id 
+    if 'segment_id' in las_data.point_format.dimension_names:
         data.append(las_data['segment_id'])
-        feature_names.append('segment_id')"""
+        feature_names.append('segment_id')
 
+    # Check for label field
     if 'label' in las_data.point_format.dimension_names:
         data.append(las_data['label'])
         feature_names.append('label')
-    else: 
-        raise ValueError('The las data does not contain a label column, which is needed for training. Process stopped.')
+    else:
+        raise ValueError('The LAS data does not contain a label column, which is needed for training. Process stopped.')
 
     # Convert the data list to a numpy array and transpose to match the expected shape (N, num_features)
     data_array = np.vstack(data).T
     print(f"Loaded NumPy array with shape: {data_array.shape}")
 
     return data_array, feature_names
+
 
 
 def numpy_to_dataframe(data_array, feature_names=None):
@@ -167,6 +171,12 @@ def read_csv_file_to_numpy(file_path, features_to_extract=None):
 
     # Extract the features
     available_features = [f for f in features_to_extract if f in df.columns]
+    
+    # Check for features not present in the CSV and eventually print a warning
+    missing_features = [f for f in features_to_extract if f not in df.columns]
+    if missing_features:
+        print(f"Warning: The following features were not found in the CSV: {missing_features}")
+    
     feature_data = df[available_features].values
     
     # Add selected features to feature_names
