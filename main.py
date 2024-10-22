@@ -72,7 +72,7 @@ def main():
         
         print(f'window sizes: {window_sizes}')
         
-        print(f'features contained in raw data file: {known_features}')
+        print(f'features read from data file: {known_features}')
         print(f'selected features to use during training: {features_to_use}')
         
         hyperparameters = {     # store hyperparameters and metadata in dictionary in order to save them together with the model

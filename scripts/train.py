@@ -93,7 +93,7 @@ def validate(model, dataloader, criterion, device):
     print('Evaluation step...')
 
     with torch.no_grad():  # Disable gradient calculation
-        for batch in dataloader:
+        for batch in tqdm(dataloader, desc="Validating", leave=False):
             if batch is None:  # Skip if the batch is None
                 continue
             
