@@ -114,29 +114,29 @@ def read_las_file_to_numpy(file_path, features_to_extract=None):
     return data_array, feature_names
 
 
-
 def numpy_to_dataframe(data_array, feature_names=None):
     """
     Converts a NumPy array to a pandas DataFrame.
 
     Args:
     - data_array (numpy.ndarray): The NumPy array to convert.
-    - feature_names (list): List of column names for the DataFrame.
+    - feature_names (list): List of column names for the DataFrame. If None, default names will be generated.
 
     Returns:
     - pandas.DataFrame: The resulting DataFrame.
     """
+    # Check the number of columns in the data array
+    num_columns = data_array.shape[1]
 
-    # Define default feature names if not provided
+    # If feature_names is None, generate default names
     if feature_names is None:
-        feature_names = ['intensity', 'return_number', 'number_of_returns', 'red', 'green', 'blue', 'nir',
-                               'ndvi', 'ndwi', 'ssi', 'l1', 'l2', 'l3', 'planarity', 'sphericity',
-                               'linearity', 'entropy', 'theta', 'theta_variance', 'mad', 'delta_z', 'l1_b', 'l2_b', 'l3_b', 'planarity_b', 'sphericity_b',
-                               'linearity_b', 'entropy_b', 'theta_b', 'theta_variance_b', 'mad_b', 'delta_z_b', 'N_h',
-                               'delta_z_fl', 'label']
+        feature_names = [f'feature_{i}' for i in range(num_columns)]
+    elif len(feature_names) != num_columns:
+        raise ValueError(f"Number of feature names ({len(feature_names)}) does not match the number of columns in data_array ({num_columns}).")
 
     # Convert the numpy array to a pandas DataFrame
     return pd.DataFrame(data_array, columns=feature_names)
+
 
 
 def read_csv_file_to_numpy(file_path, features_to_extract=None):
