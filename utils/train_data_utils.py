@@ -115,11 +115,11 @@ def prepare_dataloader(batch_size, data_dir=None,
     - features_to_use (list): List of feature names to use for grid generation. Default is None.
     - train_split (float): Ratio of the data to use for training (e.g., 0.8 for 80% training data). Default is None.
     - features_file_path: File path to feature metadata, needed if using raw data in .npy format. Default is None.
-    - num_workers (int): number of worlkers for parallelized process. Default is 0. 
+    - num_workers (int): number of worlkers for parallelized process. Default is 4. 
 
     Returns:
     - train_loader (DataLoader): DataLoader for training.
-    - eval_loader (DataLoader): DataLoader for validation (if train_split > 0).
+    - eval_loader (DataLoader): DataLoader for validation (if train_split is not None, else eval_loader=None).
     """
     
     # check if raw data directory was passed as input
