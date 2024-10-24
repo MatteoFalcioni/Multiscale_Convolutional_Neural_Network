@@ -77,6 +77,15 @@ def inference(model, dataloader, device, class_names, model_save_folder, save=Fa
 
 
 
+
+
+
+
+
+
+
+
+'''
 def inference_with_csv(model, data_array, window_sizes, grid_resolution, feature_indices, device, save_file=None, subsample_size=None):
     """
     Perform inference with the MCNN model, generating grids from point cloud points and comparing predicted labels with known true labels.
@@ -168,4 +177,4 @@ def inference_with_csv(model, data_array, window_sizes, grid_resolution, feature
             for true, pred in zip(true_labels_list, predicted_labels_list):
                 writer.writerow([int(true), int(pred)])
 
-    return true_labels_list, predicted_labels_list
+    return true_labels_list, predicted_labels_list'''

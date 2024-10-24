@@ -81,7 +81,8 @@ def main():
             grid_resolution=grid_resolution,
             features_to_use=features_to_use,
             train_split=0.8,
-            num_workers=num_workers
+            num_workers=num_workers,
+            shuffle_train=True
         )
         
         data_array, known_features = read_file_to_numpy(data_dir=training_data_filepath, features_to_use=None)   # get the known features from the raw file path.
@@ -143,7 +144,7 @@ def main():
 
         end_time = time.time()
         elapsed_time = (end_time - start_time) /3600   # in hours
-        print(f"Training completed in {elapsed_time} hours")
+        print(f"Training completed in {elapsed_time:.2f} hours")
 
         # Check if inference is required after training
         if run_inference_after_training:
@@ -157,7 +158,8 @@ def main():
                     grid_resolution=grid_resolution,
                     features_to_use=features_to_use,
                     train_split=None,   # prepare the dataloader with the full data for inference (no train/eval split)
-                    num_workers=num_workers
+                    num_workers=num_workers,
+                    shuffle_train=False # we dont want to shuffle data for inference
                 )
             
             print('Performing inference...')
@@ -192,7 +194,8 @@ def main():
                 grid_resolution=grid_resolution,
                 features_to_use=features_to_use,
                 train_split=None,   # prepare the dataloader with the full data for inference (no train/eval split)
-                num_workers=num_workers
+                num_workers=num_workers,
+                shuffle_train=False # we dont want to shuffle data for inference
             )
         
         print(f'Performing inference on data contained in {inference_filepath}...')
