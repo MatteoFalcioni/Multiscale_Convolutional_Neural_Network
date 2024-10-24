@@ -8,6 +8,8 @@ from scripts.inference import inference, inference_without_ground_truth
 from utils.config_handler import parse_arguments
 from utils.point_cloud_data_utils import read_file_to_numpy, extract_num_classes
 import time
+import glob
+import os
 
 
 def main():
@@ -199,7 +201,7 @@ def main():
             )
         
         print(f'Performing inference on data contained in {inference_filepath}...')
-        '''
+        
         conf_matrix, class_report = inference(
             model=model, 
             dataloader=inference_loader, 
@@ -210,19 +212,38 @@ def main():
         )
         print(f'Class report output:\n{class_report}')
         print(f'Inference process ended.') 
-        '''
-        predicted_labels = inference_without_ground_truth(
-                    model=model, 
-                    dataloader=inference_loader, 
-                    device=device, 
-                    data_file=inference_filepath, 
-                    model_save_folder=loaded_model_path
-                )
-        print('Inference process completed successfully.')
         
         
-        # send_sms_notification("The model's training has been completed.")
+        '''# Directory containing  LAS files
+        directory = 'data/chosen_tiles'
 
+        # Loop over only the LAS files using glob
+        for file_path in glob.glob(os.path.join(directory, '*.las')):
+            print(f"Processing file: {file_path}")
+            
+            print('Preparing inference dataloader...')      
+            inference_loader, _ = prepare_dataloader(
+                    batch_size=batch_size,
+                    data_dir=file_path,  
+                    window_sizes=window_sizes,
+                    grid_resolution=grid_resolution,
+                    features_to_use=features_to_use,
+                    train_split=None,   # prepare the dataloader with the full data for inference (no train/eval split)
+                    num_workers=num_workers,
+                    shuffle_train=False # we dont want to shuffle data for inference
+                )
+            
+            print(f'Performing inference on data contained in {file_path}...')
+        
+            predicted_labels = inference_without_ground_truth(
+                        model=model, 
+                        dataloader=inference_loader, 
+                        device=device, 
+                        data_file=file_path, 
+                        model_save_folder=loaded_model_path
+                    )
+            
+            print(f'Inference process completed successfully for file {file_path}.')'''
 
 if __name__ == "__main__":
     main()
