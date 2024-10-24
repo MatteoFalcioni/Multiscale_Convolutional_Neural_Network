@@ -81,7 +81,7 @@ def inference(model, dataloader, device, class_names, model_save_folder, inferen
     return conf_matrix, class_report
 
 
-def inference_without_ground_truth_and_logging(model, dataloader, device, data_file, model_save_folder, save_folder="predictions"):
+def inference_without_ground_truth(model, dataloader, device, data_file, model_save_folder, save_folder="predictions"):
     """
     Runs inference and saves the original data (coordinates, features) and predicted labels to a timestamped LAS file.
     Also ensures each run generates a unique output file.
@@ -92,7 +92,7 @@ def inference_without_ground_truth_and_logging(model, dataloader, device, data_f
     - device (torch.device): Device to perform inference on (CPU or GPU).
     - data_file (str): Path to the input file (used for naming the output file).
     - model_save_folder (str): The folder where the model is saved.
-    - save_folder (str): Directory where the LAS file with predictions will be saved.
+    - save_folder (str): Subdirectory of model_save_folder where the LAS file with predictions will be saved.
 
     Returns:
     - predicted_labels_list (list): List of predicted class labels.

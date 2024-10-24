@@ -4,7 +4,7 @@ import torch.optim as optim
 from models.mcnn import MultiScaleCNN
 from utils.train_data_utils import prepare_dataloader, initialize_weights, load_model, load_features_used
 from scripts.train import train_epochs
-from scripts.inference import inference
+from scripts.inference import inference, inference_without_ground_truth
 from utils.config_handler import parse_arguments
 from utils.point_cloud_data_utils import read_file_to_numpy, extract_num_classes
 import time
@@ -153,7 +153,7 @@ def main():
             print('Preparing inference dataloader...')      # Inference on the test file
             inference_loader, _ = prepare_dataloader(
                     batch_size=batch_size,
-                    data_dir='data/training_data/21/test_21.csv',  # test file
+                    data_dir='data/training_data/21/test_21.csv',  
                     window_sizes=window_sizes,
                     grid_resolution=grid_resolution,
                     features_to_use=features_to_use,
@@ -186,7 +186,7 @@ def main():
         model = load_model(model_path=loaded_model_path, device=device, num_channels=num_channels, num_classes=num_classes)
         print('Model loaded successfully')
         
-        print('Preparing inference dataloader...')      # Inference on the inference file
+        print('Preparing inference dataloader...')      
         inference_loader, _ = prepare_dataloader(
                 batch_size=batch_size,
                 data_dir=inference_filepath,  
@@ -199,18 +199,27 @@ def main():
             )
         
         print(f'Performing inference on data contained in {inference_filepath}...')
+        '''
         conf_matrix, class_report = inference(
             model=model, 
             dataloader=inference_loader, 
             device=device, 
             class_names=['Grass', 'High Vegetation', 'Building', 'Railway', 'Road', 'Car'],  
             model_save_folder=loaded_model_path, 
-            # model_save_folder='tests/test_inference/',  # temporarily save in this folder to look at results
             save=True
         )
-        
         print(f'Class report output:\n{class_report}')
         print(f'Inference process ended.') 
+        '''
+        predicted_labels = inference_without_ground_truth(
+                    model=model, 
+                    dataloader=inference_loader, 
+                    device=device, 
+                    data_file=inference_filepath, 
+                    model_save_folder=loaded_model_path
+                )
+        print('Inference process completed successfully.')
+        
         
         # send_sms_notification("The model's training has been completed.")
 
