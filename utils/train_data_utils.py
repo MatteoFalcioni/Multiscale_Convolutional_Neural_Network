@@ -257,67 +257,6 @@ def save_used_parameters(used_features=None, hyperparameters=None, save_dir='mod
         print('hyperparameters were not specified in saving, so they could not be saved together with the model.')
 
 
-def save_inference_results(conf_matrix, class_report, save_dir, class_names):
-    """
-    Saves the confusion matrix as an image and the classification report as a CSV file.
-
-    Args:
-    - conf_matrix (np.array): The confusion matrix.
-    - class_report (str): The classification report as a string.
-    - save_dir (str): Directory where the files should be saved.
-    - class_names (list): List of class names for labeling the confusion matrix.
-    """
-    os.makedirs(save_dir, exist_ok=True)
-
-        # Save confusion matrix as an image using Matplotlib
-    fig, ax = plt.subplots(figsize=(10, 7))
-    cax = ax.matshow(conf_matrix, cmap='Blues')
-    plt.colorbar(cax)
-
-    ax.set_xticks(range(len(class_names)))
-    ax.set_yticks(range(len(class_names)))
-    ax.set_xticklabels(class_names, rotation=45, ha="right")
-    ax.set_yticklabels(class_names)
-
-    plt.xlabel('Predicted Labels')
-    plt.ylabel('True Labels')
-    plt.title('Confusion Matrix')
-
-    # Annotate each cell with the count value
-    for i in range(len(class_names)):
-        for j in range(len(class_names)):
-            ax.text(j, i, format(conf_matrix[i, j], 'd'), ha="center", va="center")
-
-    confusion_matrix_path = os.path.join(save_dir, 'confusion_matrix.png')
-    plt.savefig(confusion_matrix_path, bbox_inches='tight')
-    print(f"Confusion matrix saved at {confusion_matrix_path}")
-    plt.close()
-
-    # Parse and save classification report as CSV
-    report_data = []
-    lines = class_report.split('\n')
-    
-    for line in lines[2:-3]:
-        row_data = line.split()
-        
-        # Ensure the line has enough elements (5 in this case)
-        if len(row_data) == 5:
-            report_data.append({
-                'class': row_data[0],
-                'precision': row_data[1],
-                'recall': row_data[2],
-                'f1-score': row_data[3],
-                'support': row_data[4],
-            })
-        else:
-            print(f"Skipping line due to unexpected format: {line}")
-    
-    df = pd.DataFrame.from_records(report_data)
-    class_report_path = os.path.join(save_dir, 'classification_report.csv')
-    df.to_csv(class_report_path, index=False)
-    print(f"Classification report saved at {class_report_path}")
-
-
 
 def load_features_used(model_folder):
     """
