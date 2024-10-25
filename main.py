@@ -174,6 +174,7 @@ def main():
                 device=device, 
                 class_names=['Grass', 'High Vegetation', 'Building', 'Railway', 'Road', 'Car'], 
                 model_save_folder=model_save_folder, 
+                inference_file_path=inference_filepath, 
                 save=True
             )
             print(f'Class report output:\n{class_report}')
@@ -208,6 +209,7 @@ def main():
             device=device, 
             class_names=['Grass', 'High Vegetation', 'Building', 'Railway', 'Road', 'Car'],  
             model_save_folder=loaded_model_path, 
+            inference_file_path=inference_filepath,
             save=True
         )
         print(f'Class report output:\n{class_report}')

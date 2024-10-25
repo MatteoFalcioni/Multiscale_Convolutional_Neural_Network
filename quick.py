@@ -1,7 +1,7 @@
 from utils.point_cloud_data_utils import sample_data, combine_and_save_csv_files, read_file_to_numpy, reservoir_sample_data
 import pandas as pd
 
-input_file = 'data/training_data/21/test_21.csv'
+input_file = 'data/training_data/21/train_21.csv'
 
 
 # sampled_data = reservoir_sample_data(input_file, sample_size=1000000, save=True, save_dir='data/training_data/overfitting_test/train/', feature_to_use=None, chunk_size=1000000)

@@ -5,7 +5,7 @@ import laspy
 from laspy.file import File
 from datetime import datetime
 import os
-import matplotlib as plt
+import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix, classification_report
 from tqdm import tqdm
 
