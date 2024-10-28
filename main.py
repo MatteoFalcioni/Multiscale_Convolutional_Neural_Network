@@ -125,7 +125,7 @@ def main():
                                             gamma=learning_rate_decay_factor)
 
         # Training and validation loop
-        print("Starting training process...")
+        print("--------------------------------Starting training process--------------------------------------")
         start_time = time.time()
 
         model_save_folder = train_epochs(
@@ -146,13 +146,13 @@ def main():
 
         end_time = time.time()
         elapsed_time = (end_time - start_time) /3600   # in hours
-        print(f"Training completed in {elapsed_time:.2f} hours")
+        print(f"-------------------------Training completed in {elapsed_time:.2f} hours--------------------------")
 
         # Check if inference is required after training
         if run_inference_after_training:
-            print("Starting inference after training...")
+            #print("Starting inference after training...")
             
-            print('Preparing inference dataloader...')      # Inference on the test file
+            #print('Preparing inference dataloader...')      # Inference on the test file
             inference_loader, _ = prepare_dataloader(
                     batch_size=batch_size,
                     data_dir='data/training_data/21/test_21.csv',  
@@ -164,7 +164,7 @@ def main():
                     shuffle_train=False # we dont want to shuffle data for inference
                 )
             
-            print('Performing inference...')
+            #print('Performing inference...')
             
             '''model_save_folder += f'/_{len(features_to_use)}_features'    # when looping over different features to avoid owerwriting'''
             
@@ -189,7 +189,7 @@ def main():
         model = load_model(model_path=loaded_model_path, device=device, num_channels=num_channels, num_classes=num_classes)
         print('Model loaded successfully')
         
-        print('Preparing inference dataloader...')      
+        #print('Preparing inference dataloader...')      
         inference_loader, _ = prepare_dataloader(
                 batch_size=batch_size,
                 data_dir=inference_filepath,  

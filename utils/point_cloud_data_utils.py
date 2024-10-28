@@ -259,11 +259,11 @@ def read_file_to_numpy(data_dir, features_to_use=None, features_file_path=None):
             raise ValueError(f"Unable to load features from {features_file_path}: {e}")
 
     elif data_dir.endswith('.las'):  # LAS file
-        print("Loading raw data from LAS file...")
+        # print("Loading raw data from LAS file...")
         data_array, known_features = read_las_file_to_numpy(data_dir, features_to_extract=features_to_use)
 
     elif data_dir.endswith('.csv'):  # CSV file
-        print("Loading raw data from CSV file...")
+        # print("Loading raw data from CSV file...")
         data_array, known_features = read_csv_file_to_numpy(data_dir, features_to_extract=features_to_use)
 
     else:
