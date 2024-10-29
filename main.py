@@ -89,10 +89,10 @@ def main():
         
         data_array, known_features = read_file_to_numpy(data_dir=training_data_filepath, features_to_use=None)   # get the known features from the raw file path.
         
-        print(f'Window sizes: {window_sizes}')
+        print(f'Window sizes: {window_sizes}\n')
         
-        print(f'Features read from data file: {known_features}')
-        print(f'Selected features to use during training: {features_to_use}')
+        print(f'Features read from data file: {known_features}\n')
+        print(f'Selected features to use during training: {features_to_use}\n')
         
         hyperparameters = {     # store hyperparameters and metadata in dictionary in order to save them together with the model
             'training file': training_data_filepath,
@@ -125,7 +125,7 @@ def main():
                                             gamma=learning_rate_decay_factor)
 
         # Training and validation loop
-        print("--------------------------------Starting training process--------------------------------------")
+        print("--------------------------------Starting training process------------------------------------")
         start_time = time.time()
 
         model_save_folder = train_epochs(
@@ -146,7 +146,7 @@ def main():
 
         end_time = time.time()
         elapsed_time = (end_time - start_time) /3600   # in hours
-        print(f"-------------------------Training completed in {elapsed_time:.2f} hours--------------------------")
+        print(f"-------------------------Training completed in {elapsed_time:.2f} hours--------------------------\n")
 
         # Check if inference is required after training
         if run_inference_after_training:

@@ -203,7 +203,8 @@ def save_inference_results(conf_matrix, class_report, save_dir, class_names):
                 'support': row_data[4],
             })
         else:
-            print(f"Skipping line due to unexpected format: {line}")
+            # print(f"Skipping line due to unexpected format: {line}")
+            print('')
     
     df = pd.DataFrame.from_records(report_data)
     class_report_path = os.path.join(save_dir, 'classification_report.csv')
