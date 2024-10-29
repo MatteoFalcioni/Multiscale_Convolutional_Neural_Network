@@ -74,7 +74,7 @@ def main():
     if not use_loaded_model:  # Training
         
         # Prepare DataLoaders for training and validation
-        print("Preparing data loaders...")
+        print("Preparing data loaders...\n")
 
         train_loader, val_loader = prepare_dataloader(
             batch_size=batch_size,
@@ -110,7 +110,7 @@ def main():
         }
         
         # Initialize model 
-        print("Initializing MultiScaleCNN (MCNN) model...")
+        print("Initializing MultiScaleCNN (MCNN) model...\n")
         model = MultiScaleCNN(channels=num_channels, classes=num_classes).to(device)  
         # model.apply(initialize_weights)     # initialize model weights (optional)
 
@@ -125,7 +125,7 @@ def main():
                                             gamma=learning_rate_decay_factor)
 
         # Training and validation loop
-        print("--------------------------------Starting training process------------------------------------")
+        print("--------------------------------Starting training process----------------------------------")
         start_time = time.time()
 
         model_save_folder = train_epochs(
