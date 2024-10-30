@@ -77,33 +77,31 @@ class TestInferenceWithDummyModel(unittest.TestCase):
 class TestInferenceLabelOrderWithRealData(unittest.TestCase):
 
     def setUp(self):
-        # Hard-coded setup parameters
+        # Setup parameters
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        self.num_classes = 6  # Example number of classes, update as needed
-        self.num_channels = 4  # Example number of channels, update as needed
+        self.num_classes = 6
+        self.num_channels = 4
         self.batch_size = 32
         self.grid_resolution = 128
-        self.window_sizes = [("small", 1.0), ("medium", 2.0), ("large", 4.0)]  # Example labels with corresponding sizes
-        self.num_workers = 0  # Set to 0 for simplified testing without multiprocessing
+        self.window_sizes = [("small", 1.0), ("medium", 2.0), ("large", 4.0)]
+        self.num_workers = 0
         
-        # Initialize MCNN model
+        # Initialize the model
         self.model = MultiScaleCNN(channels=self.num_channels, classes=self.num_classes).to(self.device)
         
-        # Path to the large LAS file and temporary small LAS file for testing
+        # Set up the paths to the LAS files
         self.large_las_file = "data/chosen_tiles/32_680000_4928500_FP21.las"  
         self.small_las_file = "test_data_small.las"
 
-        # Read the large LAS file and create a subsample
+        # Create a subsample of the large LAS file for testing
         las = laspy.read(self.large_las_file)
-        
-        # Create a Boolean mask to select the first 1,000 points
         mask = np.full(len(las.x), False)
-        mask[:1000] = True  # Select the first 1,000 points
+        mask[:1000] = True
         subsampled_points = las.points[mask]
-
-        # Create a new LAS object with the subsampled points and write to a new file
-        small_las = laspy.LasData(las.header)  # Use the same header
-        small_las.points = subsampled_points  # Assign only the subsampled points
+        
+        # Write the subsampled points to the small LAS file
+        small_las = laspy.LasData(las.header)
+        small_las.points = subsampled_points
         small_las.write(self.small_las_file)
 
         # Prepare DataLoader with the small LAS file
@@ -112,15 +110,15 @@ class TestInferenceLabelOrderWithRealData(unittest.TestCase):
             data_dir=self.small_las_file,
             window_sizes=self.window_sizes,
             grid_resolution=self.grid_resolution,
-            features_to_use=['intensity', 'return_number', 'number_of_returns', 'planarity'],  # Example features
+            features_to_use=['intensity', 'return_number', 'number_of_returns', 'planarity'],
             train_split=None,
             num_workers=self.num_workers,
             shuffle_train=False
         )
 
     def test_inference_without_ground_truth(self):
-        # Run inference and capture predicted labels
-        predicted_labels = inference_without_ground_truth(
+        # Run inference which saves predictions directly to LAS file
+        inference_without_ground_truth(
             model=self.model,
             dataloader=self.dataloader,
             device=self.device,
@@ -128,24 +126,20 @@ class TestInferenceLabelOrderWithRealData(unittest.TestCase):
             model_save_folder="test_model_output"
         )
 
-        # Check that predicted labels length matches the number of points in the small file
-        num_points = len(self.dataloader.dataset.data_array)
-        self.assertEqual(len(predicted_labels), num_points, "Predicted labels length does not match number of points.")
-        
-        # Retrieve the points from the small LAS file to check order
-        with laspy.open(self.small_las_file) as infile:
-            original_points = infile.points[:num_points]
-
-        # Check that each predicted label corresponds to the point's order in the small LAS file
-        for i, point in enumerate(original_points):
-            expected_index = i  # Expected order of point
-            self.assertEqual(predicted_labels[i], expected_index, f"Order mismatch at point {i}")
-        
-        # Verify that labels were saved correctly in the output LAS file
-        saved_file_path = "test_model_output/predictions/test_data_small_pred.las"  # Adjust as needed for your setup
+        # Verify that the predictions were correctly saved in the output LAS file
+        saved_file_path = "test_model_output/predictions/test_data_small_pred.las"
         with laspy.open(saved_file_path) as saved_file:
             saved_labels = saved_file.classification
 
-            # Ensure the saved labels match the predicted labels
-            np.testing.assert_array_equal(saved_labels, predicted_labels,
-                                          "Labels in the saved LAS file do not match the predicted labels")
+            # Load original data to confirm point count
+            num_points = len(self.dataloader.dataset.data_array)
+
+            # Check the length of saved labels matches the number of points
+            self.assertEqual(len(saved_labels), num_points, "Mismatch in the number of points and saved labels")
+
+            # Check for -1 in skipped points and ensure processed points have valid labels
+            for idx, label in enumerate(saved_labels):
+                if idx not in self.dataloader.dataset.processed_indices:
+                    self.assertEqual(label, -1, f"Expected -1 for skipped point at index {idx}")
+                else:
+                    self.assertNotEqual(label, -1, f"Unexpected -1 for processed point at index {idx}")
