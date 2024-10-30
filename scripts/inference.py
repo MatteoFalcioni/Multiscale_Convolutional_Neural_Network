@@ -83,68 +83,61 @@ def inference(model, dataloader, device, class_names, model_save_folder, inferen
 
 def inference_without_ground_truth(model, dataloader, device, data_file, model_save_folder, save_folder="predictions"):
     """
-    Runs inference, overwrites the original data labels with predicted labels,
-    and saves the updated LAS file with a unique name.
+    Runs inference and writes predictions directly to a LAS file in a batch-wise manner.
 
     Args:
     - model (nn.Module): The trained PyTorch model.
     - dataloader (DataLoader): DataLoader containing the point cloud data for inference.
     - device (torch.device): Device to perform inference on (CPU or GPU).
-    - data_file (str): Path to the original input LAS file.
+    - data_file (str): Path to the input file (used for naming the output file).
     - model_save_folder (str): The folder where the model is saved.
-    - save_folder (str): Subdirectory of model_save_folder where the updated LAS file will be saved.
+    - save_folder (str): Subdirectory of model_save_folder where the LAS file with predictions will be saved.
 
     Returns:
-    - predicted_labels_list (list): List of predicted class labels.
+    - None
     """
 
     model.eval()
-    predicted_labels_list = []  # To store all predictions
-
-    with torch.no_grad():
-        for batch in tqdm(dataloader, desc="Performing inference"):
-            if batch is None:
-                continue
-
-            small_grids, medium_grids, large_grids = batch[:3]
-            small_grids, medium_grids, large_grids = (
-                small_grids.to(device), medium_grids.to(device), large_grids.to(device)
-            )
-
-            outputs = model(small_grids, medium_grids, large_grids)
-            preds = torch.argmax(outputs, dim=1)
-
-            predicted_labels_list.append(preds.cpu().numpy())
-
-    predicted_labels_list = np.concatenate(predicted_labels_list)
-
-    # Generate timestamp for unique file name
+    # Set up output path
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     pred_file_name = f"{os.path.splitext(os.path.basename(data_file))[0]}_pred_{timestamp}.las"
     save_dir = os.path.join(model_save_folder, save_folder)
     os.makedirs(save_dir, exist_ok=True)
     las_file_path = os.path.join(save_dir, pred_file_name)
 
-    # Use `laspy.read` to load the original file
+    # Open the input LAS file to copy header information
     original_file = laspy.read(data_file)
-    
-    # Create a new LAS file with the original header and data
-    las = laspy.LasData(header=original_file.header)
-    
-    # Copy data and assign predicted labels
-    las.x = original_file.x
-    las.y = original_file.y
-    las.z = original_file.z
-    las.intensity = original_file.intensity
-    las.return_number = original_file.return_number
-    las.number_of_returns = original_file.number_of_returns
-    las.classification = predicted_labels_list  # Set predicted labels
+    header = original_file.header
 
-    # Save to output LAS file
-    las.write(las_file_path)
+    # Create the output LAS file with the same header
+    with laspy.open(las_file_path, mode="w", header=header) as las:
+        # Copy necessary data fields to the output LAS file
+        las.x = original_file.x
+        las.y = original_file.y
+        las.z = original_file.z
+        las.intensity = original_file.intensity
+        las.return_number = original_file.return_number
+        las.number_of_returns = original_file.number_of_returns
+
+        # Prepare an empty array for classification (initialized with -1)
+        las.classification = np.full_like(original_file.classification, -1, dtype=int)
+
+        # Process each batch and write predictions to the classification field
+        with torch.no_grad():
+            for batch in tqdm(dataloader, desc="Performing inference"):
+                small_grids, medium_grids, large_grids, _, indices = batch
+                small_grids, medium_grids, large_grids = (
+                    small_grids.to(device), medium_grids.to(device), large_grids.to(device)
+                )
+
+                # Perform inference
+                outputs = model(small_grids, medium_grids, large_grids)
+                preds = torch.argmax(outputs, dim=1).cpu().numpy()
+
+                # Write predictions to the correct positions in classification field using indices
+                las.classification[indices] = preds
 
     print(f"Predictions saved to {las_file_path}")
-    return predicted_labels_list
 
 
 
