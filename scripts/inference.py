@@ -126,6 +126,7 @@ def inference_without_ground_truth(model, dataloader, device, data_file, model_s
         # Set classification field to -1 directly in the file
         las.classification = np.full(len(original_file.x), -1, dtype=np.int8)
         print("Initial classification set to -1 for all points.")
+        print(f'full classification field after init to -1: {las.classification}')
         
 
         # Perform inference in batches
@@ -156,6 +157,13 @@ def inference_without_ground_truth(model, dataloader, device, data_file, model_s
     print(f'full classification field: {las.classification}')
 
     print(f"Predictions saved to {las_file_path}")
+    
+    # Verify saved content
+    saved_file = laspy.read(las_file_path)
+    saved_labels = saved_file.classification
+    print(f"Number of points saved: {len(saved_labels)}")
+    print(f"First 100 classifications: {saved_labels[:100]}")  # Preview
+        
     return las_file_path
 
 
