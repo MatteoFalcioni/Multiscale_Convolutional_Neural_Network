@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 from models.mcnn import MultiScaleCNN
 
 
-def initialize_weights(model):
+'''def initialize_weights(model):
     for m in model.modules():
         if isinstance(m, nn.Conv2d):
             nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
@@ -21,7 +21,7 @@ def initialize_weights(model):
         elif isinstance(m, nn.Linear):
             nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
             if m.bias is not None:
-                nn.init.zeros_(m.bias)
+                nn.init.zeros_(m.bias)'''
 
 
 class PointCloudDataset(Dataset):

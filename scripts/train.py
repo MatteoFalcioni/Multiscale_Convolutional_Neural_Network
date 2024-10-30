@@ -33,7 +33,7 @@ def train(model, dataloader, criterion, optimizer, device):
             continue
         
         # Unpack the batch
-        small_grids, medium_grids, large_grids, labels = batch
+        small_grids, medium_grids, large_grids, labels, _ = batch
 
         
         small_grids, medium_grids, large_grids, labels = (
@@ -98,7 +98,7 @@ def validate(model, dataloader, criterion, device):
                 continue
             
             # Unpack the batch
-            small_grids, medium_grids, large_grids, labels = batch
+            small_grids, medium_grids, large_grids, labels, _ = batch
 
             small_grids, medium_grids, large_grids, labels = (
                 small_grids.to(device), medium_grids.to(device), large_grids.to(device), labels.to(device)
