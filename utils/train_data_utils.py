@@ -53,7 +53,7 @@ class PointCloudDataset(Dataset):
 
     def __getitem__(self, idx):
         """
-        Generates multiscale grids for the point at index `idx` and returns them as PyTorch tensors.
+        Generates multiscale grids for the point at index `idx` and returns them as PyTorch tensors, along with the index.
         """
         # Extract the single point's data using `idx`
         center_point = self.data_array[idx, :3]  # Get the x, y, z coordinates
@@ -74,7 +74,7 @@ class PointCloudDataset(Dataset):
             return None
 
         # Return the grids and label
-        return small_grid, medium_grid, large_grid, label
+        return small_grid, medium_grid, large_grid, label, idx
     
 
 def custom_collate_fn(batch):
@@ -89,15 +89,16 @@ def custom_collate_fn(batch):
         return None
     
     # Unpack the batch into grids and labels
-    small_grids, medium_grids, large_grids, labels = zip(*batch)
+    small_grids, medium_grids, large_grids, labels, indices = zip(*batch)
     
     # Stack the grids and labels to create tensors for the batch
     small_grids = torch.stack(small_grids)
     medium_grids = torch.stack(medium_grids)
     large_grids = torch.stack(large_grids)
     labels = torch.stack(labels)
+    indices = torch.tensor(indices)
     
-    return small_grids, medium_grids, large_grids, labels
+    return small_grids, medium_grids, large_grids, labels, indices
     
 
 def prepare_dataloader(batch_size, data_dir=None, 
@@ -122,9 +123,9 @@ def prepare_dataloader(batch_size, data_dir=None,
     - eval_loader (DataLoader): DataLoader for validation (if train_split is not None, else eval_loader=None).
     """
     
-    # Check if raw data directory was passed as input
+    # Check if data directory was passed as input
     if data_dir is None:
-        raise ValueError('ERROR: Raw data directory was not passed as input to the dataloader.')
+        raise ValueError('ERROR: Data directory was not passed as input to the dataloader.')
 
     # Read the raw point cloud data 
     data_array, known_features = read_file_to_numpy(data_dir=data_dir, features_to_use=None, features_file_path=features_file_path)
@@ -302,26 +303,6 @@ def load_features_used(model_folder):
 
     except Exception as e:
         raise ValueError(f"Error loading features from {features_file_path}: {e}")
-
-
-'''def send_sms_notification(body):
-    # Load environment variables from .env file
-    load_dotenv()
-
-    # Get credentials from environment variables
-    account_sid = os.getenv('TWILIO_ACCOUNT_SID')
-    auth_token = os.getenv('TWILIO_AUTH_TOKEN')
-    from_number = os.getenv('TWILIO_PHONE_NUMBER')
-    to_number = os.getenv('MY_PHONE_NUMBER')
-
-    client = Client(account_sid, auth_token)
-
-    message = client.messages.create(
-        body=body,
-        from_=from_number,  # Your Twilio phone number
-        to=to_number        # Recipient's phone number
-    )'''
-
 
 
 
