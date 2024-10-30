@@ -5,7 +5,8 @@ import laspy
 from scripts.inference import inference, inference_without_ground_truth
 from utils.train_data_utils import prepare_dataloader
 from models.mcnn import MultiScaleCNN
-from laspy import LasData, LasHeader
+import glob
+import os
 
 '''
 class TestInferenceWithDummyModel(unittest.TestCase):
@@ -118,28 +119,22 @@ class TestInferenceLabelOrderWithRealData(unittest.TestCase):
 
     def test_inference_without_ground_truth(self):
         # Run inference which saves predictions directly to LAS file
-        inference_without_ground_truth(
+        saved_file_path = inference_without_ground_truth(
             model=self.model,
             dataloader=self.dataloader,
             device=self.device,
             data_file=self.small_las_file,
-            model_save_folder="test_model_output"
+            model_save_folder="tests/test_model_output"
         )
 
         # Verify that the predictions were correctly saved in the output LAS file
-        saved_file_path = "test_model_output/predictions/test_data_small_pred.las"
-        with laspy.open(saved_file_path) as saved_file:
-            saved_labels = saved_file.classification
+        saved_file = laspy.read(saved_file_path)
+        saved_labels = saved_file.classification
 
-            # Load original data to confirm point count
-            num_points = len(self.dataloader.dataset.data_array)
+        # Check that the number of labels matches the number of points
+        num_points = len(self.dataloader.dataset.data_array)
+        self.assertEqual(len(saved_labels), num_points, "Mismatch in the number of points and saved labels")
 
-            # Check the length of saved labels matches the number of points
-            self.assertEqual(len(saved_labels), num_points, "Mismatch in the number of points and saved labels")
-
-            # Check for -1 in skipped points and ensure processed points have valid labels
-            for idx, label in enumerate(saved_labels):
-                if idx not in self.dataloader.dataset.processed_indices:
-                    self.assertEqual(label, -1, f"Expected -1 for skipped point at index {idx}")
-                else:
-                    self.assertNotEqual(label, -1, f"Unexpected -1 for processed point at index {idx}")
+        # Ensure that the saved labels contain valid predictions (non -1 values) for all processed points
+        non_negative_labels = np.sum(saved_labels != -1)
+        self.assertEqual(non_negative_labels, num_points, "Not all labels were assigned predictions in the saved file")

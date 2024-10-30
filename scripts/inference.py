@@ -94,7 +94,7 @@ def inference_without_ground_truth(model, dataloader, device, data_file, model_s
     - save_folder (str): Subdirectory of model_save_folder where the LAS file with predictions will be saved.
 
     Returns:
-    - None
+    - las_file_path (str): File path to the saved las file. 
     """
 
     model.eval()
@@ -108,6 +108,11 @@ def inference_without_ground_truth(model, dataloader, device, data_file, model_s
     # Open the input LAS file to copy header information
     original_file = laspy.read(data_file)
     header = original_file.header
+    
+    # Add 'classification' as an extra dimension if not present
+    if 'classification' not in header.point_format.dimension_names:
+        extra_dims = [laspy.ExtraBytesParams(name="classification", type=np.int8)]
+        header.add_extra_dims(extra_dims)
 
     # Create the output LAS file with the same header
     with laspy.open(las_file_path, mode="w", header=header) as las:
@@ -125,6 +130,10 @@ def inference_without_ground_truth(model, dataloader, device, data_file, model_s
         # Process each batch and write predictions to the classification field
         with torch.no_grad():
             for batch in tqdm(dataloader, desc="Performing inference"):
+                
+                if batch is None:  # Skip if the batch is None
+                    continue
+                
                 small_grids, medium_grids, large_grids, _, indices = batch
                 small_grids, medium_grids, large_grids = (
                     small_grids.to(device), medium_grids.to(device), large_grids.to(device)
@@ -138,6 +147,8 @@ def inference_without_ground_truth(model, dataloader, device, data_file, model_s
                 las.classification[indices] = preds
 
     print(f"Predictions saved to {las_file_path}")
+    
+    return las_file_path
 
 
 
