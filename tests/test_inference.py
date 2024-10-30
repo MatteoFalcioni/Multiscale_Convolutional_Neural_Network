@@ -127,9 +127,19 @@ class TestInferenceLabelOrderWithRealData(unittest.TestCase):
             model_save_folder="tests/test_model_output"
         )
 
+        print(f'reading {saved_file_path}')
         # Verify that the predictions were correctly saved in the output LAS file
         saved_file = laspy.read(saved_file_path)
         saved_labels = saved_file.classification
+        
+        num_points = len(saved_file.x)
+        
+        # Diagnostic prints
+        print(f"Number of points in saved file: {num_points}")
+        print(f"Read classification field length: {len(saved_labels)}")
+        print(f"First 100 classifications: {saved_labels[:100]}")
+        
+        print("Saved classification field:", saved_file.classification[:10])  # Print the first few entries
 
         # Check that the number of labels matches the number of points
         num_points = len(self.dataloader.dataset.data_array)

@@ -80,7 +80,6 @@ def inference(model, dataloader, device, class_names, model_save_folder, inferen
 
     return conf_matrix, class_report
 
-
 def inference_without_ground_truth(model, dataloader, device, data_file, model_save_folder, save_folder="predictions"):
     """
     Runs inference and writes predictions directly to a LAS file in a batch-wise manner.
@@ -94,7 +93,7 @@ def inference_without_ground_truth(model, dataloader, device, data_file, model_s
     - save_folder (str): Subdirectory of model_save_folder where the LAS file with predictions will be saved.
 
     Returns:
-    - las_file_path (str): File path to the saved las file. 
+    - las_file_path (str): File path to the saved LAS file. 
     """
 
     model.eval()
@@ -109,14 +108,14 @@ def inference_without_ground_truth(model, dataloader, device, data_file, model_s
     original_file = laspy.read(data_file)
     header = original_file.header
     
-    # Add 'classification' as an extra dimension if not present
+    # Check and add classification as needed
     if 'classification' not in header.point_format.dimension_names:
+        print('classification not in header.point_format')
         extra_dims = [laspy.ExtraBytesParams(name="classification", type=np.int8)]
         header.add_extra_dims(extra_dims)
-
-    # Create the output LAS file with the same header
+        
+    # Initialize the LAS file with header and directly set up fields without full memory array
     with laspy.open(las_file_path, mode="w", header=header) as las:
-        # Copy necessary data fields to the output LAS file
         las.x = original_file.x
         las.y = original_file.y
         las.z = original_file.z
@@ -124,30 +123,39 @@ def inference_without_ground_truth(model, dataloader, device, data_file, model_s
         las.return_number = original_file.return_number
         las.number_of_returns = original_file.number_of_returns
 
-        # Prepare an empty array for classification (initialized with -1)
-        las.classification = np.full_like(original_file.classification, -1, dtype=int)
+        # Set classification field to -1 directly in the file
+        las.classification = np.full(len(original_file.x), -1, dtype=np.int8)
+        print("Initial classification set to -1 for all points.")
+        
 
-        # Process each batch and write predictions to the classification field
+        # Perform inference in batches
         with torch.no_grad():
             for batch in tqdm(dataloader, desc="Performing inference"):
-                
-                if batch is None:  # Skip if the batch is None
+                if batch is None:
                     continue
-                
+
                 small_grids, medium_grids, large_grids, _, indices = batch
                 small_grids, medium_grids, large_grids = (
                     small_grids.to(device), medium_grids.to(device), large_grids.to(device)
                 )
 
-                # Perform inference
                 outputs = model(small_grids, medium_grids, large_grids)
                 preds = torch.argmax(outputs, dim=1).cpu().numpy()
+                
+                # Debugging statements to track progress
+                print(f"Batch indices: {indices}")
+                print(f"Predicted labels for batch: {preds}")
+                print(f"Classification field before update at indices {indices}: {las.classification[indices]}")
 
-                # Write predictions to the correct positions in classification field using indices
+                # Directly assign predictions to the file's classification field
                 las.classification[indices] = preds
 
+                # Check classification after update
+                print(f"Classification field after update at indices {indices}: {las.classification[indices]}")
+
+    print(f'full classification field: {las.classification}')
+
     print(f"Predictions saved to {las_file_path}")
-    
     return las_file_path
 
 
