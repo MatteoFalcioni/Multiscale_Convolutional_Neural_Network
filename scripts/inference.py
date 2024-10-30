@@ -83,16 +83,16 @@ def inference(model, dataloader, device, class_names, model_save_folder, inferen
 
 def inference_without_ground_truth(model, dataloader, device, data_file, model_save_folder, save_folder="predictions"):
     """
-    Runs inference and saves the original data (coordinates, features) and predicted labels to a timestamped LAS file.
-    Also ensures each run generates a unique output file.
+    Runs inference, overwrites the original data labels with predicted labels,
+    and saves the updated LAS file with a unique name.
 
     Args:
     - model (nn.Module): The trained PyTorch model.
     - dataloader (DataLoader): DataLoader containing the point cloud data for inference.
     - device (torch.device): Device to perform inference on (CPU or GPU).
-    - data_file (str): Path to the input file (used for naming the output file).
+    - data_file (str): Path to the original input LAS file.
     - model_save_folder (str): The folder where the model is saved.
-    - save_folder (str): Subdirectory of model_save_folder where the LAS file with predictions will be saved.
+    - save_folder (str): Subdirectory of model_save_folder where the updated LAS file will be saved.
 
     Returns:
     - predicted_labels_list (list): List of predicted class labels.
@@ -118,11 +118,6 @@ def inference_without_ground_truth(model, dataloader, device, data_file, model_s
 
     predicted_labels_list = np.concatenate(predicted_labels_list)
 
-    # Get the coordinates and features from the original dataset
-    original_data = dataloader.dataset.data_array
-    coordinates = original_data[:, :3]  # Assuming the first 3 columns are x, y, z
-    features = original_data[:, 3:-1]  # Assuming features are after x, y, z
-
     # Generate timestamp for unique file name
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     pred_file_name = f"{os.path.splitext(os.path.basename(data_file))[0]}_pred_{timestamp}.las"
@@ -130,20 +125,23 @@ def inference_without_ground_truth(model, dataloader, device, data_file, model_s
     os.makedirs(save_dir, exist_ok=True)
     las_file_path = os.path.join(save_dir, pred_file_name)
 
-    # Save predicted labels and features to LAS file
-    with File(las_file_path, mode="w", header=laspy.header.Header()) as las:
-        las.x = coordinates[:, 0]
-        las.y = coordinates[:, 1]
-        las.z = coordinates[:, 2]
-        las.classification = predicted_labels_list
-        for i, feature_name in enumerate(dataloader.dataset.known_features[3:-1]):
-            feature_data = features[:, i]
-            extra_dimension_info = laspy.util.ExtraBytesParams(
-                name=f"{feature_name}", 
-                type=np.float32
-            )
-            las.add_extra_dim(extra_dimension_info)
-            las[feature_name] = feature_data
+    # Use `laspy.read` to load the original file
+    original_file = laspy.read(data_file)
+    
+    # Create a new LAS file with the original header and data
+    las = laspy.LasData(header=original_file.header)
+    
+    # Copy data and assign predicted labels
+    las.x = original_file.x
+    las.y = original_file.y
+    las.z = original_file.z
+    las.intensity = original_file.intensity
+    las.return_number = original_file.return_number
+    las.number_of_returns = original_file.number_of_returns
+    las.classification = predicted_labels_list  # Set predicted labels
+
+    # Save to output LAS file
+    las.write(las_file_path)
 
     print(f"Predictions saved to {las_file_path}")
     return predicted_labels_list

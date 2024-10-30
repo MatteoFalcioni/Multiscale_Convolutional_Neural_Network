@@ -1,16 +1,11 @@
 import unittest
 import torch
-import os
-import csv
 import numpy as np
 import laspy
-from datetime import datetime
-import glob 
 from scripts.inference import inference, inference_without_ground_truth
-from utils.point_cloud_data_utils import read_file_to_numpy, remap_labels
 from utils.train_data_utils import prepare_dataloader
 from models.mcnn import MultiScaleCNN
-import random
+from laspy import LasData, LasHeader
 
 '''
 class TestInferenceWithDummyModel(unittest.TestCase):
@@ -79,52 +74,78 @@ class TestInferenceWithDummyModel(unittest.TestCase):
             
 '''
         
-def test_las_saving():
-    # Simulate dataloader dataset output (mocking the dataset for testing)
-    class MockDataset:
-        def __init__(self):
-            # Simulate data with 10 points, 3 coordinates, 5 features, and labels
-            self.data_array = np.random.rand(10, 9)  # 3 coords, 5 features, 1 label
-            self.known_features = ['x', 'y', 'z', 'intensity', 'red', 'green', 'blue', 'nir', 'label']
+class TestInferenceLabelOrderWithRealData(unittest.TestCase):
 
-    class MockDataloader:
-        def __init__(self):
-            self.dataset = MockDataset()
+    def setUp(self):
+        # Hard-coded setup parameters
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.num_classes = 6  # Example number of classes, update as needed
+        self.num_channels = 4  # Example number of channels, update as needed
+        self.batch_size = 32
+        self.grid_resolution = 128
+        self.window_sizes = [("small", 1.0), ("medium", 2.0), ("large", 4.0)]  # Example labels with corresponding sizes
+        self.num_workers = 0  # Set to 0 for simplified testing without multiprocessing
+        
+        # Initialize MCNN model
+        self.model = MultiScaleCNN(channels=self.num_channels, classes=self.num_classes).to(self.device)
+        
+        # Path to the large LAS file and temporary small LAS file for testing
+        self.large_las_file = "data/chosen_tiles/32_680000_4928500_FP21.las"  
+        self.small_las_file = "test_data_small.las"
 
-    dataloader = MockDataloader()
+        # Read the large LAS file and create a subsample
+        las = laspy.read(self.large_las_file)
+        
+        # Create a Boolean mask to select the first 1,000 points
+        mask = np.full(len(las.x), False)
+        mask[:1000] = True  # Select the first 1,000 points
+        subsampled_points = las.points[mask]
 
-    # Simulate predicted labels
-    predicted_labels_list = np.random.randint(0, 5, 10)  # 5 classes
+        # Create a new LAS object with the subsampled points and write to a new file
+        small_las = laspy.LasData(las.header)  # Use the same header
+        small_las.points = subsampled_points  # Assign only the subsampled points
+        small_las.write(self.small_las_file)
 
-    # Get the coordinates and features from the original dataset
-    original_data = dataloader.dataset.data_array
-    coordinates = original_data[:, :3]  # Assuming the first 3 columns are x, y, z
-    features = original_data[:, 3:-1]  # Assuming features are after x, y, z
+        # Prepare DataLoader with the small LAS file
+        self.dataloader, _ = prepare_dataloader(
+            batch_size=self.batch_size,
+            data_dir=self.small_las_file,
+            window_sizes=self.window_sizes,
+            grid_resolution=self.grid_resolution,
+            features_to_use=['intensity', 'return_number', 'number_of_returns', 'planarity'],  # Example features
+            train_split=None,
+            num_workers=self.num_workers,
+            shuffle_train=False
+        )
 
-    # Generate timestamp for unique file name
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    pred_file_name = f"test_pred_{timestamp}.las"
-    save_dir = "test_output"
-    os.makedirs(save_dir, exist_ok=True)
-    las_file_path = os.path.join(save_dir, pred_file_name)
+    def test_inference_without_ground_truth(self):
+        # Run inference and capture predicted labels
+        predicted_labels = inference_without_ground_truth(
+            model=self.model,
+            dataloader=self.dataloader,
+            device=self.device,
+            data_file=self.small_las_file,
+            model_save_folder="test_model_output"
+        )
 
-    # Save predicted labels and features to LAS file
-    header = laspy.LasHeader(point_format=3, version="1.2")
-    with laspy.open(las_file_path, mode="w", header=header) as las:
-        las.x = coordinates[:, 0]
-        las.y = coordinates[:, 1]
-        las.z = coordinates[:, 2]
-        las.classification = predicted_labels_list
+        # Check that predicted labels length matches the number of points in the small file
+        num_points = len(self.dataloader.dataset.data_array)
+        self.assertEqual(len(predicted_labels), num_points, "Predicted labels length does not match number of points.")
+        
+        # Retrieve the points from the small LAS file to check order
+        with laspy.open(self.small_las_file) as infile:
+            original_points = infile.points[:num_points]
 
-        # Add extra features (e.g., intensity, red, green, etc.)
-        for i, feature_name in enumerate(dataloader.dataset.known_features[3:-1]):
-            feature_data = features[:, i]
-            extra_dimension_info = laspy.util.ExtraBytesParams(
-                name=f"{feature_name}", 
-                type=np.float32
-            )
-            las.add_extra_dim(extra_dimension_info)
-            las[feature_name] = feature_data
+        # Check that each predicted label corresponds to the point's order in the small LAS file
+        for i, point in enumerate(original_points):
+            expected_index = i  # Expected order of point
+            self.assertEqual(predicted_labels[i], expected_index, f"Order mismatch at point {i}")
+        
+        # Verify that labels were saved correctly in the output LAS file
+        saved_file_path = "test_model_output/predictions/test_data_small_pred.las"  # Adjust as needed for your setup
+        with laspy.open(saved_file_path) as saved_file:
+            saved_labels = saved_file.classification
 
-    print(f"Test LAS file saved at {las_file_path}")
-
+            # Ensure the saved labels match the predicted labels
+            np.testing.assert_array_equal(saved_labels, predicted_labels,
+                                          "Labels in the saved LAS file do not match the predicted labels")

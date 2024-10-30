@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from models.mcnn import MultiScaleCNN
-from utils.train_data_utils import prepare_dataloader, initialize_weights, load_model, load_features_used
+from utils.train_data_utils import prepare_dataloader, load_model, load_features_used
 from scripts.train import train_epochs
 from scripts.inference import inference, inference_without_ground_truth
 from utils.config_handler import parse_arguments
@@ -189,7 +189,7 @@ def main():
         model = load_model(model_path=loaded_model_path, device=device, num_channels=num_channels, num_classes=num_classes)
         print('Model loaded successfully')
         
-        #print('Preparing inference dataloader...')      
+        '''#print('Preparing inference dataloader...')      
         inference_loader, _ = prepare_dataloader(
                 batch_size=batch_size,
                 data_dir=inference_filepath,  
@@ -198,7 +198,7 @@ def main():
                 features_to_use=features_to_use,
                 train_split=None,   # prepare the dataloader with the full data for inference (no train/eval split)
                 num_workers=num_workers,
-                shuffle_train=False # we dont want to shuffle data for inference
+                shuffle_train=False   # we dont want to shuffle data for inference
             )
         
         print(f'Performing inference on data contained in {inference_filepath}...')
@@ -213,13 +213,13 @@ def main():
             save=True
         )
         print(f'Class report output:\n{class_report}')
-        print(f'Inference process ended.') 
+        print(f'Inference process ended.') '''
         
         
-        '''# Directory containing  LAS files
+        # Directory containing  LAS files
         directory = 'data/chosen_tiles'
 
-        # Loop over only the LAS files using glob
+        # Loop over the LAS files using glob
         for file_path in glob.glob(os.path.join(directory, '*.las')):
             print(f"Processing file: {file_path}")
             
@@ -245,7 +245,7 @@ def main():
                         model_save_folder=loaded_model_path
                     )
             
-            print(f'Inference process completed successfully for file {file_path}.')'''
+            print(f'Inference process completed successfully for file {file_path}.')
 
 if __name__ == "__main__":
     main()

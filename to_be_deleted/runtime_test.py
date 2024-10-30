@@ -4,8 +4,6 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 import csv
-from sklearn.linear_model import LinearRegression
-from data.transforms.point_cloud_to_image import generate_grids_for_training
 
 
 def test_total_grid_generation_runtime(num_points_list, window_sizes, grid_resolution=128, channels=10,
