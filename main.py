@@ -196,15 +196,14 @@ def main():
         print(f'Class report output:\n{class_report}')
         print(f'Inference process ended.') '''
         
-        
         # Directory containing  LAS files
         directory = 'data/chosen_tiles'
 
         # Loop over the LAS files using glob
         for file_path in glob.glob(os.path.join(directory, '*.las')):
-            print(f"*****Processing file: {file_path}*****")
+            print(f"***** Processing file: {file_path} *****")
             
-            print('Preparing inference dataloader...')      
+            print('Preparing inference dataloader...\n')      
             inference_loader, _ = prepare_dataloader(
                     batch_size=batch_size,
                     data_dir=file_path,  
@@ -223,7 +222,7 @@ def main():
                         dataloader=inference_loader, 
                         device=device, 
                         data_file=file_path, 
-                        model_save_folder=loaded_model_path
+                        model_path=loaded_model_path
                     )
 
             print(f'Inference process completed successfully for file {file_path}.\nLas file with predicted labels saved at {file_with_predictions}\n')

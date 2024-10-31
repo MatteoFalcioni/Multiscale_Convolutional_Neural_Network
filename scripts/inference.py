@@ -80,7 +80,8 @@ def inference(model, dataloader, device, class_names, model_save_folder, inferen
 
     return conf_matrix, class_report
 
-def inference_without_ground_truth(model, dataloader, device, data_file, model_save_folder, save_folder="predictions"):
+
+def inference_without_ground_truth(model, dataloader, device, data_file, model_path, save_subfolder="predictions"):
     """
     Runs inference and writes predictions directly to a LAS file in a batch-wise manner.
 
@@ -89,8 +90,8 @@ def inference_without_ground_truth(model, dataloader, device, data_file, model_s
     - dataloader (DataLoader): DataLoader containing the point cloud data for inference.
     - device (torch.device): Device to perform inference on (CPU or GPU).
     - data_file (str): Path to the input file (used for naming the output file).
-    - model_save_folder (str): The folder where the model is saved.
-    - save_folder (str): Subdirectory of model_save_folder where the LAS file with predictions will be saved.
+    - model_path (str): Path to the model to be used for inference.
+    - save_subfolder (str): Subdirectory of the model's folder where the LAS file with predictions will be saved.
 
     Returns:
     - las_file_path (str): File path to the saved LAS file. 
@@ -98,9 +99,10 @@ def inference_without_ground_truth(model, dataloader, device, data_file, model_s
 
     model.eval()
     # Set up output path
+    model_save_folder = os.path.dirname(model_path)  # Get the directory in which the model file is stored (the parent directory)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     pred_file_name = f"{os.path.splitext(os.path.basename(data_file))[0]}_pred_{timestamp}.las"
-    save_dir = os.path.join(model_save_folder, save_folder)
+    save_dir = os.path.join(model_save_folder, save_subfolder)
     os.makedirs(save_dir, exist_ok=True)
     las_file_path = os.path.join(save_dir, pred_file_name)
 
@@ -153,7 +155,6 @@ def inference_without_ground_truth(model, dataloader, device, data_file, model_s
     new_las.write(las_file_path)    # Write to the new file 
         
     return las_file_path
-
 
 
 def save_inference_results(conf_matrix, class_report, save_dir, class_names):
