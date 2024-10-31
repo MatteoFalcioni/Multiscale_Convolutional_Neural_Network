@@ -125,7 +125,7 @@ class TestInferenceLabelOrderWithRealData(unittest.TestCase):
             dataloader=self.dataloader,
             device=self.device,
             data_file=self.small_las_file,
-            model_save_folder="tests/test_model_output"
+            model_path="tests/test_model_output"
         )
 
         print(f'Reading {saved_file_path}')

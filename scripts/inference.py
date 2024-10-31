@@ -8,6 +8,7 @@ import os
 import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix, classification_report
 from tqdm import tqdm
+import torch.multiprocessing as mp
 
 
 def inference(model, dataloader, device, class_names, model_save_folder, inference_file_path, save=False):
@@ -96,6 +97,8 @@ def inference_without_ground_truth(model, dataloader, device, data_file, model_p
     Returns:
     - las_file_path (str): File path to the saved LAS file. 
     """
+    
+    mp.set_sharing_strategy('file_system')  # trying to fix too many openf iles error
 
     model.eval()
     # Set up output path
@@ -116,36 +119,37 @@ def inference_without_ground_truth(model, dataloader, device, data_file, model_p
         header.add_extra_dims(extra_dims)
 
     # Initialize the label field with -1 values
-    label_array = np.full(len(original_file.x), -1, dtype=np.int8)
+    total_points = len(original_file.x)
+    label_array = np.full(total_points, -1, dtype=np.int8)
+    
+    all_predictions = []  # List to store predictions
+    all_indices = []  # List to store indices
 
-    # Initialize an empty tensor to store all predictions and indices on the GPU
-    all_predictions = []
-    all_indices = []
-
-    # Perform inference in batches, storing predictions and indices on the GPU
+    # Perform inference 
     with torch.no_grad():
         for batch in tqdm(dataloader, desc="Performing inference"):
             if batch is None:
                 continue
 
             small_grids, medium_grids, large_grids, _, indices = batch
-            small_grids, medium_grids, large_grids, indices = (
-                small_grids.to(device), medium_grids.to(device), large_grids.to(device), indices.to(device)
+            small_grids, medium_grids, large_grids = (
+                small_grids.to(device), medium_grids.to(device), large_grids.to(device)
             )
 
-            # Run model inference on GPU
+            # Run model inference
             outputs = model(small_grids, medium_grids, large_grids)
             preds = torch.argmax(outputs, dim=1)
 
-            # Accumulate predictions and indices
-            all_predictions.append(preds)
+            # Store predictions and indices
+            all_predictions.append(preds.cpu().numpy())
             all_indices.append(indices)
-
-    # Concatenate all predictions and indices, then move to CPU
-    all_predictions = torch.cat(all_predictions).cpu().numpy()
-    all_indices = torch.cat(all_indices).cpu().numpy()
     
-    label_array[all_indices] = all_predictions  # Assign predictions to the right indices
+    # Concatenate all predictions and indices
+    all_predictions = np.concatenate(all_predictions)
+    all_indices = np.concatenate(all_indices) 
+    
+    # Directly assign predictions to the label array
+    label_array[all_indices] = all_predictions
             
     # Create a new LasData object and assign fields for all point data and the label array
     new_las = laspy.LasData(header)
