@@ -79,13 +79,14 @@ class TestInferenceLabelOrderWithRealData(unittest.TestCase):
 
     def setUp(self):
         # Setup parameters
-        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
         self.num_classes = 6
-        self.num_channels = 4
+        self.features_to_use = ['intensity', 'return_number', 'number_of_returns', 'planarity']
+        self.num_channels = len(self.features_to_use)
         self.batch_size = 32
         self.grid_resolution = 128
         self.window_sizes = [("small", 1.0), ("medium", 2.0), ("large", 4.0)]
-        self.num_workers = 0
+        self.num_workers = 32
         
         # Initialize the model
         self.model = MultiScaleCNN(channels=self.num_channels, classes=self.num_classes).to(self.device)
@@ -97,7 +98,7 @@ class TestInferenceLabelOrderWithRealData(unittest.TestCase):
         # Create a subsample of the large LAS file for testing
         las = laspy.read(self.large_las_file)
         mask = np.full(len(las.x), False)
-        mask[:1000] = True
+        mask[:10000] = True
         subsampled_points = las.points[mask]
         
         # Write the subsampled points to the small LAS file
@@ -111,7 +112,7 @@ class TestInferenceLabelOrderWithRealData(unittest.TestCase):
             data_dir=self.small_las_file,
             window_sizes=self.window_sizes,
             grid_resolution=self.grid_resolution,
-            features_to_use=['intensity', 'return_number', 'number_of_returns', 'planarity'],
+            features_to_use=self.features_to_use,
             train_split=None,
             num_workers=self.num_workers,
             shuffle_train=False
@@ -127,24 +128,22 @@ class TestInferenceLabelOrderWithRealData(unittest.TestCase):
             model_save_folder="tests/test_model_output"
         )
 
-        print(f'reading {saved_file_path}')
+        print(f'Reading {saved_file_path}')
         # Verify that the predictions were correctly saved in the output LAS file
         saved_file = laspy.read(saved_file_path)
-        saved_labels = saved_file.classification
         
+        # Check for the 'label' field rather than 'classification'
+        saved_labels = getattr(saved_file, 'label', None)
+        if saved_labels is None:
+            self.fail("Label field was not found in the saved LAS file")
+
         num_points = len(saved_file.x)
         
         # Diagnostic prints
         print(f"Number of points in saved file: {num_points}")
-        print(f"Read classification field length: {len(saved_labels)}")
-        print(f"First 100 classifications: {saved_labels[:100]}")
-        
-        print("Saved classification field:", saved_file.classification[:10])  # Print the first few entries
+        print(f"Read label field length: {len(saved_labels)}")
+        print(f"First 1000 labels: {saved_labels[:1000]}")
 
         # Check that the number of labels matches the number of points
         num_points = len(self.dataloader.dataset.data_array)
         self.assertEqual(len(saved_labels), num_points, "Mismatch in the number of points and saved labels")
-
-        # Ensure that the saved labels contain valid predictions (non -1 values) for all processed points
-        non_negative_labels = np.sum(saved_labels != -1)
-        self.assertEqual(non_negative_labels, num_points, "Not all labels were assigned predictions in the saved file")

@@ -116,22 +116,34 @@ def inference_without_ground_truth(model, dataloader, device, data_file, model_s
     # Initialize the label field with -1 values
     label_array = np.full(len(original_file.x), -1, dtype=np.int8)
 
-    # Perform inference in batches
+    # Initialize an empty tensor to store all predictions and indices on the GPU
+    all_predictions = []
+    all_indices = []
+
+    # Perform inference in batches, storing predictions and indices on the GPU
     with torch.no_grad():
         for batch in tqdm(dataloader, desc="Performing inference"):
             if batch is None:
                 continue
 
             small_grids, medium_grids, large_grids, _, indices = batch
-            small_grids, medium_grids, large_grids = (
-                small_grids.to(device), medium_grids.to(device), large_grids.to(device)
+            small_grids, medium_grids, large_grids, indices = (
+                small_grids.to(device), medium_grids.to(device), large_grids.to(device), indices.to(device)
             )
 
+            # Run model inference on GPU
             outputs = model(small_grids, medium_grids, large_grids)
-            preds = torch.argmax(outputs, dim=1).cpu().numpy()
+            preds = torch.argmax(outputs, dim=1)
 
-            # Assign predictions to the label array at specific indices
-            label_array[indices] = preds
+            # Accumulate predictions and indices
+            all_predictions.append(preds)
+            all_indices.append(indices)
+
+    # Concatenate all predictions and indices, then move to CPU
+    all_predictions = torch.cat(all_predictions).cpu().numpy()
+    all_indices = torch.cat(all_indices).cpu().numpy()
+    
+    label_array[all_indices] = all_predictions  # Assign predictions to the right indices
             
     # Create a new LasData object and assign fields for all point data and the label array
     new_las = laspy.LasData(header)
