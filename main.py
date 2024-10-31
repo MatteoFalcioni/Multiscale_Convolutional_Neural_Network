@@ -30,7 +30,6 @@ def main():
     learning_rate_decay_factor = args.learning_rate_decay_factor
     num_workers = args.num_workers
     save_dir = args.model_save_dir
-    '''base_save_dir = args.model_save_dir'''
     
     # inference params
     run_inference_after_training = args.perform_inference_after_training
@@ -47,23 +46,10 @@ def main():
     else:
         features_to_use = args.features_to_use
     
-    # Ensure x, y, z are not included in the selected features
+    # Ensure (additional check) that x, y, z are not included in the selected features
     features_to_use = [feature for feature in features_to_use if feature not in ['x', 'y', 'z']]    
     
-    num_classes = extract_num_classes(raw_file_path=training_data_filepath) # determine the number of classes from the raw data    
-        
-    '''
-    many_features = ['intensity', 'return_number', 'number_of_returns', 'ndvi', 'ndwi', 'planarity', 'sphericity', 'linearity', 'theta', 'theta_variance', 'mad', 'delta_z']
-
-    few_features = ['intensity', 'nir', 'delta_z', 'planarity', 'sphericity']
-    
-    features_for_loop = [many_features, few_features] 
-    
-    for features_to_use in features_for_loop:
-    
-        save_dir = base_save_dir + f'_{len(features_to_use)}_features'
-        print(f"Training with feature set: {features_to_use}")
-    '''   
+    num_classes = extract_num_classes(raw_file_path=training_data_filepath)     # determine the number of classes from the data    
 
     num_channels = len(features_to_use)  # Determine the number of channels based on selected features
 
@@ -146,13 +132,12 @@ def main():
 
         end_time = time.time()
         elapsed_time = (end_time - start_time) /3600   # in hours
-        print(f"-------------------------Training completed in {elapsed_time:.2f} hours--------------------------\n")
+        print(f"-------------------------Training completed in {elapsed_time:.2f} hours-------------------------\n")
 
         # Check if inference is required after training
         if run_inference_after_training:
-            #print("Starting inference after training...")
             
-            #print('Preparing inference dataloader...')      # Inference on the test file
+            # Inference on the test file
             inference_loader, _ = prepare_dataloader(
                     batch_size=batch_size,
                     data_dir='data/training_data/21/test_21.csv',  
@@ -161,12 +146,8 @@ def main():
                     features_to_use=features_to_use,
                     train_split=None,   # prepare the dataloader with the full data for inference (no train/eval split)
                     num_workers=num_workers,
-                    shuffle_train=False # we dont want to shuffle data for inference
+                    shuffle_train=False  # we dont want to shuffle data for inference
                 )
-            
-            #print('Performing inference...')
-            
-            '''model_save_folder += f'/_{len(features_to_use)}_features'    # when looping over different features to avoid owerwriting'''
             
             conf_matrix, class_report = inference(
                 model=model, 
@@ -178,11 +159,11 @@ def main():
                 save=True
             )
             print(f'Class report output:\n{class_report}')
-            print(f'Inference process ended.') 
+            print(f'\nInference process ended.') 
         
     else:  # Standalone inference (with a loaded model)
         
-        print("Starting inference process...")
+        print("--------------------------------Starting inference process...--------------------------------")
 
         # load pre-trained model 
         print(f'Loading pre-trained model from path: {loaded_model_path}')
@@ -221,7 +202,7 @@ def main():
 
         # Loop over the LAS files using glob
         for file_path in glob.glob(os.path.join(directory, '*.las')):
-            print(f"Processing file: {file_path}")
+            print(f"*****Processing file: {file_path}*****")
             
             print('Preparing inference dataloader...')      
             inference_loader, _ = prepare_dataloader(
@@ -245,7 +226,7 @@ def main():
                         model_save_folder=loaded_model_path
                     )
 
-            print(f'Inference process completed successfully for file {file_path}.\nLas file with predicted labels saved at {file_with_predictions}')
+            print(f'Inference process completed successfully for file {file_path}.\nLas file with predicted labels saved at {file_with_predictions}\n')
 
 if __name__ == "__main__":
     main()
