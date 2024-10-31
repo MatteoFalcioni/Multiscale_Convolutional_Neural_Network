@@ -47,7 +47,7 @@ def inference(model, dataloader, device, class_names, model_save_folder, inferen
                 continue
 
             # Unpack the batch
-            small_grids, medium_grids, large_grids, labels = batch
+            small_grids, medium_grids, large_grids, labels, _ = batch
             small_grids, medium_grids, large_grids, labels = (
                 small_grids.to(device), medium_grids.to(device), large_grids.to(device), labels.to(device)
             )
@@ -108,61 +108,37 @@ def inference_without_ground_truth(model, dataloader, device, data_file, model_s
     original_file = laspy.read(data_file)
     header = original_file.header
     
-    # Check and add classification as needed
-    if 'classification' not in header.point_format.dimension_names:
-        print('classification not in header.point_format')
-        extra_dims = [laspy.ExtraBytesParams(name="classification", type=np.int8)]
+    # Check and add 'label' as needed
+    if 'label' not in header.point_format.dimension_names:
+        extra_dims = [laspy.ExtraBytesParams(name="label", type=np.int8)]
         header.add_extra_dims(extra_dims)
-        
-    # Initialize the LAS file with header and directly set up fields without full memory array
-    with laspy.open(las_file_path, mode="w", header=header) as las:
-        las.x = original_file.x
-        las.y = original_file.y
-        las.z = original_file.z
-        las.intensity = original_file.intensity
-        las.return_number = original_file.return_number
-        las.number_of_returns = original_file.number_of_returns
 
-        # Set classification field to -1 directly in the file
-        las.classification = np.full(len(original_file.x), -1, dtype=np.int8)
-        print("Initial classification set to -1 for all points.")
-        print(f'full classification field after init to -1: {las.classification}')
-        
+    # Initialize the label field with -1 values
+    label_array = np.full(len(original_file.x), -1, dtype=np.int8)
 
-        # Perform inference in batches
-        with torch.no_grad():
-            for batch in tqdm(dataloader, desc="Performing inference"):
-                if batch is None:
-                    continue
+    # Perform inference in batches
+    with torch.no_grad():
+        for batch in tqdm(dataloader, desc="Performing inference"):
+            if batch is None:
+                continue
 
-                small_grids, medium_grids, large_grids, _, indices = batch
-                small_grids, medium_grids, large_grids = (
-                    small_grids.to(device), medium_grids.to(device), large_grids.to(device)
-                )
+            small_grids, medium_grids, large_grids, _, indices = batch
+            small_grids, medium_grids, large_grids = (
+                small_grids.to(device), medium_grids.to(device), large_grids.to(device)
+            )
 
-                outputs = model(small_grids, medium_grids, large_grids)
-                preds = torch.argmax(outputs, dim=1).cpu().numpy()
-                
-                # Debugging statements to track progress
-                print(f"Batch indices: {indices}")
-                print(f"Predicted labels for batch: {preds}")
-                print(f"Classification field before update at indices {indices}: {las.classification[indices]}")
+            outputs = model(small_grids, medium_grids, large_grids)
+            preds = torch.argmax(outputs, dim=1).cpu().numpy()
 
-                # Directly assign predictions to the file's classification field
-                las.classification[indices] = preds
-
-                # Check classification after update
-                print(f"Classification field after update at indices {indices}: {las.classification[indices]}")
-
-    print(f'full classification field: {las.classification}')
-
-    print(f"Predictions saved to {las_file_path}")
+            # Assign predictions to the label array at specific indices
+            label_array[indices] = preds
+            
+    # Create a new LasData object and assign fields for all point data and the label array
+    new_las = laspy.LasData(header)
+    new_las.points = original_file.points  # Copy original points
+    new_las.label = label_array            # Assign the labels to the new dimension
     
-    # Verify saved content
-    saved_file = laspy.read(las_file_path)
-    saved_labels = saved_file.classification
-    print(f"Number of points saved: {len(saved_labels)}")
-    print(f"First 100 classifications: {saved_labels[:100]}")  # Preview
+    new_las.write(las_file_path)    # Write to the new file 
         
     return las_file_path
 

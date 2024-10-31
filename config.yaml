@@ -6,7 +6,7 @@ learning_rate: 0.01    # Initial learning rate as mentioned in both articles
 learning_rate_decay_factor: 0.5   # mentioned in first article as 0.0005
 learning_rate_decay_epochs: 5    # not mentioned
 momentum: 0.9    # used in first article
-num_workers : 16  # number of workers for parallel processing
+num_workers : 32  # number of workers for parallel processing
 
 training_data_filepath: "data/training_data/21/train_21.csv"   # File path to training data
 
@@ -23,6 +23,7 @@ features_to_use: ['intensity', 'red', 'green' , 'blue' ,'nvi' ,'ndwi']  # featur
 model_save_dir: "models/saved/"   # Directory where the model is to be saved after training
 save_model: true    # whether to save the model or to discard. Default is False, i.e., discard the trained model.
 perform_inference_after_training : false    # whether to perform inference directly after training the model
+
 
 load_model: false   # whether to use an already trained model for inference or not
 load_model_filepath : "models/saved/mcnn_model_20240922_231624.pth"   # file path to the model to load for inference

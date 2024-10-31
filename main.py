@@ -189,7 +189,7 @@ def main():
         model = load_model(model_path=loaded_model_path, device=device, num_channels=num_channels, num_classes=num_classes)
         print('Model loaded successfully')
         
-        '''#print('Preparing inference dataloader...')      
+        #print('Preparing inference dataloader...')      
         inference_loader, _ = prepare_dataloader(
                 batch_size=batch_size,
                 data_dir=inference_filepath,  
@@ -213,10 +213,10 @@ def main():
             save=True
         )
         print(f'Class report output:\n{class_report}')
-        print(f'Inference process ended.') '''
+        print(f'Inference process ended.') 
         
         
-        # Directory containing  LAS files
+        '''# Directory containing  LAS files
         directory = 'data/chosen_tiles'
 
         # Loop over the LAS files using glob
@@ -245,7 +245,7 @@ def main():
                         model_save_folder=loaded_model_path
                     )
             
-            print(f'Inference process completed successfully for file {file_path}.')
+            print(f'Inference process completed successfully for file {file_path}.')'''
 
 if __name__ == "__main__":
     main()
