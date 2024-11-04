@@ -205,7 +205,7 @@ def main():
 
         # Loop over the LAS files using glob
         for index, file_path in enumerate(las_files, start=1):
-            print(f"************ Processing file {index}/{total_files}: {file_path} ************")
+            print(f"************ Processing file {index}/{total_files}: {file_path} ************\n")
             
             print('Preparing inference dataloader...\n')      
             inference_loader, _ = prepare_dataloader(
