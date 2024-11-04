@@ -409,7 +409,7 @@ def extract_num_classes(raw_file_path=None):
     return num_classes
 
 
-def subtiler(directory='data/chosen_tiles', tile_size=50, min_points=250000):
+def subtiler(directory='data/chosen_tiles', tile_size=50, min_points=500000):
     """
     Subdivides each LAS file in the specified directory into smaller tiles and 
     saves the subtiles in individual subdirectories named after each file,
@@ -424,6 +424,9 @@ def subtiler(directory='data/chosen_tiles', tile_size=50, min_points=250000):
     # List all LAS files in the specified directory
     for filename in os.listdir(directory):
         if filename.endswith('.las'):
+            
+            print(f'----------------------------- Subtiling file: {filename} -----------------------------')
+            
             file_path = os.path.join(directory, filename)
             output_dir = os.path.join(directory, f"{filename[:-4]}_{tile_size:03d}")
             
@@ -432,7 +435,7 @@ def subtiler(directory='data/chosen_tiles', tile_size=50, min_points=250000):
             num_points = len(las_file.x)
             
             # Skip subtiling if the file has fewer points than the threshold
-            if total_points < min_points:
+            if num_points < min_points:
                 print(f"Skipping {filename} - only {total_points} points (threshold: {min_points})")
                 continue
 

@@ -196,12 +196,16 @@ def main():
         print(f'Class report output:\n{class_report}')
         print(f'Inference process ended.') '''
         
-        # Directory containing  LAS files
-        directory = 'data/chosen_tiles'
+        # Directory containing LAS files
+        directory = 'data/chosen_tiles/32_690500_4934000_FP21_100'  
+        las_files = glob.glob(os.path.join(directory, '*.las'))
+
+        # Total number of files
+        total_files = len(las_files) 
 
         # Loop over the LAS files using glob
-        for file_path in glob.glob(os.path.join(directory, '*.las')):
-            print(f"***** Processing file: {file_path} *****")
+        for index, file_path in enumerate(las_files, start=1):
+            print(f"************ Processing file {index}/{total_files}: {file_path} ************")
             
             print('Preparing inference dataloader...\n')      
             inference_loader, _ = prepare_dataloader(

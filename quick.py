@@ -1,6 +1,8 @@
-from utils.point_cloud_data_utils import sample_data, combine_and_save_csv_files, read_file_to_numpy, reservoir_sample_data
+from utils.point_cloud_data_utils import sample_data, combine_and_save_csv_files, read_file_to_numpy
 import pandas as pd
+from utils.point_cloud_data_utils import subtiler
 
+'''
 input_file = 'data/training_data/21/train_21.csv'
 
 # sampled_array = sample_data(input_file=input_file, sample_size=1000000, save_dir='data/training_data/overfitting_test/train/', save=True)
@@ -20,7 +22,7 @@ class_counts = df['label'].value_counts()
 print("Number of points per class:")
 print(class_counts)
 
-'''# Check for NaN values in the entire DataFrame
+# Check for NaN values in the entire DataFrame
 nan_mask = df.isna()
 
 # Count the total number of NaN values
@@ -33,3 +35,5 @@ nan_per_column = nan_mask.sum()
 print(f"Total NaN values in the CSV file: {total_nan}")
 print("Number of NaN values per column:")
 print(nan_per_column)'''
+
+subtiler(tile_size=100, min_points=500000)
