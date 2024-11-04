@@ -197,7 +197,7 @@ def main():
         print(f'Inference process ended.') '''
         
         # Directory containing LAS files
-        directory = 'data/chosen_tiles/32_690500_4934000_FP21_100'  
+        directory = 'data/chosen_tiles/32_686000_4932000_FP21_250'  
         las_files = glob.glob(os.path.join(directory, '*.las'))
 
         # Total number of files
