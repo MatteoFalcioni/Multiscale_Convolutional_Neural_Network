@@ -241,3 +241,21 @@ def visualize_grid_with_comparison(grid, df, center, window_size=10.0, channel=3
     elif not save:
         plt.show()
 
+
+def plot_lidar_data(las_file, name):
+    """
+    Plot the lidar data in a scatter plot.
+    
+    Parameters:
+    - las_file: laspy object with point data to plot.
+    - name (str): Output file name for the plot.
+    """
+    fig = plt.figure(figsize=(5, 5), layout='tight')  
+    seg_x = las_file.x
+    seg_y = las_file.y
+    seg_colour = np.stack((las_file.red, las_file.green, las_file.blue), axis=-1) / 65536
+    plt.scatter(seg_x, seg_y, c=seg_colour, s=0.05, alpha=1.)
+    plt.xlabel('X')
+    plt.ylabel('Y')
+    fig.savefig(f"{name}.tif", dpi=400)
+    plt.close()

@@ -2,9 +2,9 @@ import laspy
 import numpy as np
 import pandas as pd
 import os
-import random
 from tqdm import tqdm
 import csv
+from utils.plot_utils import plot_lidar_data
 
 
 def load_las_data(file_path):
@@ -348,51 +348,6 @@ def sample_data(input_file, sample_size, save=False, save_dir='data/sampled_data
     return sampled_data
 
 
-def reservoir_sample_data(input_file, sample_size, save=False, save_dir='data/sampled_data', feature_to_use=None, chunk_size=100000):
-    """
-    Samples a random subset of the data from a large CSV file using reservoir sampling.
-
-    Args:
-    - input_file (str): Path to the input CSV file.
-    - sample_size (int): The number of samples to extract.
-    - save (bool): Whether to save the sampled data to a file. Default is False.
-    - save_dir (str): Directory where the sampled data will be saved. Default is 'data/sampled_data'.
-    - feature_to_use (list): List of feature names to select from the data.
-    - chunk_size (int): Number of rows to process per chunk. Default is 100000.
-
-    Returns:
-    - pd.DataFrame: The sampled data DataFrame.
-    """
-    reservoir = []  # List to store the sampled rows
-    total_rows = 0  # Total number of rows processed
-
-    # Iterate over chunks of the data and add tqdm for the progress bar
-    for chunk in tqdm(pd.read_csv(input_file, chunksize=chunk_size, usecols=feature_to_use), desc="Processing chunks"):
-        total_rows += len(chunk)
-
-        for row in chunk.itertuples(index=False):
-            if len(reservoir) < sample_size:
-                # If the reservoir is not full, add the row
-                reservoir.append(row)
-            else:
-                # Randomly decide whether to replace an existing element in the reservoir
-                replace_idx = random.randint(0, total_rows - 1)
-                if replace_idx < sample_size:
-                    reservoir[replace_idx] = row
-
-    # Convert the reservoir to a DataFrame
-    sampled_data = pd.DataFrame(reservoir, columns=chunk.columns)
-
-    # Optionally save the sampled data
-    if save:
-        os.makedirs(save_dir, exist_ok=True)
-        sample_file_path = os.path.join(save_dir, f'sampled_data_{sample_size}.csv')
-        sampled_data.to_csv(sample_file_path, index=False)
-        print(f"Sampled data saved to {sample_file_path}")
-
-    return sampled_data
-
-
 def remap_labels(data_array, label_column_index=-1):
     """
     Automatically remaps the labels in the given data array to a continuous range starting from 0. Needed for
@@ -454,6 +409,121 @@ def extract_num_classes(raw_file_path=None):
     return num_classes
 
 
+def subtiler(directory='data/chosen_tiles', tile_size=50):
+    """
+    Subdivides each LAS file in the specified directory into smaller tiles and 
+    saves the subtiles in individual subdirectories named after each file.
+
+    Parameters:
+    - directory (str): Path to the directory containing LAS files.
+    - tile_size (int): Size of each subtile in meters.
+    """
+    # List all LAS files in the specified directory
+    for filename in os.listdir(directory):
+        if filename.endswith('.las'):
+            file_path = os.path.join(directory, filename)
+            output_dir = os.path.join(directory, f"{filename[:-4]}_{tile_size:03d}")
+
+            # Create subdirectory for the subtiles
+            os.makedirs(output_dir, exist_ok=True)
+
+            # Extract the lower left coordinates from the filename
+            parts = filename.split('_')
+            lower_left_x = int(parts[1])
+            lower_left_y = int(parts[2])
+
+            # Load the LiDAR file
+            las_file = laspy.read(file_path)
+            x_coords = las_file.x
+            y_coords = las_file.y
+
+            total_points = 0
+            steps = 500 // tile_size
+
+            for i in range(steps):
+                for j in range(steps):
+                    subtile_lower_left_x = lower_left_x + i * tile_size
+                    subtile_lower_left_y = lower_left_y + j * tile_size
+
+                    # Determine points within the subtile
+                    mask = (
+                        (x_coords >= subtile_lower_left_x) &
+                        (x_coords < subtile_lower_left_x + tile_size) &
+                        (y_coords >= subtile_lower_left_y) &
+                        (y_coords < subtile_lower_left_y + tile_size)
+                    )
+
+                    # Create a new LAS file header and set properties
+                    new_header = laspy.LasHeader(point_format=las_file.header.point_format,
+                                                 version=las_file.header.version)
+                    new_header.offsets = las_file.header.offsets
+                    new_header.scales = las_file.header.scales
+                    new_las = laspy.LasData(new_header)
+                    new_las.points = las_file.points[mask]
+                    new_las.update_header()
+
+                    total_points += len(new_las.x)
+
+                    # Generate the filename with lower-left and lower-right suffixes
+                    subtile_file_name = (f"{output_dir}/32_{subtile_lower_left_x}_"
+                                         f"{subtile_lower_left_y}_FP21")
+
+                    # Save the new LAS file
+                    new_las.write(f"{subtile_file_name}.las")
+                    plot_lidar_data(new_las, subtile_file_name)
+                    print(f"Saved subtile: {subtile_file_name},\twith {len(new_las.x)} points")
+
+            print(f"Total points in file {filename}: {total_points}")
+            print(f"Original points: {len(x_coords)}")
+
+
+'''
+def reservoir_sample_data(input_file, sample_size, save=False, save_dir='data/sampled_data', feature_to_use=None, chunk_size=100000):
+    """
+    Samples a random subset of the data from a large CSV file using reservoir sampling.
+
+    Args:
+    - input_file (str): Path to the input CSV file.
+    - sample_size (int): The number of samples to extract.
+    - save (bool): Whether to save the sampled data to a file. Default is False.
+    - save_dir (str): Directory where the sampled data will be saved. Default is 'data/sampled_data'.
+    - feature_to_use (list): List of feature names to select from the data.
+    - chunk_size (int): Number of rows to process per chunk. Default is 100000.
+
+    Returns:
+    - pd.DataFrame: The sampled data DataFrame.
+    """
+    reservoir = []  # List to store the sampled rows
+    total_rows = 0  # Total number of rows processed
+
+    # Iterate over chunks of the data and add tqdm for the progress bar
+    for chunk in tqdm(pd.read_csv(input_file, chunksize=chunk_size, usecols=feature_to_use), desc="Processing chunks"):
+        total_rows += len(chunk)
+
+        for row in chunk.itertuples(index=False):
+            if len(reservoir) < sample_size:
+                # If the reservoir is not full, add the row
+                reservoir.append(row)
+            else:
+                # Randomly decide whether to replace an existing element in the reservoir
+                replace_idx = random.randint(0, total_rows - 1)
+                if replace_idx < sample_size:
+                    reservoir[replace_idx] = row
+
+    # Convert the reservoir to a DataFrame
+    sampled_data = pd.DataFrame(reservoir, columns=chunk.columns)
+
+    # Optionally save the sampled data
+    if save:
+        os.makedirs(save_dir, exist_ok=True)
+        sample_file_path = os.path.join(save_dir, f'sampled_data_{sample_size}.csv')
+        sampled_data.to_csv(sample_file_path, index=False)
+        print(f"Sampled data saved to {sample_file_path}")
+
+    return sampled_data
+'''
+
+'''
 def get_feature_indices(features_to_use, known_features):
     """
     Given a list of chosen features and the known features in the data array, this function
@@ -471,8 +541,7 @@ def get_feature_indices(features_to_use, known_features):
     except ValueError as e:
         raise ValueError(f"Feature {str(e).split()[0]} not found in known features: {known_features}")
     
-    return feature_indices
-
+    return feature_indices'''
 
 
 '''def extract_num_channels(preprocessed_data_dir):
