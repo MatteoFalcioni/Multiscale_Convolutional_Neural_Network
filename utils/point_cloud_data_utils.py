@@ -409,20 +409,32 @@ def extract_num_classes(raw_file_path=None):
     return num_classes
 
 
-def subtiler(directory='data/chosen_tiles', tile_size=50):
+def subtiler(directory='data/chosen_tiles', tile_size=50, min_points=250000):
     """
     Subdivides each LAS file in the specified directory into smaller tiles and 
-    saves the subtiles in individual subdirectories named after each file.
+    saves the subtiles in individual subdirectories named after each file,
+    only if the file contains more than a specified minimum number of points.
 
     Parameters:
     - directory (str): Path to the directory containing LAS files.
     - tile_size (int): Size of each subtile in meters.
+    - min_points (int): Minimum number of points required to subdivide a tile.
+                        If a file has fewer points than this, it will not be processed.
     """
     # List all LAS files in the specified directory
     for filename in os.listdir(directory):
         if filename.endswith('.las'):
             file_path = os.path.join(directory, filename)
             output_dir = os.path.join(directory, f"{filename[:-4]}_{tile_size:03d}")
+            
+            # Load the LiDAR file
+            las_file = laspy.read(file_path)
+            num_points = len(las_file.x)
+            
+            # Skip subtiling if the file has fewer points than the threshold
+            if total_points < min_points:
+                print(f"Skipping {filename} - only {total_points} points (threshold: {min_points})")
+                continue
 
             # Create subdirectory for the subtiles
             os.makedirs(output_dir, exist_ok=True)
@@ -431,14 +443,12 @@ def subtiler(directory='data/chosen_tiles', tile_size=50):
             parts = filename.split('_')
             lower_left_x = int(parts[1])
             lower_left_y = int(parts[2])
-
-            # Load the LiDAR file
-            las_file = laspy.read(file_path)
+            
             x_coords = las_file.x
             y_coords = las_file.y
 
             total_points = 0
-            steps = 500 // tile_size
+            steps = 500 // tile_size    # assuming tiles are of dimension 500 meters
 
             for i in range(steps):
                 for j in range(steps):
@@ -460,20 +470,23 @@ def subtiler(directory='data/chosen_tiles', tile_size=50):
                     new_header.scales = las_file.header.scales
                     new_las = laspy.LasData(new_header)
                     new_las.points = las_file.points[mask]
-                    new_las.update_header()
+                    
+                    # Only proceed if the subtile has points
+                    if len(new_las.x) > 0:
+                        new_las.update_header()
+                        total_points += len(new_las.x)
 
-                    total_points += len(new_las.x)
+                        # Generate the filename with lower-left and lower-right suffixes
+                        subtile_file_name = (f"{output_dir}/32_{subtile_lower_left_x}_"
+                                             f"{subtile_lower_left_y}_FP21")
 
-                    # Generate the filename with lower-left and lower-right suffixes
-                    subtile_file_name = (f"{output_dir}/32_{subtile_lower_left_x}_"
-                                         f"{subtile_lower_left_y}_FP21")
+                        # Save the new LAS file and plot if non-empty
+                        new_las.write(f"{subtile_file_name}.las")
+                        plot_lidar_data(new_las, subtile_file_name)
+                        print(f"Saved subtile: {subtile_file_name},\twith {len(new_las.x)} points")
 
-                    # Save the new LAS file
-                    new_las.write(f"{subtile_file_name}.las")
-                    plot_lidar_data(new_las, subtile_file_name)
-                    print(f"Saved subtile: {subtile_file_name},\twith {len(new_las.x)} points")
 
-            print(f"Total points in file {filename}: {total_points}")
+            print(f"Total points in generated subtiles: {filename}: {total_points}")
             print(f"Original points: {len(x_coords)}")
 
 

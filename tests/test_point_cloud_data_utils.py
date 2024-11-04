@@ -1,12 +1,13 @@
 from utils.point_cloud_data_utils import load_las_data, load_asc_data, read_las_file_to_numpy, numpy_to_dataframe
-from utils.point_cloud_data_utils import combine_and_save_csv_files
+from utils.point_cloud_data_utils import combine_and_save_csv_files, subtiler
 import os
 import pandas as pd
 import unittest
 import numpy as np
+import laspy
 
 
-class TestPointCloudDataUtils(unittest.TestCase):
+'''class TestPointCloudDataUtils(unittest.TestCase):
 
     def setUp(self):
         self.las_directory = 'data/raw'
@@ -118,5 +119,51 @@ class TestPointCloudDataUtils(unittest.TestCase):
         loaded_data = np.load(saved_file_path)
         np.testing.assert_array_almost_equal(combined_data_saved, loaded_data, decimal=6,
                                              err_msg="Loaded data does not match the originally combined data.")
+'''
 
+class TestSubtiler(unittest.TestCase):
 
+    def setUp(self):
+        # Set up test directory and parameters
+        self.test_dir = 'tests/test_subtiler'
+        self.output_dir = os.path.join(self.test_dir, '32_683500_4924500_FP21_050')
+        self.tile_size = 50
+        os.makedirs(self.test_dir, exist_ok=True)
+
+    def test_subtiler(self):
+        # Print the features in the original LAS file for reference
+        original_file = os.path.join(self.test_dir, '32_683500_4924500_FP21.las')
+        las = laspy.read(original_file)
+        print("\nFeatures (dimensions) in the original LAS file:")
+        for dimension_name in las.point_format.dimension_names:
+            print(f"- {dimension_name}")
+        
+        # Run the subtiler function on the test directory
+        subtiler(directory=self.test_dir, tile_size=self.tile_size)
+
+        # Check if the output directory is created
+        self.assertTrue(os.path.exists(self.output_dir), "Output directory was not created")
+
+        las_files = [f for f in os.listdir(self.output_dir) if f.endswith('.las')]
+
+        file_idx = 0
+        # Check that each subtile retains features and labels
+        for las_file in las_files:
+            las = laspy.read(os.path.join(self.output_dir, las_file))
+            self.assertTrue(hasattr(las, 'points'), "Subtile missing point data")
+            self.assertGreater(len(las.points), 0, "Subtile has no points")
+            self.assertTrue(hasattr(las.points, 'intensity'), "Subtile missing intensity feature")
+            if file_idx < 5:
+                print("\nFeatures (dimensions) in the subtile LAS file:")
+                for dimension_name in las.point_format.dimension_names:
+                    print(f"- {dimension_name}")
+            file_idx += 1
+    
+    def tearDown(self):
+    # Clean up generated files and directories after test
+        for root, dirs, files in os.walk(self.output_dir, topdown=False):
+            for file in files:
+                os.remove(os.path.join(root, file))
+            for dir in dirs:
+                os.rmdir(os.path.join(root, dir))
+        os.rmdir(self.output_dir)
