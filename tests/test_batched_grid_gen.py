@@ -37,6 +37,7 @@ class TestBatchedMultiscaleGridGeneration(unittest.TestCase):
         for i, (non_batched_grid, non_batched_skipped) in enumerate(non_batched_results):
             for size_label in self.window_sizes:
                 if not non_batched_skipped:
+                    print('checking non skipped point...')
                     self.assertTrue(np.array_equal(non_batched_grid[size_label], batched_grids[size_label][i]),
                                     f"Mismatch in grid at center point {i} for scale {size_label}")
             self.assertEqual(non_batched_skipped, batched_skipped[i], f"Mismatch in skip status at center point {i}")
