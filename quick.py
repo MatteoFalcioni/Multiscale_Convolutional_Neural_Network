@@ -36,4 +36,4 @@ print(f"Total NaN values in the CSV file: {total_nan}")
 print("Number of NaN values per column:")
 print(nan_per_column)'''
 
-subtiler(tile_size=250, min_points=600000)
+subtiler(tile_size=125, min_points=500000)
