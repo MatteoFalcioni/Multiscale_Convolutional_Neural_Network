@@ -98,15 +98,18 @@ def inference_without_ground_truth(model, dataloader, device, data_file, model_p
     - las_file_path (str): File path to the saved LAS file. 
     """
     
-    mp.set_sharing_strategy('file_system')  # trying to fix too many openf iles error
+    mp.set_sharing_strategy('file_system')  # trying to fix too many open files error
 
     model.eval()
     # Set up output path
     model_save_folder = os.path.dirname(model_path)  # Get the directory in which the model file is stored (the parent directory)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    pred_file_name = f"{os.path.splitext(os.path.basename(data_file))[0]}_pred_{timestamp}.las"
-    save_dir = os.path.join(model_save_folder, save_subfolder)
+    pred_file_name = f"{os.path.splitext(os.path.basename(data_file))[0]}_CNN_{timestamp}.las"
+    
+    # Create timestamped folder inside the predictions subfolder
+    save_dir = os.path.join(model_save_folder, save_subfolder, timestamp)
     os.makedirs(save_dir, exist_ok=True)
+    
     las_file_path = os.path.join(save_dir, pred_file_name)
 
     # Open the input LAS file to copy header information
@@ -118,7 +121,7 @@ def inference_without_ground_truth(model, dataloader, device, data_file, model_p
         extra_dims = [laspy.ExtraBytesParams(name="label", type=np.int8)]
         header.add_extra_dims(extra_dims)
 
-    # Initialize the label field with -1 values
+    # Initialize the label field with -1 values (-1 = not classified)
     total_points = len(original_file.x)
     label_array = np.full(total_points, -1, dtype=np.int8)
     
