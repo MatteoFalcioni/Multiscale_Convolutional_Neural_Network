@@ -107,7 +107,7 @@ def inference_without_ground_truth(model, dataloader, device, data_file, model_p
     pred_file_name = f"{os.path.splitext(os.path.basename(data_file))[0]}_CNN_{timestamp}.las"
     
     # Create timestamped folder inside the predictions subfolder
-    save_dir = os.path.join(model_save_folder, save_subfolder, timestamp)
+    save_dir = os.path.join(model_save_folder, save_subfolder)
     os.makedirs(save_dir, exist_ok=True)
     
     las_file_path = os.path.join(save_dir, pred_file_name)

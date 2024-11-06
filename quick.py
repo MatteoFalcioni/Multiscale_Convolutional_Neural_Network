@@ -36,4 +36,4 @@ print(f"Total NaN values in the CSV file: {total_nan}")
 print("Number of NaN values per column:")
 print(nan_per_column)'''
 
-subtiler(tile_size=125, min_points=500000)
+subtiler(directory='data/chosen_tiles/chosen_tiles_overlapped', tile_size=125, overlap_size=30, min_points=500000)

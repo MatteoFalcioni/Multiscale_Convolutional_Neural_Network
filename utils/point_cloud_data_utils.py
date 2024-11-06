@@ -409,15 +409,16 @@ def extract_num_classes(raw_file_path=None):
     return num_classes
 
 
-def subtiler(directory='data/chosen_tiles', tile_size=50, min_points=500000):
+def subtiler(directory='data/chosen_tiles', tile_size=50, overlap_size=10, min_points=500000):
     """
-    Subdivides each LAS file in the specified directory into smaller tiles and 
-    saves the subtiles in individual subdirectories named after each file,
+    Subdivides each LAS file in the specified directory into smaller tiles with overlaps
+    and saves the subtiles in individual subdirectories named after each file,
     only if the file contains more than a specified minimum number of points.
 
     Parameters:
     - directory (str): Path to the directory containing LAS files.
     - tile_size (int): Size of each subtile in meters.
+    - overlap_size (int): Size of the overlap between subtiles in meters.
     - min_points (int): Minimum number of points required to subdivide a tile.
                         If a file has fewer points than this, it will not be processed.
     """
@@ -436,7 +437,7 @@ def subtiler(directory='data/chosen_tiles', tile_size=50, min_points=500000):
             
             # Skip subtiling if the file has fewer points than the threshold
             if num_points < min_points:
-                print(f"Skipping {filename} - only {total_points} points (threshold: {min_points})")
+                print(f"Skipping {filename} - only {num_points} points (threshold: {min_points})")
                 continue
 
             # Create subdirectory for the subtiles
@@ -451,12 +452,13 @@ def subtiler(directory='data/chosen_tiles', tile_size=50, min_points=500000):
             y_coords = las_file.y
 
             total_points = 0
-            steps = 500 // tile_size    # assuming tiles are of dimension 500 meters
+            steps = (500 // tile_size) + 1  # Increase steps to account for overlap
 
             for i in range(steps):
                 for j in range(steps):
-                    subtile_lower_left_x = lower_left_x + i * tile_size
-                    subtile_lower_left_y = lower_left_y + j * tile_size
+                    # Calculate the starting position for the subtile
+                    subtile_lower_left_x = lower_left_x + i * (tile_size - overlap_size)
+                    subtile_lower_left_y = lower_left_y + j * (tile_size - overlap_size)
 
                     # Determine points within the subtile
                     mask = (
@@ -488,9 +490,9 @@ def subtiler(directory='data/chosen_tiles', tile_size=50, min_points=500000):
                         plot_lidar_data(new_las, subtile_file_name)
                         print(f"Saved subtile: {subtile_file_name},\twith {len(new_las.x)} points")
 
-
             print(f"Total points in generated subtiles: {filename}: {total_points}")
-            print(f"Original points: {len(x_coords)}")
+            print(f"Original points: {num_points}")
+
 
 
 '''
