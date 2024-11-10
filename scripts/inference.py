@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix, classification_report
 from tqdm import tqdm
 import torch.multiprocessing as mp
+import sys
 
 
 def inference(model, dataloader, device, class_names, model_save_folder, inference_file_path, save=False):
@@ -130,7 +131,7 @@ def inference_without_ground_truth(model, dataloader, device, data_file, model_p
 
     # Perform inference 
     with torch.no_grad():
-        for batch in tqdm(dataloader, desc="Performing inference"):
+        for batch in tqdm(dataloader, desc="Performing inference", ascii=True, dynamic_ncols=True, file=sys.stdout):
             if batch is None:
                 continue
 
