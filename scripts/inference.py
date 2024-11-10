@@ -156,7 +156,7 @@ def predict_subtiles(file_path, model, device, batch_size, window_sizes, grid_re
     return all_predictions, all_indices
 
 
-def predict(file_path, model, device, batch_size, window_sizes, grid_resolution, features_to_use, num_workers, min_points=1000000):
+def predict(file_path, model, device, batch_size, window_sizes, grid_resolution, features_to_use, num_workers, min_points=1000000, tile_size=50, overlap_size=30):
     """
     Main function to check if a LAS file is large, eventually subtile it, perform inference on each subtile, 
     and return the predictions. The function will save the subtiles to disk if needed, 
@@ -172,6 +172,8 @@ def predict(file_path, model, device, batch_size, window_sizes, grid_resolution,
     - features_to_use (list): List of features used for training.
     - num_workers (int): Number of workers for loading data.
     - min_points (int): Minimum number of points to decide if the file should be subtiled. Default is 1 million.
+    - tile_size (int): Size of each subtile in meters.
+    - overlap_size (int): Size of the overlap between subtiles in meters.
 
     Returns:
     - None: This function performs inference and saves results to disk.
@@ -188,7 +190,7 @@ def predict(file_path, model, device, batch_size, window_sizes, grid_resolution,
         print(f"File has more than {min_points} points. Subtiling and processing...")
         
         # Call subtiler function to split the file into subtiles and save them
-        subtile_folder = subtiler(file_path, tile_size=50, overlap_size=10, min_points=200000)  # Adjust tile size and overlap size as needed
+        subtile_folder = subtiler(file_path, tile_size, overlap_size)  # Adjust tile size and overlap size as needed
         
         # Once subtiles are generated, we perform inference on each of them
         # Get all subtile files from the subtile folder

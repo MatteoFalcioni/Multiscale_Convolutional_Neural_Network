@@ -409,7 +409,7 @@ def extract_num_classes(raw_file_path=None):
     return num_classes
 
 
-def subtiler(file_path, tile_size=50, overlap_size=10, min_points=200000):
+def subtiler(file_path, tile_size=50, overlap_size=10):
     """
     Subdivides a single LAS file into smaller tiles with overlaps and saves the subtiles in a new subdirectory.
     Only processes the file if it contains more than the specified minimum number of points.
@@ -418,8 +418,6 @@ def subtiler(file_path, tile_size=50, overlap_size=10, min_points=200000):
     - file_path (str): Path to the LAS file to be subdivided.
     - tile_size (int): Size of each subtile in meters.
     - overlap_size (int): Size of the overlap between subtiles in meters.
-    - min_points (int): Minimum number of points required to subdivide a tile.
-                        If the file has fewer points than this, it will not be processed.
     Returns:
     - output_dir (str): Path to the direcotry where subtiles were saved
     """
@@ -428,11 +426,6 @@ def subtiler(file_path, tile_size=50, overlap_size=10, min_points=200000):
     # Load the LiDAR file
     las_file = laspy.read(file_path)
     num_points = len(las_file.x)
-    
-    # Skip subtiling if the file has fewer points than the threshold
-    if num_points < min_points:
-        print(f"Skipping {file_path} - only {num_points} points (threshold: {min_points})")
-        return
 
     # Create subdirectory for the subtiles
     output_dir = f"{os.path.splitext(file_path)[0]}_{tile_size:03d}_subtiles"
