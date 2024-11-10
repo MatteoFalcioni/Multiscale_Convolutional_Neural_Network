@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 import laspy
 from utils.train_data_utils import prepare_dataloader
-from utils.point_cloud_data_utils import subtiler
+from utils.point_cloud_data_utils import subtiler, stitch_subtiles
 from datetime import datetime
 import os
 import matplotlib.pyplot as plt
@@ -171,7 +171,7 @@ def predict_subtile(file_path, model, device, batch_size, window_sizes, grid_res
     return None
 
 
-def predict(file_path, model, device, batch_size, window_sizes, grid_resolution, features_to_use, num_workers, min_points=1000000, tile_size=50, overlap_size=30):
+def predict(file_path, model, model_directory, device, batch_size, window_sizes, grid_resolution, features_to_use, num_workers, min_points=1000000, tile_size=50, overlap_size=30):
     """
     Main function to check if a LAS file is large, eventually subtile it, perform inference on each subtile, 
     and return the predictions. The function will save the subtiles to disk if needed, 
@@ -180,6 +180,7 @@ def predict(file_path, model, device, batch_size, window_sizes, grid_resolution,
     Args:
     - file_path (str): Path to the input LAS file.
     - model (nn.Module): The trained PyTorch model.
+    - model_directory (str): Directory where the trained PyTorch model is stored.
     - device (torch.device): Device (CPU or GPU) to perform inference on.
     - batch_size (int): The batch size to use for inference.
     - window_sizes (list): List of window sizes for grid preparation.
@@ -215,12 +216,14 @@ def predict(file_path, model, device, batch_size, window_sizes, grid_resolution,
         for subtile_file in subtile_files:            
             # Call the function to perform inference on the subtile
            predict_subtile(subtile_file, model, device, batch_size, window_sizes, grid_resolution, features_to_use, num_workers)
+
+        # stitch subtiles back together to construct final file with predictions
+        stitch_subtiles(subtile_files=subtile_files, original_file=las_file, model_directory=model_directory)
             
     else:
         print(f"File has less than {min_points} points. Performing inference directly on the entire file.")
         
-        # If the file is small enough, we just do the inference without subtile logic
-        predict_subtile(file_path, model, device, batch_size, window_sizes, grid_resolution, features_to_use, num_workers)
+        # adapt predict_subtile logic to handle a large file as well (handle the saving to the right folder)
 
 
 def inference(model, dataloader, device, class_names, model_save_folder, inference_file_path, save=False):

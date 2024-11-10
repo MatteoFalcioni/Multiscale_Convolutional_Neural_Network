@@ -4,7 +4,7 @@ import pandas as pd
 import os
 from tqdm import tqdm
 import csv
-from utils.plot_utils import plot_lidar_data
+from datetime import datetime
 
 
 def load_las_data(file_path):
@@ -488,14 +488,14 @@ def subtiler(file_path, tile_size=50, overlap_size=10):
     return output_dir
 
 
-def stitch_subtiles(subtile_files, original_file, output_file):
+def stitch_subtiles(subtile_files, original_file, model_directory):
     """
     Stitches subtiles back together into the original LAS file.
     
     Args:
     - subtile_files (list): List of paths to the sub-tile files to be stitched.
     - original_file (str): Path to the original LAS file, used for copying the header.
-    - output_file (str): Path to the output file where the stitched data will be saved.
+    - model_directory (str): Directory where the trained PyTorch model is stored.
     """
     # Open the original file to get header info
     original_las = laspy.read(original_file)
@@ -526,6 +526,17 @@ def stitch_subtiles(subtile_files, original_file, output_file):
     # Set the points and labels to the stitched file
     stitched_las.points = all_points
     stitched_las.label = all_labels
+
+    # Construct the path for saving the final stitched file inside the model's directory
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    model_save_dir = os.path.join(model_directory, 'inference', 'predictions')
+    os.makedirs(model_save_dir, exist_ok=True)
+    # Get the base filename without extension
+    base_filename = os.path.basename(original_file)
+    base_filename_without_ext = os.path.splitext(base_filename)[0]
+
+    # Construct the final output file path
+    output_file = os.path.join(model_save_dir, f"{base_filename_without_ext}_pred_{timestamp}.las")
 
     # Save the stitched file
     stitched_las.write(output_file)
