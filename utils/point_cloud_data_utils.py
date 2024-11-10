@@ -488,6 +488,50 @@ def subtiler(file_path, tile_size=50, overlap_size=10):
     return output_dir
 
 
+def stitch_subtiles(subtile_files, original_file, output_file):
+    """
+    Stitches subtiles back together into the original LAS file.
+    
+    Args:
+    - subtile_files (list): List of paths to the sub-tile files to be stitched.
+    - original_file (str): Path to the original LAS file, used for copying the header.
+    - output_file (str): Path to the output file where the stitched data will be saved.
+    """
+    # Open the original file to get header info
+    original_las = laspy.read(original_file)
+    header = original_las.header
+
+    # Create a new LAS file to store the stitched points
+    stitched_las = laspy.LasData(header)
+
+    # List to store the points for stitching
+    all_points = []
+    
+    # Iterate over each subtile
+    for subtile_file in subtile_files:
+        # Read the subtile
+        subtile_las = laspy.read(subtile_file)
+        
+        # Extract points and labels from the subtile
+        subtile_points = subtile_las.points
+        subtile_labels = subtile_las.label  # Assuming we already added 'label' during inference
+        
+        # Append the points and labels to the all_points list
+        all_points.append((subtile_points, subtile_labels))
+
+    # Now, concatenate all points and labels from all sub-tiles
+    all_points = np.concatenate([points for points, _ in all_points])
+    all_labels = np.concatenate([labels for _, labels in all_points])
+
+    # Set the points and labels to the stitched file
+    stitched_las.points = all_points
+    stitched_las.label = all_labels
+
+    # Save the stitched file
+    stitched_las.write(output_file)
+
+    print(f"Stitching completed. File saved at: {output_file}")
+    
 
 '''
 def reservoir_sample_data(input_file, sample_size, save=False, save_dir='data/sampled_data', feature_to_use=None, chunk_size=100000):

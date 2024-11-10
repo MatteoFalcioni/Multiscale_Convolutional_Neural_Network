@@ -95,7 +95,7 @@ def inference_without_ground_truth(model, dataloader, device, data_file, model_p
     return las_file_path
 
 
-def predict_subtiles(file_path, model, device, batch_size, window_sizes, grid_resolution, features_to_use, num_workers):
+def predict_subtile(file_path, model, device, batch_size, window_sizes, grid_resolution, features_to_use, num_workers):
     """
     Prepares the DataLoader for the given subtile file, runs inference and updates
     the labels of the file with the predicted labels.
@@ -205,7 +205,7 @@ def predict(file_path, model, device, batch_size, window_sizes, grid_resolution,
         print(f"File has more than {min_points} points. Subtiling and processing...")
         
         # Call subtiler function to split the file into subtiles and save them
-        subtile_folder = subtiler(file_path, tile_size, overlap_size)  # Adjust tile size and overlap size as needed
+        subtile_folder = subtiler(file_path, tile_size, overlap_size) 
         
         # Once subtiles are generated, we perform inference on each of them
         # Get all subtile files from the subtile folder
@@ -214,28 +214,13 @@ def predict(file_path, model, device, batch_size, window_sizes, grid_resolution,
         # Iterate over all subtiles and run inference
         for subtile_file in subtile_files:            
             # Call the function to perform inference on the subtile
-            predictions = predict_subtiles(subtile_file, model, device, batch_size, window_sizes, grid_resolution, features_to_use, num_workers)
-            
-            # Store or process the predictions as needed (for stitching later)
-            # Here we can store the predictions or perform any processing needed (this part can be done later)
-            # Example: save predictions to disk or accumulate them in memory for later stitching.
-            # We'll just print the predictions for now:
-            print(f"Predictions for {subtile_file}: {predictions[:10]}")  # Example: print first 10 predictions
+           predict_subtile(subtile_file, model, device, batch_size, window_sizes, grid_resolution, features_to_use, num_workers)
             
     else:
         print(f"File has less than {min_points} points. Performing inference directly on the entire file.")
         
         # If the file is small enough, we just do the inference without subtile logic
-        predictions = predict_subtiles(file_path, model, device, batch_size, window_sizes, grid_resolution, features_to_use, num_workers)
-        
-        # Store or process the predictions (as described earlier)
-        print(f"Predictions for the file: {predictions[:10]}")  # Example: print first 10 predictions
-
-
-
-
-
-
+        predict_subtile(file_path, model, device, batch_size, window_sizes, grid_resolution, features_to_use, num_workers)
 
 
 def inference(model, dataloader, device, class_names, model_save_folder, inference_file_path, save=False):
