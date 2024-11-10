@@ -420,6 +420,8 @@ def subtiler(file_path, tile_size=50, overlap_size=10, min_points=200000):
     - overlap_size (int): Size of the overlap between subtiles in meters.
     - min_points (int): Minimum number of points required to subdivide a tile.
                         If the file has fewer points than this, it will not be processed.
+    Returns:
+    - output_dir (str): Path to the direcotry where subtiles were saved
     """
     print(f'----------------------------- Subtiling file: {file_path} -----------------------------')
     
@@ -489,6 +491,8 @@ def subtiler(file_path, tile_size=50, overlap_size=10, min_points=200000):
     
     print(f"Total points in generated subtiles: {total_points}")
     print(f"Original number of points: {num_points}")
+
+    return output_dir
 
 
 
