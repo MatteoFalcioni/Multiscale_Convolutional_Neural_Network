@@ -506,6 +506,7 @@ def stitch_subtiles(subtile_files, original_file, model_directory):
 
     # List to store the points for stitching
     all_points = []
+    all_labels = []
     
     # Iterate over each subtile
     for subtile_file in subtile_files:
@@ -517,11 +518,12 @@ def stitch_subtiles(subtile_files, original_file, model_directory):
         subtile_labels = subtile_las.label  # Assuming we already added 'label' during inference
         
         # Append the points and labels to the all_points list
-        all_points.append((subtile_points, subtile_labels))
+        all_points.append(subtile_points)
+        all_labels.append(subtile_labels)
 
     # Now, concatenate all points and labels from all sub-tiles
-    all_points = np.concatenate([points for points, _ in all_points])
-    all_labels = np.concatenate([labels for _, labels in all_points])
+    all_points = np.concatenate(all_points)
+    all_labels = np.concatenate(all_labels)
 
     # Set the points and labels to the stitched file
     stitched_las.points = all_points
