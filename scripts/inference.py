@@ -97,7 +97,8 @@ def inference_without_ground_truth(model, dataloader, device, data_file, model_p
 
 def predict_subtiles(file_path, model, device, batch_size, window_sizes, grid_resolution, features_to_use, num_workers):
     """
-    Prepares the DataLoader for the given subtile file, runs inference, and returns the predictions and indices.
+    Prepares the DataLoader for the given subtile file, runs inference and updates
+    the labels of the file with the predicted labels.
 
     Args:
     - file_path (str): Path to the LiDAR subtile file.
@@ -125,9 +126,19 @@ def predict_subtiles(file_path, model, device, batch_size, window_sizes, grid_re
         shuffle_train=False  # don't shuffle data for inference
     )
 
-    all_predictions = []  # List to store predictions
-    all_indices = []  # List to store indices
+    # Open the subtile file to copy header information
+    original_file = laspy.read(file_path)
+    header = original_file.header
 
+    # Check and add 'label' as needed
+    if 'label' not in header.point_format.dimension_names:
+        extra_dims = [laspy.ExtraBytesParams(name="label", type=np.int8)]
+        header.add_extra_dims(extra_dims)
+
+    # Initialize the label field with -1 values (-1 = not classified)
+    label_array = np.full(len(original_file.x), -1, dtype=np.int8)
+
+    # Perform inference 
     model.eval()  # Set model to evaluation mode
 
     with torch.no_grad():  # No gradient calculation during inference
@@ -141,19 +152,23 @@ def predict_subtiles(file_path, model, device, batch_size, window_sizes, grid_re
                 small_grids.to(device), medium_grids.to(device), large_grids.to(device)
             )
 
-            # Perform inference on the current batch
+            # Run model inference on the current batch
             outputs = model(small_grids, medium_grids, large_grids)
             preds = torch.argmax(outputs, dim=1)  # Get predicted labels
 
-            # Store predictions and corresponding indices
-            all_predictions.append(preds.cpu().numpy())  # Move to CPU and convert to numpy array
-            all_indices.append(indices)  
+            # Assign predictions directly to the label array for the current subtile
+            label_array[indices] = preds.cpu().numpy()
 
-    # Concatenate all predictions and indices
-    all_predictions = np.concatenate(all_predictions)
-    all_indices = np.concatenate(all_indices)
+    # Save the updated subtile with predictions written into the 'label' field
+    new_las = laspy.LasData(header)
+    new_las.points = original_file.points  # Copy original points
+    new_las.label = label_array            # Assign the labels to the new dimension
+    
+    # Overwrite the original subtile file with predictions
+    new_las.write(file_path)  
 
-    return all_predictions, all_indices
+    print(f"Predictions written and subtile file overwritten: {file_path}")
+    return None
 
 
 def predict(file_path, model, device, batch_size, window_sizes, grid_resolution, features_to_use, num_workers, min_points=1000000, tile_size=50, overlap_size=30):
@@ -197,9 +212,7 @@ def predict(file_path, model, device, batch_size, window_sizes, grid_resolution,
         subtile_files = [os.path.join(subtile_folder, f) for f in os.listdir(subtile_folder) if f.endswith('.las')]
         
         # Iterate over all subtiles and run inference
-        for subtile_file in subtile_files:
-            print(f"Performing inference on subtile: {subtile_file}")
-            
+        for subtile_file in subtile_files:            
             # Call the function to perform inference on the subtile
             predictions = predict_subtiles(subtile_file, model, device, batch_size, window_sizes, grid_resolution, features_to_use, num_workers)
             
