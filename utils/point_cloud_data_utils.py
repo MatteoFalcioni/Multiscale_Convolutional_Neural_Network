@@ -409,89 +409,86 @@ def extract_num_classes(raw_file_path=None):
     return num_classes
 
 
-def subtiler(directory='data/chosen_tiles', tile_size=50, overlap_size=10, min_points=500000):
+def subtiler(file_path, tile_size=50, overlap_size=10, min_points=200000):
     """
-    Subdivides each LAS file in the specified directory into smaller tiles with overlaps
-    and saves the subtiles in individual subdirectories named after each file,
-    only if the file contains more than a specified minimum number of points.
+    Subdivides a single LAS file into smaller tiles with overlaps and saves the subtiles in a new subdirectory.
+    Only processes the file if it contains more than the specified minimum number of points.
 
     Parameters:
-    - directory (str): Path to the directory containing LAS files.
+    - file_path (str): Path to the LAS file to be subdivided.
     - tile_size (int): Size of each subtile in meters.
     - overlap_size (int): Size of the overlap between subtiles in meters.
     - min_points (int): Minimum number of points required to subdivide a tile.
-                        If a file has fewer points than this, it will not be processed.
+                        If the file has fewer points than this, it will not be processed.
     """
-    # List all LAS files in the specified directory
-    for filename in os.listdir(directory):
-        if filename.endswith('.las'):
+    print(f'----------------------------- Subtiling file: {file_path} -----------------------------')
+    
+    # Load the LiDAR file
+    las_file = laspy.read(file_path)
+    num_points = len(las_file.x)
+    
+    # Skip subtiling if the file has fewer points than the threshold
+    if num_points < min_points:
+        print(f"Skipping {file_path} - only {num_points} points (threshold: {min_points})")
+        return
+
+    # Create subdirectory for the subtiles
+    output_dir = f"{os.path.splitext(file_path)[0]}_{tile_size:03d}_subtiles"
+    os.makedirs(output_dir, exist_ok=True)
+
+    # Extract the lower left coordinates from the filename (assuming filename format includes coordinates)
+    parts = os.path.basename(file_path).split('_')
+    lower_left_x = int(parts[1])
+    lower_left_y = int(parts[2])
+
+    x_coords = las_file.x
+    y_coords = las_file.y
+
+    total_points = 0
+    steps = (500 // tile_size) + 1  # Increase steps to account for overlap
+
+    progress_bar = tqdm(total=(steps * steps), desc="Processing subtiles", ascii=True, dynamic_ncols=True)
+
+    # Loop to create subtiles
+    for i in range(steps):
+        for j in range(steps):
+            # Calculate the starting position for the subtile
+            subtile_lower_left_x = lower_left_x + i * (tile_size - overlap_size)
+            subtile_lower_left_y = lower_left_y + j * (tile_size - overlap_size)
+
+            # Determine points within the subtile
+            mask = (
+                (x_coords >= subtile_lower_left_x) &
+                (x_coords < subtile_lower_left_x + tile_size) &
+                (y_coords >= subtile_lower_left_y) &
+                (y_coords < subtile_lower_left_y + tile_size)
+            )
+
+            # Create a new LAS file header and set properties
+            new_header = laspy.LasHeader(point_format=las_file.header.point_format,
+                                         version=las_file.header.version)
+            new_header.offsets = las_file.header.offsets
+            new_header.scales = las_file.header.scales
+            new_las = laspy.LasData(new_header)
+            new_las.points = las_file.points[mask]
             
-            print(f'----------------------------- Subtiling file: {filename} -----------------------------')
-            
-            file_path = os.path.join(directory, filename)
-            output_dir = os.path.join(directory, f"{filename[:-4]}_{tile_size:03d}")
-            
-            # Load the LiDAR file
-            las_file = laspy.read(file_path)
-            num_points = len(las_file.x)
-            
-            # Skip subtiling if the file has fewer points than the threshold
-            if num_points < min_points:
-                print(f"Skipping {filename} - only {num_points} points (threshold: {min_points})")
-                continue
+            # Only proceed if the subtile has points
+            if len(new_las.x) > 0:
+                new_las.update_header()
+                total_points += len(new_las.x)
 
-            # Create subdirectory for the subtiles
-            os.makedirs(output_dir, exist_ok=True)
+                # Generate the filename with lower-left and lower-right suffixes
+                subtile_file_name = f"{output_dir}/subtile_{subtile_lower_left_x}_{subtile_lower_left_y}"
 
-            # Extract the lower left coordinates from the filename
-            parts = filename.split('_')
-            lower_left_x = int(parts[1])
-            lower_left_y = int(parts[2])
-            
-            x_coords = las_file.x
-            y_coords = las_file.y
+                # Save the new LAS file
+                new_las.write(f"{subtile_file_name}.las")
+                print(f"Saved subtile: {subtile_file_name}, with {len(new_las.x)} points")
 
-            total_points = 0
-            steps = (500 // tile_size) + 1  # Increase steps to account for overlap
-
-            for i in range(steps):
-                for j in range(steps):
-                    # Calculate the starting position for the subtile
-                    subtile_lower_left_x = lower_left_x + i * (tile_size - overlap_size)
-                    subtile_lower_left_y = lower_left_y + j * (tile_size - overlap_size)
-
-                    # Determine points within the subtile
-                    mask = (
-                        (x_coords >= subtile_lower_left_x) &
-                        (x_coords < subtile_lower_left_x + tile_size) &
-                        (y_coords >= subtile_lower_left_y) &
-                        (y_coords < subtile_lower_left_y + tile_size)
-                    )
-
-                    # Create a new LAS file header and set properties
-                    new_header = laspy.LasHeader(point_format=las_file.header.point_format,
-                                                 version=las_file.header.version)
-                    new_header.offsets = las_file.header.offsets
-                    new_header.scales = las_file.header.scales
-                    new_las = laspy.LasData(new_header)
-                    new_las.points = las_file.points[mask]
-                    
-                    # Only proceed if the subtile has points
-                    if len(new_las.x) > 0:
-                        new_las.update_header()
-                        total_points += len(new_las.x)
-
-                        # Generate the filename with lower-left and lower-right suffixes
-                        subtile_file_name = (f"{output_dir}/32_{subtile_lower_left_x}_"
-                                             f"{subtile_lower_left_y}_FP21")
-
-                        # Save the new LAS file and plot if non-empty
-                        new_las.write(f"{subtile_file_name}.las")
-                        plot_lidar_data(new_las, subtile_file_name)
-                        print(f"Saved subtile: {subtile_file_name},\twith {len(new_las.x)} points")
-
-            print(f"Total points in generated subtiles: {filename}: {total_points}")
-            print(f"Original points: {num_points}")
+            # Update progress bar
+            progress_bar.update(1)
+    
+    print(f"Total points in generated subtiles: {total_points}")
+    print(f"Original number of points: {num_points}")
 
 
 
