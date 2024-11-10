@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 import laspy
 from utils.train_data_utils import prepare_dataloader
+from utils.point_cloud_data_utils import subtiler
 from datetime import datetime
 import os
 import matplotlib.pyplot as plt
@@ -153,6 +154,72 @@ def predict_subtiles(file_path, model, device, batch_size, window_sizes, grid_re
     all_indices = np.concatenate(all_indices)
 
     return all_predictions, all_indices
+
+
+def predict(file_path, model, device, batch_size, window_sizes, grid_resolution, features_to_use, num_workers, min_points=1000000):
+    """
+    Main function to check if a LAS file is large, eventually subtile it, perform inference on each subtile, 
+    and return the predictions. The function will save the subtiles to disk if needed, 
+    and later we can integrate stitching of predictions and saving of the final file.
+    
+    Args:
+    - file_path (str): Path to the input LAS file.
+    - model (nn.Module): The trained PyTorch model.
+    - device (torch.device): Device (CPU or GPU) to perform inference on.
+    - batch_size (int): The batch size to use for inference.
+    - window_sizes (list): List of window sizes for grid preparation.
+    - grid_resolution (int): Grid resolution used for data preprocessing.
+    - features_to_use (list): List of features used for training.
+    - num_workers (int): Number of workers for loading data.
+    - min_points (int): Minimum number of points to decide if the file should be subtiled. Default is 1 million.
+
+    Returns:
+    - None: This function performs inference and saves results to disk.
+    """
+    
+    # Load the original LAS file
+    las_file = laspy.read(file_path)
+    total_points = len(las_file.x)
+
+    print(f"Total points in the file: {total_points}")
+    
+    # If the file has more than 'min_points', we proceed with subtile logic
+    if total_points > min_points:
+        print(f"File has more than {min_points} points. Subtiling and processing...")
+        
+        # Call subtiler function to split the file into subtiles and save them
+        subtile_folder = subtiler(file_path, tile_size=50, overlap_size=10, min_points=200000)  # Adjust tile size and overlap size as needed
+        
+        # Once subtiles are generated, we perform inference on each of them
+        # Get all subtile files from the subtile folder
+        subtile_files = [os.path.join(subtile_folder, f) for f in os.listdir(subtile_folder) if f.endswith('.las')]
+        
+        # Iterate over all subtiles and run inference
+        for subtile_file in subtile_files:
+            print(f"Performing inference on subtile: {subtile_file}")
+            
+            # Call the function to perform inference on the subtile
+            predictions = predict_subtiles(subtile_file, model, device, batch_size, window_sizes, grid_resolution, features_to_use, num_workers)
+            
+            # Store or process the predictions as needed (for stitching later)
+            # Here we can store the predictions or perform any processing needed (this part can be done later)
+            # Example: save predictions to disk or accumulate them in memory for later stitching.
+            # We'll just print the predictions for now:
+            print(f"Predictions for {subtile_file}: {predictions[:10]}")  # Example: print first 10 predictions
+            
+    else:
+        print(f"File has less than {min_points} points. Performing inference directly on the entire file.")
+        
+        # If the file is small enough, we just do the inference without subtile logic
+        predictions = predict_subtiles(file_path, model, device, batch_size, window_sizes, grid_resolution, features_to_use, num_workers)
+        
+        # Store or process the predictions (as described earlier)
+        print(f"Predictions for the file: {predictions[:10]}")  # Example: print first 10 predictions
+
+
+
+
+
 
 
 
