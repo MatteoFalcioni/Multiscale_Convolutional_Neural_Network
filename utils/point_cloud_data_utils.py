@@ -488,7 +488,7 @@ def subtiler(file_path, tile_size=50, overlap_size=10):
     return output_dir
 
 
-def stitch_subtiles(subtile_files, original_file, model_directory):
+def stitch_subtiles(subtile_files, original_file, model_directory, tile_size=50, overlap_size=30):
     """
     Stitches subtiles back together into the original LAS file.
     
@@ -496,15 +496,24 @@ def stitch_subtiles(subtile_files, original_file, model_directory):
     - subtile_files (list): List of paths to the sub-tile files to be stitched.
     - original_file (str): Path to the original LAS file, used for copying the header.
     - model_directory (str): Directory where the trained PyTorch model is stored.
+    - tile_size (int): Size of each subtile in meters.
+    - overlap_size (int): Size of the overlap between subtiles in meters.
     """
     # Open the original file to get header info
     original_las = laspy.read(original_file)
-    header = original_las.header
-
-    # Create a new LAS file to store the stitched points
-    stitched_las = laspy.LasData(header)
-
-    # List to store the points for stitching
+    og_header = laspy.LasHeader(point_format=original_las.header.point_format,
+                                         version=original_las.header.version)
+    og_header.offsets = original_las.header.offsets
+    og_header.scales = original_las.header.scales
+    
+    # Create the stitched LAS file and copy the header
+    stitched_las = laspy.LasData(og_header) 
+    
+    if 'label' not in stitched_las.point_format.dimension_names:
+        # Add labels as a dimension to the stitched file if it does not exist
+        stitched_las.add_dimension('label')
+        
+    # Initialize lists to store points, labels, and other features
     all_points = []
     all_labels = []
     
@@ -513,28 +522,41 @@ def stitch_subtiles(subtile_files, original_file, model_directory):
         # Read the subtile
         subtile_las = laspy.read(subtile_file)
         
-        # Extract points and labels from the subtile
-        subtile_points = subtile_las.points
-        subtile_labels = subtile_las.label  # Assuming we already added 'label' during inference
+        if subtile_las.point_format != original_las.point_format:
+            print(f"Warning: Point format mismatch in {subtile_file}, converting to original format.")
+            subtile_las.points = subtile_las.points.convert_to(original_las.point_format)
         
-        # Append the points and labels to the all_points list
-        all_points.append(subtile_points)
-        all_labels.append(subtile_labels)
-
-    # Now, concatenate all points and labels from all sub-tiles
+        # Calculate the overlap boundaries to exclude overlap
+        x_min, y_min = subtile_las.x.min(), subtile_las.y.min()
+        x_max, y_max = subtile_las.x.max(), subtile_las.y.max()
+        
+        # Apply the mask to exclude points within the overlap region
+        mask = (
+            (subtile_las.x > (x_min + overlap_size)) &
+            (subtile_las.x < (x_max - overlap_size)) &
+            (subtile_las.y > (y_min + overlap_size)) &
+            (subtile_las.y < (y_max - overlap_size))
+        )
+        
+        masked_points = subtile_las.points[mask]
+        masked_labels = subtile_las.label[mask]
+        
+        # Append the masked points and labels to the final lists
+        all_points.append(masked_points)
+        all_labels.append(masked_labels)
+        
+    # Concatenate all points and labels from all sub-tiles
     all_points = np.concatenate(all_points)
     all_labels = np.concatenate(all_labels)
-
-    # Set the points and labels to the stitched file
+    
     stitched_las.points = all_points
-    stitched_las.label = all_labels
+    stitched_las.labels = all_labels
 
     # Construct the path for saving the final stitched file inside the model's directory
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     model_save_dir = os.path.join(model_directory, 'inference', 'predictions')
     os.makedirs(model_save_dir, exist_ok=True)
-    # Get the base filename without extension
-    base_filename = os.path.basename(original_file)
+    base_filename = os.path.basename(original_file)     # Get the base filename without extension
     base_filename_without_ext = os.path.splitext(base_filename)[0]
 
     # Construct the final output file path

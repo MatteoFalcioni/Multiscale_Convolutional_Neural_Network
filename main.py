@@ -49,6 +49,7 @@ def main():
     # Ensure (additional check) that x, y, z are not included in the selected features
     features_to_use = [feature for feature in features_to_use if feature not in ['x', 'y', 'z']]    
     
+    '''careful here, you may want to extract the number of classes from the trained model hyperparams when doing only inference (so you dont need the training file for inference, huge limitation)'''
     num_classes = extract_num_classes(raw_file_path=training_data_filepath)     # determine the number of classes from the data    
 
     num_channels = len(features_to_use)  # Determine the number of channels based on selected features
