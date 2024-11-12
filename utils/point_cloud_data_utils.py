@@ -516,6 +516,23 @@ def stitch_subtiles(subtile_files, original_file, model_directory, tile_size=50,
     # Initialize lists to store points, labels, and other features
     all_points = []
     all_labels = []
+    all_intensitites = []
+
+    # Get the lower-left coordinates of all subtiles from their filenames
+    lower_left_coords = []
+    for subtile_file in subtile_files:
+        # Extract coordinates from filename
+        filename = os.path.basename(subtile_file)
+
+        # Split filename to get coordinates (x, y) - expect format like "subtile_x_y.las"
+        parts = filename.split('_')
+        lower_left_x = int(parts[1])
+        lower_left_y = int(parts[2].split('.')[0])  # Extract y (before the file extension)
+        lower_left_coords.append((lower_left_x, lower_left_y))
+
+    # Find the maximum x and y values (rightmost and northernmost)
+    max_y = max(lower_left_coords, key=lambda x: x[1])[1]  # Northernmost tile (largest y)
+    max_x = max(lower_left_coords, key=lambda x: x[0])[0]  # Rightmost tile (largest x)
     
     # Iterate over each subtile
     for subtile_file in subtile_files:
@@ -529,36 +546,51 @@ def stitch_subtiles(subtile_files, original_file, model_directory, tile_size=50,
         # Calculate the overlap boundaries to exclude overlap
         x_min, y_min = subtile_las.x.min(), subtile_las.y.min()
         x_max, y_max = subtile_las.x.max(), subtile_las.y.max()
-        
-        # Apply the mask to exclude points within the overlap region
-        mask = (
-            (subtile_las.x > (x_min + overlap_size)) &
-            (subtile_las.x < (x_max - overlap_size)) &
-            (subtile_las.y > (y_min + overlap_size)) &
-            (subtile_las.y < (y_max - overlap_size))
-        )
+
+        # Extract the current subtile's coordinates from the filename
+        filename = os.path.basename(subtile_file)
+        parts = filename.split('_')
+        lower_left_x = int(parts[1])
+        lower_left_y = int(parts[2].split('.')[0])
+
+        if lower_left_y == max_y or lower_left_x == max_x:  # Northernmost or rightmost tiles
+            # For the northernmost and rightmost tiles, keep the overlap points
+            mask = (
+                (subtile_las.x >= x_min) & (subtile_las.x <= x_max) &
+                (subtile_las.y >= y_min) & (subtile_las.y <= y_max)
+            )
+        else:
+            # For all other tiles, exclude points from the left and bottom overlap
+            # Apply the mask to exclude points within the overlap region
+            mask = (
+                (subtile_las.x > x_min) &
+                (subtile_las.x < (x_max - overlap_size)) &
+                (subtile_las.y > y_min) &
+                (subtile_las.y < (y_max - overlap_size))
+            )
 
         subtile_masked = subtile_las.points[mask]
 
         # Extract only x, y, z coordinates and labels 
         masked_points = np.vstack((subtile_masked.x, subtile_masked.y, subtile_masked.z)).T
         masked_labels = subtile_masked.label  
-        
-        '''masked_points = subtile_las.points[mask]
-        masked_labels = subtile_las.label[mask]'''
+        masked_intensitites = subtile_masked.intensity
         
         # Append the masked points and labels to the final lists
         all_points.append(masked_points)
         all_labels.append(masked_labels)
+        all_intensitites.append(masked_intensitites)
         
     # Concatenate all points and labels from all sub-tiles
     all_points = np.concatenate(all_points)
     all_labels = np.concatenate(all_labels)
+    all_intensitites = np.concatenate(all_intensitites)
     
     stitched_las.x = all_points[:, 0]
     stitched_las.y = all_points[:, 1]
     stitched_las.z = all_points[:, 2]
     stitched_las.label = all_labels
+    stitched_las.intensity = all_intensitites
 
     # Construct the path for saving the final stitched file inside the model's directory
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
