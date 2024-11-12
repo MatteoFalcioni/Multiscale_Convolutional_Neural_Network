@@ -178,7 +178,7 @@ def predict_subtiles(subtile_folder, model, device, batch_size, window_sizes, gr
     return None
 
 
-def predict(file_path, model, model_directory, device, batch_size, window_sizes, grid_resolution, features_to_use, num_workers, min_points=1000000, tile_size=50, overlap_size=30):
+def predict(file_path, model, model_path, device, batch_size, window_sizes, grid_resolution, features_to_use, num_workers, min_points=1000000, tile_size=50, overlap_size=30):
     """
     Main function to check if a LAS file is large, eventually subtile it, perform inference on each subtile, 
     and return the predictions. The function will save the subtiles to disk if needed, 
@@ -187,7 +187,7 @@ def predict(file_path, model, model_directory, device, batch_size, window_sizes,
     Args:
     - file_path (str): Path to the input LAS file.
     - model (nn.Module): The trained PyTorch model.
-    - model_directory (str): Directory where the trained PyTorch model is stored.
+    - model_path (str): File path to where the trained PyTorch model is stored.
     - device (torch.device): Device (CPU or GPU) to perform inference on.
     - batch_size (int): The batch size to use for inference.
     - window_sizes (list): List of window sizes for grid preparation.
@@ -201,6 +201,8 @@ def predict(file_path, model, model_directory, device, batch_size, window_sizes,
     Returns:
     - None: This function performs inference and saves results to disk.
     """
+    # get the model direcotry from its path
+    model_directory = os.path.dirname(model_path)
     
     # Load the original LAS file
     las_file = laspy.read(file_path)
