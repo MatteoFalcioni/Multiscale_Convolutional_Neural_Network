@@ -126,13 +126,13 @@ class TestSubtiler(unittest.TestCase):
 
     def setUp(self):
         # Set up test directory and parameters
-        self.input_file = 'tests/test_subtiler/32_683500_4924500_FP21.las'  
+        self.input_file = 'tests/test_subtiler/32_687000_4930000_FP21.las'  
         self.tile_size = 125
         self.overlap_size = 30
         self.output_dir = '.'
         self.final_output_dir = 'tests/test_subtiler/'
 
-    '''def test_subtiling(self):
+    """def test_subtiling(self):
         
         # Call the subtiler function
         subtile_folder = subtiler(self.input_file, self.tile_size, self.overlap_size)
@@ -180,12 +180,12 @@ class TestSubtiler(unittest.TestCase):
         
         # Optionally, check the total points in subtiles
         total_points_in_subtiles = sum([len(laspy.read(f).points) for f in subtile_files])
-        self.assertEqual(total_points_in_subtiles, len(original_points), "Total points in subtiles do not match original points.")'''
-        
+        self.assertEqual(total_points_in_subtiles, len(original_points), "Total points in subtiles do not match original points.")
+        """
     def test_stitching(self):
         # Run the stitching process
         print("Stitching sub-tiles together...")
-        subtile_folder = 'tests/test_subtiler/32_683500_4924500_FP21_125_subtiles/'
+        subtile_folder = 'tests/test_subtiler/32_687000_4930000_FP21_125_subtiles'
         subtile_files = [os.path.join(subtile_folder, f) for f in os.listdir(subtile_folder) if f.endswith('.las')]
         
         stitch_subtiles(subtile_files=subtile_files, original_file=self.input_file, model_directory=self.final_output_dir, tile_size=self.tile_size, overlap_size=self.overlap_size)

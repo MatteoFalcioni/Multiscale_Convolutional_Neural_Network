@@ -537,9 +537,15 @@ def stitch_subtiles(subtile_files, original_file, model_directory, tile_size=50,
             (subtile_las.y > (y_min + overlap_size)) &
             (subtile_las.y < (y_max - overlap_size))
         )
+
+        subtile_masked = subtile_las.points[mask]
+
+        # Extract only x, y, z coordinates and labels 
+        masked_points = np.vstack((subtile_masked.x, subtile_masked.y, subtile_masked.z)).T
+        masked_labels = subtile_masked.label  
         
-        masked_points = subtile_las.points[mask]
-        masked_labels = subtile_las.label[mask]
+        '''masked_points = subtile_las.points[mask]
+        masked_labels = subtile_las.label[mask]'''
         
         # Append the masked points and labels to the final lists
         all_points.append(masked_points)
@@ -549,8 +555,10 @@ def stitch_subtiles(subtile_files, original_file, model_directory, tile_size=50,
     all_points = np.concatenate(all_points)
     all_labels = np.concatenate(all_labels)
     
-    stitched_las.points = all_points
-    stitched_las.labels = all_labels
+    stitched_las.x = all_points[:, 0]
+    stitched_las.y = all_points[:, 1]
+    stitched_las.z = all_points[:, 2]
+    stitched_las.label = all_labels
 
     # Construct the path for saving the final stitched file inside the model's directory
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")

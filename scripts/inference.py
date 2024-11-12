@@ -215,10 +215,10 @@ def predict(file_path, model, model_directory, device, batch_size, window_sizes,
         # Iterate over all subtiles and run inference
         for subtile_file in subtile_files:            
             # Call the function to perform inference on the subtile
-           predict_subtile(subtile_file, model, device, batch_size, window_sizes, grid_resolution, features_to_use, num_workers)
+            predict_subtile(subtile_file, model, device, batch_size, window_sizes, grid_resolution, features_to_use, num_workers)
 
         # stitch subtiles back together to construct final file with predictions
-        stitch_subtiles(subtile_files=subtile_files, original_file=las_file, model_directory=model_directory)
+        stitch_subtiles(subtile_files=subtile_files, original_file=las_file, model_directory=model_directory, tile_size=tile_size, overlap_size=overlap_size)
             
     else:
         print(f"File has less than {min_points} points. Performing inference directly on the entire file.")
