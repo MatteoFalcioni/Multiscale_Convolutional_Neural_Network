@@ -477,7 +477,7 @@ def subtiler(file_path, tile_size=50, overlap_size=10):
 
                 # Save the new LAS file
                 new_las.write(f"{subtile_file_name}.las")
-                print(f"Saved subtile: {subtile_file_name}, with {len(new_las.x)} points")
+                # print(f"Saved subtile: {subtile_file_name}, with {len(new_las.x)} points")
 
             # Update progress bar
             progress_bar.update(1)
@@ -517,6 +517,13 @@ def stitch_subtiles(subtile_files, original_file, model_directory, tile_size=50,
     all_points = []
     all_labels = []
     all_intensitites = []
+    all_red = []
+    all_green = []
+    all_blue = []
+    all_nir = []
+    all_return_number = []
+    all_number_of_returns = []
+    all_classification = []
 
     # Get the lower-left coordinates of all subtiles from their filenames
     lower_left_coords = []
@@ -563,10 +570,10 @@ def stitch_subtiles(subtile_files, original_file, model_directory, tile_size=50,
             # For all other tiles, exclude points from the left and bottom overlap
             # Apply the mask to exclude points within the overlap region
             mask = (
-                (subtile_las.x > x_min) &
-                (subtile_las.x < (x_max - overlap_size)) &
-                (subtile_las.y > y_min) &
-                (subtile_las.y < (y_max - overlap_size))
+                (subtile_las.x >= x_min) &
+                (subtile_las.x <= (x_max - overlap_size)) &
+                (subtile_las.y >= y_min) &
+                (subtile_las.y <= (y_max - overlap_size))
             )
 
         subtile_masked = subtile_las.points[mask]
@@ -575,22 +582,50 @@ def stitch_subtiles(subtile_files, original_file, model_directory, tile_size=50,
         masked_points = np.vstack((subtile_masked.x, subtile_masked.y, subtile_masked.z)).T
         masked_labels = subtile_masked.label  
         masked_intensitites = subtile_masked.intensity
-        
+        masked_red = subtile_masked.red
+        masked_green = subtile_masked.green
+        masked_blue = subtile_masked.blue
+        masked_nir = subtile_masked.nir
+        masked_return_number = subtile_masked.return_number
+        masked_number_of_returns = subtile_masked.number_of_returns
+        masked_classification = subtile_masked.classification
+            
         # Append the masked points and labels to the final lists
         all_points.append(masked_points)
         all_labels.append(masked_labels)
         all_intensitites.append(masked_intensitites)
+        all_red.append(masked_red)
+        all_green.append(masked_green)
+        all_blue.append(masked_blue)
+        all_nir.append(masked_nir)
+        all_return_number.append(masked_return_number)
+        all_number_of_returns.append(masked_number_of_returns)
+        all_classification.append(masked_classification)
         
     # Concatenate all points and labels from all sub-tiles
     all_points = np.concatenate(all_points)
     all_labels = np.concatenate(all_labels)
     all_intensitites = np.concatenate(all_intensitites)
+    all_red = np.concatenate(all_red)
+    all_green = np.concatenate(all_green)
+    all_blue = np.concatenate(all_blue)
+    all_nir = np.concatenate(all_nir)
+    all_return_number = np.concatenate(all_return_number)
+    all_number_of_returns = np.concatenate(all_number_of_returns)
+    all_classification = np.concatenate(all_classification)
     
     stitched_las.x = all_points[:, 0]
     stitched_las.y = all_points[:, 1]
     stitched_las.z = all_points[:, 2]
     stitched_las.label = all_labels
     stitched_las.intensity = all_intensitites
+    stitched_las.red = all_red
+    stitched_las.green = all_green
+    stitched_las.blue = all_blue
+    stitched_las.nir = all_nir
+    stitched_las.return_number = all_return_number 
+    stitched_las.number_of_returns = all_number_of_returns
+    stitched_las.classification = all_classification
 
     # Construct the path for saving the final stitched file inside the model's directory
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
