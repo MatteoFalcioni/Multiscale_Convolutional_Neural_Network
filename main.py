@@ -4,7 +4,7 @@ import torch.optim as optim
 from models.mcnn import MultiScaleCNN
 from utils.train_data_utils import prepare_dataloader, load_model, load_features_used
 from scripts.train import train_epochs
-from scripts.inference import inference, inference_without_ground_truth
+from scripts.inference import inference, inference_without_ground_truth, predict
 from utils.config_handler import parse_arguments
 from utils.point_cloud_data_utils import read_file_to_numpy, extract_num_classes
 import time
@@ -197,7 +197,7 @@ def main():
         print(f'Class report output:\n{class_report}')
         print(f'Inference process ended.') '''
         
-        # Directory containing LAS files
+        '''# Directory containing LAS files
         directory = 'data/chosen_tiles/32_687000_4930000_FP21_125'  
         las_files = glob.glob(os.path.join(directory, '*.las'))
 
@@ -231,6 +231,14 @@ def main():
                     )
 
             print(f'Inference process completed successfully for file {file_path}.\nLas file with predicted labels saved at {file_with_predictions}\n')
+        '''
+
+        predict(file_path=inference_filepath, model=model, model_directory=loaded_model_path, device=device,
+                batch_size=batch_size, window_sizes=window_sizes, grid_resolution=grid_resolution, features_to_use=features_to_use,
+                num_workers=num_workers, tile_size=125, overlap_size=30)
+        
+        # mods to do: loaded model path is not the model directory, get the parent dir inside predict
+        # also tile size can be hardcoded, but overlap size should be the largest window size always
 
 if __name__ == "__main__":
     main()
