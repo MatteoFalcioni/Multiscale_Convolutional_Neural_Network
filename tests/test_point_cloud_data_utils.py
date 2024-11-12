@@ -183,12 +183,10 @@ class TestSubtiler(unittest.TestCase):
         self.assertEqual(total_points_in_subtiles, len(original_points), "Total points in subtiles do not match original points.")
         """
     def test_stitching(self):
-        # Run the stitching process
-        print("Stitching sub-tiles together...")
-        subtile_folder = 'tests/test_subtiler/32_687000_4930000_FP21_125_subtiles'
-        subtile_files = [os.path.join(subtile_folder, f) for f in os.listdir(subtile_folder) if f.endswith('.las')]
+
+        subtile_folder = subtiler(self.input_file, self.tile_size, self.overlap_size)
         
-        stitch_subtiles(subtile_files=subtile_files, original_file=self.input_file, model_directory=self.final_output_dir, tile_size=self.tile_size, overlap_size=self.overlap_size)
+        stitch_subtiles(subtile_folder=subtile_folder, original_file=self.input_file, model_directory=self.final_output_dir, overlap_size=self.overlap_size)
 
         '''output_pattern = re.compile(r".+_pred_\d{8}_\d{6}\.las$")
         output_dir = os.path.join('tests/test_subtiler/', 'inference', 'predictions')
@@ -202,8 +200,8 @@ class TestSubtiler(unittest.TestCase):
         unique_points, unique_indices = np.unique(np.column_stack((stitched_las.x, stitched_las.y, stitched_las.z)), axis=0, return_index=True)
 
         # Ensure that duplicate points are handled correctly (i.e., no duplicate points left)
-        assert len(unique_points) == len(stitched_las.x) - 1, "Duplicate points found in stitched file."'''
+        assert len(unique_points) == len(stitched_las.x) - 1, "Duplicate points found in stitched file."
 
-        print("Stitching test passed on real data!")
+        print("Stitching test passed on real data!")'''
 
         

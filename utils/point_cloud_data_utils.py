@@ -421,11 +421,11 @@ def subtiler(file_path, tile_size=50, overlap_size=10):
     Returns:
     - output_dir (str): Path to the direcotry where subtiles were saved
     """
-    print(f'----------------------------- Subtiling file: {file_path} -----------------------------')
+    # print(f'\n----------------------------- Subtiling file: {file_path} -----------------------------')
     
     # Load the LiDAR file
     las_file = laspy.read(file_path)
-    num_points = len(las_file.x)
+    # num_points = len(las_file.x)
 
     # Create subdirectory for the subtiles
     output_dir = f"{os.path.splitext(file_path)[0]}_{tile_size:03d}_subtiles"
@@ -442,7 +442,7 @@ def subtiler(file_path, tile_size=50, overlap_size=10):
     total_points = 0
     steps = (500 // tile_size) + 1  # Increase steps to account for overlap
 
-    progress_bar = tqdm(total=(steps * steps), desc="Processing subtiles", ascii=True, dynamic_ncols=True)
+    progress_bar = tqdm(total=(steps * steps), desc="Processing subtiles")
 
     # Loop to create subtiles
     for i in range(steps):
@@ -482,21 +482,21 @@ def subtiler(file_path, tile_size=50, overlap_size=10):
             # Update progress bar
             progress_bar.update(1)
     
-    print(f"Total points in generated subtiles: {total_points}")
-    print(f"Original number of points: {num_points}")
+    # print(f"Total points in generated subtiles: {total_points}")
+    # print(f"Original number of points: {num_points}")
+    print('Subtiles created succesfully.\n')
 
     return output_dir
 
 
-def stitch_subtiles(subtile_files, original_file, model_directory, tile_size=50, overlap_size=30):
+def stitch_subtiles(subtile_folder, original_file, model_directory, overlap_size=30):
     """
     Stitches subtiles back together into the original LAS file.
     
     Args:
-    - subtile_files (list): List of paths to the sub-tile files to be stitched.
+    - subtile_folder (str): Folder containing the sub-tile files to be stitched.
     - original_file (str): Path to the original LAS file, used for copying the header.
     - model_directory (str): Directory where the trained PyTorch model is stored.
-    - tile_size (int): Size of each subtile in meters.
     - overlap_size (int): Size of the overlap between subtiles in meters.
     """
     # Open the original file to get header info
@@ -527,7 +527,11 @@ def stitch_subtiles(subtile_files, original_file, model_directory, tile_size=50,
 
     # Get the lower-left coordinates of all subtiles from their filenames
     lower_left_coords = []
-    for subtile_file in subtile_files:
+
+    # Get all subtile files from the subtile folder
+    subtile_files = [os.path.join(subtile_folder, f) for f in os.listdir(subtile_folder) if f.endswith('.las')]
+
+    for subtile_file in tqdm(subtile_files, desc="Stitching sub-tiles", unit="subtile"):
         # Extract coordinates from filename
         filename = os.path.basename(subtile_file)
 
@@ -640,7 +644,7 @@ def stitch_subtiles(subtile_files, original_file, model_directory, tile_size=50,
     # Save the stitched file
     stitched_las.write(output_file)
 
-    print(f"Stitching completed. File saved at: {output_file}")
+    print(f"Stitching completed. Stitched file saved at: {output_file}")
     
 
 '''

@@ -95,7 +95,7 @@ def inference_without_ground_truth(model, dataloader, device, data_file, model_p
     return las_file_path
 
 
-def predict_subtile(file_path, model, device, batch_size, window_sizes, grid_resolution, features_to_use, num_workers):
+def predict_subtiles(subtile_folder, model, device, batch_size, window_sizes, grid_resolution, features_to_use, num_workers):
     """
     Prepares the DataLoader for the given subtile file, runs inference and updates
     the labels of the file with the predicted labels.
@@ -114,60 +114,67 @@ def predict_subtile(file_path, model, device, batch_size, window_sizes, grid_res
     - all_predictions (np.ndarray): Array of predictions for all points in the file.
     - all_indices (np.ndarray): Array of indices corresponding to the predictions.
     """
-    # Prepare the DataLoader for the current file
-    inference_loader, _ = prepare_dataloader(
-        batch_size=batch_size,
-        data_dir=file_path,
-        window_sizes=window_sizes,
-        grid_resolution=grid_resolution,
-        features_to_use=features_to_use,
-        train_split=None,  # no train/eval split
-        num_workers=num_workers,
-        shuffle_train=False  # don't shuffle data for inference
-    )
 
-    # Open the subtile file to copy header information
-    original_file = laspy.read(file_path)
-    header = original_file.header
-
-    # Check and add 'label' as needed
-    if 'label' not in header.point_format.dimension_names:
-        extra_dims = [laspy.ExtraBytesParams(name="label", type=np.int8)]
-        header.add_extra_dims(extra_dims)
-
-    # Initialize the label field with -1 values (-1 = not classified)
-    label_array = np.full(len(original_file.x), -1, dtype=np.int8)
-
-    # Perform inference 
-    model.eval()  # Set model to evaluation mode
-
-    with torch.no_grad():  # No gradient calculation during inference
-        for batch in tqdm(inference_loader, desc="Performing inference", ascii=True, dynamic_ncols=True):
-            if batch is None:
-                continue
-
-            # Unpack the batch and move to the correct device
-            small_grids, medium_grids, large_grids, _, indices = batch
-            small_grids, medium_grids, large_grids = (
-                small_grids.to(device), medium_grids.to(device), large_grids.to(device)
-            )
-
-            # Run model inference on the current batch
-            outputs = model(small_grids, medium_grids, large_grids)
-            preds = torch.argmax(outputs, dim=1)  # Get predicted labels
-
-            # Assign predictions directly to the label array for the current subtile
-            label_array[indices] = preds.cpu().numpy()
-
-    # Save the updated subtile with predictions written into the 'label' field
-    new_las = laspy.LasData(header)
-    new_las.points = original_file.points  # Copy original points
-    new_las.label = label_array            # Assign the labels to the new dimension
+    # Get all subtile files from the subtile folder
+    subtile_files = [os.path.join(subtile_folder, f) for f in os.listdir(subtile_folder) if f.endswith('.las')]
     
-    # Overwrite the original subtile file with predictions
-    new_las.write(file_path)  
+    # Iterate over all subtiles and run inference
+    for file_path in subtile_files: 
+        
+        # Prepare the DataLoader for the current file
+        inference_loader, _ = prepare_dataloader(
+            batch_size=batch_size,
+            data_dir=file_path,
+            window_sizes=window_sizes,
+            grid_resolution=grid_resolution,
+            features_to_use=features_to_use,
+            train_split=None,  # no train/eval split
+            num_workers=num_workers,
+            shuffle_train=False  # don't shuffle data for inference
+        )
 
-    print(f"Predictions written and subtile file overwritten: {file_path}")
+        # Open the subtile file to copy header information
+        original_file = laspy.read(file_path)
+        header = original_file.header
+
+        # Check and add 'label' as needed
+        if 'label' not in header.point_format.dimension_names:
+            extra_dims = [laspy.ExtraBytesParams(name="label", type=np.int8)]
+            header.add_extra_dims(extra_dims)
+
+        # Initialize the label field with -1 values (-1 = not classified)
+        label_array = np.full(len(original_file.x), -1, dtype=np.int8)
+
+        # Perform inference 
+        model.eval()  # Set model to evaluation mode
+
+        with torch.no_grad():  # No gradient calculation during inference
+            for batch in tqdm(inference_loader, desc="Performing inference"):
+                if batch is None:
+                    continue
+
+                # Unpack the batch and move to the correct device
+                small_grids, medium_grids, large_grids, _, indices = batch
+                small_grids, medium_grids, large_grids = (
+                    small_grids.to(device), medium_grids.to(device), large_grids.to(device)
+                )
+
+                # Run model inference on the current batch
+                outputs = model(small_grids, medium_grids, large_grids)
+                preds = torch.argmax(outputs, dim=1)  # Get predicted labels
+
+                # Assign predictions directly to the label array for the current subtile
+                label_array[indices] = preds.cpu().numpy()
+
+        # Save the updated subtile with predictions written into the 'label' field
+        new_las = laspy.LasData(header)
+        new_las.points = original_file.points  # Copy original points
+        new_las.label = label_array            # Assign the labels to the new dimension
+        
+        # Overwrite the original subtile file with predictions
+        new_las.write(file_path)  
+
+        # print(f"Predictions written and subtile file overwritten: {file_path}")
     return None
 
 
@@ -203,22 +210,19 @@ def predict(file_path, model, model_directory, device, batch_size, window_sizes,
     
     # If the file has more than 'min_points', we proceed with subtile logic
     if total_points > min_points:
-        print(f"File has more than {min_points} points. Subtiling and processing...")
+        print(f"File has more than {min_points} points. Subtiling is needed before processing...")
         
         # Call subtiler function to split the file into subtiles and save them
         subtile_folder = subtiler(file_path, tile_size, overlap_size) 
         
         # Once subtiles are generated, we perform inference on each of them
-        # Get all subtile files from the subtile folder
-        subtile_files = [os.path.join(subtile_folder, f) for f in os.listdir(subtile_folder) if f.endswith('.las')]
-        
-        # Iterate over all subtiles and run inference
-        for subtile_file in subtile_files:            
-            # Call the function to perform inference on the subtile
-            predict_subtile(subtile_file, model, device, batch_size, window_sizes, grid_resolution, features_to_use, num_workers)
+        # Call the function to perform inference on the subtiles
+        predict_subtiles(subtile_folder, model, device, batch_size, window_sizes, grid_resolution, features_to_use, num_workers)
 
         # stitch subtiles back together to construct final file with predictions
-        stitch_subtiles(subtile_files=subtile_files, original_file=las_file, model_directory=model_directory, tile_size=tile_size, overlap_size=overlap_size)
+        stitch_subtiles(subtile_folder=subtile_folder, original_file=las_file, model_directory=model_directory, overlap_size=overlap_size)
+
+        print('\nInference completed succesfully.')
             
     else:
         print(f"File has less than {min_points} points. Performing inference directly on the entire file.")
