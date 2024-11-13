@@ -83,6 +83,7 @@ def main():
         
         hyperparameters = {     # store hyperparameters and metadata in dictionary in order to save them together with the model
             'training file': training_data_filepath,
+            'number of classes' : num_classes,
             'number of total points' : data_array.shape[0],
             'window_sizes' : window_sizes,
             'grid_resolution': grid_resolution,
