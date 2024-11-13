@@ -11,14 +11,14 @@ from sklearn.metrics import confusion_matrix, classification_report
 from tqdm import tqdm
 import torch.multiprocessing as mp
 import sys
+import shutil
 
 
 
 def predict(file_path, model, model_path, device, batch_size, window_sizes, grid_resolution, features_to_use, num_workers, min_points=1000000, tile_size=50):
     """
-    Main function to check if a LAS file is large, eventually subtile it, perform inference on each subtile, 
-    and return the predictions. The function will save the subtiles to disk if needed, 
-    and later we can integrate stitching of predictions and saving of the final file.
+    Checks if a LAS file is large, eventually subtiles it, performs inference on each subtile, 
+    and return the predictions stitched together. The function also deletes the subtiles once they have been processed. 
     
     Args:
     - file_path (str): Path to the input LAS file.
@@ -62,12 +62,15 @@ def predict(file_path, model, model_path, device, batch_size, window_sizes, grid
         # stitch subtiles back together to construct final file with predictions
         stitch_subtiles(subtile_folder=subtile_folder, original_file=las_file, model_directory=model_directory, overlap_size=overlap_size)
 
+        # Teardown: Remove the subtile folder and its content
+        shutil.rmtree(subtile_folder)  # Removes the entire sub-tile folder
+
         print('\nInference completed succesfully.')
             
     else:
         print(f"File has less than {min_points} points. Performing inference directly on the entire file.")
         
-        # adapt predict_subtile logic to handle a large file as well (handle the saving to the right folder)
+        # adapt predict_subtile logic to handle a file with less than min points
 
 
 def predict_subtiles(subtile_folder, model, device, batch_size, window_sizes, grid_resolution, features_to_use, num_workers):
@@ -76,7 +79,7 @@ def predict_subtiles(subtile_folder, model, device, batch_size, window_sizes, gr
     the labels of the file with the predicted labels.
 
     Args:
-    - file_path (str): Path to the LiDAR subtile file.
+    - subtile_folder (str): Directory where the subtiles are stored.
     - model (nn.Module): The trained PyTorch model.
     - device (torch.device): Device (CPU or GPU) to perform inference on.
     - batch_size (int): The batch size to use for inference.
