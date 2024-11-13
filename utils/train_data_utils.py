@@ -198,7 +198,7 @@ def load_model(model_path, device, num_channels):
     """
     print(f'Loading pre-trained model from path: {model_path}\n')
 
-    # Determine the path to the hyperparameters file (same directory as model)
+    '''# Determine the path to the hyperparameters file (same directory as model)
     model_dir = os.path.dirname(model_path)
     hyperparameters_file = os.path.join(model_dir, 'hyperparameters.csv')
 
@@ -215,7 +215,8 @@ def load_model(model_path, device, num_channels):
                     break
 
     if num_classes is None:
-        raise ValueError("num_classes not found in hyperparameters.csv")
+        raise ValueError("num_classes not found in hyperparameters.csv")'''
+    num_classes = 6
 
     # Initialize the model
     model = MultiScaleCNN(channels=num_channels, classes=num_classes).to(device)
