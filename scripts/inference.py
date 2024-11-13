@@ -208,17 +208,16 @@ def predict(file_path, model, model_path, device, batch_size, window_sizes, grid
     las_file = laspy.read(file_path)
     total_points = len(las_file.x)
 
-    print(f"Total points in the file: {total_points}")
+    # print(f"Total points in the file: {total_points}")
     
     # If the file has more than 'min_points', we proceed with subtile logic
     if total_points > min_points:
-        print(f"File has more than {min_points} points. Subtiling is needed before processing...")
+        print(f"File is too big to be processed in one go. Subtiling is needed before processing...\n")
         
         # Call subtiler function to split the file into subtiles and save them
         subtile_folder = subtiler(file_path, tile_size, overlap_size) 
         
         # Once subtiles are generated, we perform inference on each of them
-        # Call the function to perform inference on the subtiles
         predict_subtiles(subtile_folder, model, device, batch_size, window_sizes, grid_resolution, features_to_use, num_workers)
 
         # stitch subtiles back together to construct final file with predictions
