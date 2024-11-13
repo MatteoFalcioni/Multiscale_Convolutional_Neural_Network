@@ -13,86 +13,61 @@ import torch.multiprocessing as mp
 import sys
 
 
-def inference_without_ground_truth(model, dataloader, device, data_file, model_path, save_subfolder="predictions"):
-    """
-    Runs inference and writes predictions directly to a LAS file in a batch-wise manner.
 
+def predict(file_path, model, model_path, device, batch_size, window_sizes, grid_resolution, features_to_use, num_workers, min_points=1000000, tile_size=50):
+    """
+    Main function to check if a LAS file is large, eventually subtile it, perform inference on each subtile, 
+    and return the predictions. The function will save the subtiles to disk if needed, 
+    and later we can integrate stitching of predictions and saving of the final file.
+    
     Args:
+    - file_path (str): Path to the input LAS file.
     - model (nn.Module): The trained PyTorch model.
-    - dataloader (DataLoader): DataLoader containing the point cloud data for inference.
-    - device (torch.device): Device to perform inference on (CPU or GPU).
-    - data_file (str): Path to the input file (used for naming the output file).
-    - model_path (str): Path to the model to be used for inference.
-    - save_subfolder (str): Subdirectory of the model's folder where the LAS file with predictions will be saved.
+    - model_path (str): File path to where the trained PyTorch model is stored.
+    - device (torch.device): Device (CPU or GPU) to perform inference on.
+    - batch_size (int): The batch size to use for inference.
+    - window_sizes (list): List of window sizes for grid preparation.
+    - grid_resolution (int): Grid resolution used for data preprocessing.
+    - features_to_use (list): List of features used for training.
+    - num_workers (int): Number of workers for loading data.
+    - min_points (int): Minimum number of points to decide if the file should be subtiled. Default is 1 million.
+    - tile_size (int): Size of each subtile in meters.
+    - overlap_size (int): Size of the overlap between subtiles in meters.
 
     Returns:
-    - las_file_path (str): File path to the saved LAS file. 
+    - None: This function performs inference and saves results to disk.
     """
+    # get the model direcotry from its path
+    model_directory = os.path.dirname(model_path)
     
-    mp.set_sharing_strategy('file_system')  # trying to fix too many open files error
+    # Load the original LAS file
+    las_file = laspy.read(file_path)
+    total_points = len(las_file.x)
 
-    model.eval()
-    # Set up output path
-    model_save_folder = os.path.dirname(model_path)  # Get the directory in which the model file is stored (the parent directory)
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    pred_file_name = f"{os.path.splitext(os.path.basename(data_file))[0]}_CNN_{timestamp}.las"
-    
-    # Create timestamped folder inside the predictions subfolder
-    save_dir = os.path.join(model_save_folder, save_subfolder)
-    os.makedirs(save_dir, exist_ok=True)
-    
-    las_file_path = os.path.join(save_dir, pred_file_name)
+    # get overlap size from window sizes: it's the dimension of the largest window size
+    overlap_size = int([value for label, value in window_sizes if label == 'large'][0])
 
-    # Open the input LAS file to copy header information
-    original_file = laspy.read(data_file)
-    header = original_file.header
+    # print(f"Total points in the file: {total_points}")
     
-    # Check and add 'label' as needed
-    if 'label' not in header.point_format.dimension_names:
-        extra_dims = [laspy.ExtraBytesParams(name="label", type=np.int8)]
-        header.add_extra_dims(extra_dims)
-
-    # Initialize the label field with -1 values (-1 = not classified)
-    total_points = len(original_file.x)
-    label_array = np.full(total_points, -1, dtype=np.int8)
-    
-    all_predictions = []  # List to store predictions
-    all_indices = []  # List to store indices
-
-    # Perform inference 
-    with torch.no_grad():
-        for batch in tqdm(dataloader, desc="Performing inference", ascii=True, dynamic_ncols=True, file=sys.stdout):
-            if batch is None:
-                continue
-
-            small_grids, medium_grids, large_grids, _, indices = batch
-            small_grids, medium_grids, large_grids = (
-                small_grids.to(device), medium_grids.to(device), large_grids.to(device)
-            )
-
-            # Run model inference
-            outputs = model(small_grids, medium_grids, large_grids)
-            preds = torch.argmax(outputs, dim=1)
-
-            # Store predictions and indices
-            all_predictions.append(preds.cpu().numpy())
-            all_indices.append(indices)
-    
-    # Concatenate all predictions and indices
-    all_predictions = np.concatenate(all_predictions)
-    all_indices = np.concatenate(all_indices) 
-    
-    # Directly assign predictions to the label array
-    label_array[all_indices] = all_predictions
-            
-    # Create a new LasData object and assign fields for all point data and the label array
-    new_las = laspy.LasData(header)
-    new_las.points = original_file.points  # Copy original points
-    new_las.label = label_array            # Assign the labels to the new dimension
-    
-    new_las.write(las_file_path)    # Write to the new file 
+    # If the file has more than 'min_points', we proceed with subtile logic
+    if total_points > min_points:
+        print(f"File is too big to be processed in one go. Subtiling is needed before processing...\n")
         
-    return las_file_path
+        # Call subtiler function to split the file into subtiles and save them
+        subtile_folder = subtiler(file_path, tile_size, overlap_size) 
+        
+        # Once subtiles are generated, we perform inference on each of them
+        predict_subtiles(subtile_folder, model, device, batch_size, window_sizes, grid_resolution, features_to_use, num_workers)
+
+        # stitch subtiles back together to construct final file with predictions
+        stitch_subtiles(subtile_folder=subtile_folder, original_file=las_file, model_directory=model_directory, overlap_size=overlap_size)
+
+        print('\nInference completed succesfully.')
+            
+    else:
+        print(f"File has less than {min_points} points. Performing inference directly on the entire file.")
+        
+        # adapt predict_subtile logic to handle a large file as well (handle the saving to the right folder)
 
 
 def predict_subtiles(subtile_folder, model, device, batch_size, window_sizes, grid_resolution, features_to_use, num_workers):
@@ -176,59 +151,6 @@ def predict_subtiles(subtile_folder, model, device, batch_size, window_sizes, gr
 
         # print(f"Predictions written and subtile file overwritten: {file_path}")
     return None
-
-
-def predict(file_path, model, model_path, device, batch_size, window_sizes, grid_resolution, features_to_use, num_workers, min_points=1000000, tile_size=50, overlap_size=30):
-    """
-    Main function to check if a LAS file is large, eventually subtile it, perform inference on each subtile, 
-    and return the predictions. The function will save the subtiles to disk if needed, 
-    and later we can integrate stitching of predictions and saving of the final file.
-    
-    Args:
-    - file_path (str): Path to the input LAS file.
-    - model (nn.Module): The trained PyTorch model.
-    - model_path (str): File path to where the trained PyTorch model is stored.
-    - device (torch.device): Device (CPU or GPU) to perform inference on.
-    - batch_size (int): The batch size to use for inference.
-    - window_sizes (list): List of window sizes for grid preparation.
-    - grid_resolution (int): Grid resolution used for data preprocessing.
-    - features_to_use (list): List of features used for training.
-    - num_workers (int): Number of workers for loading data.
-    - min_points (int): Minimum number of points to decide if the file should be subtiled. Default is 1 million.
-    - tile_size (int): Size of each subtile in meters.
-    - overlap_size (int): Size of the overlap between subtiles in meters.
-
-    Returns:
-    - None: This function performs inference and saves results to disk.
-    """
-    # get the model direcotry from its path
-    model_directory = os.path.dirname(model_path)
-    
-    # Load the original LAS file
-    las_file = laspy.read(file_path)
-    total_points = len(las_file.x)
-
-    # print(f"Total points in the file: {total_points}")
-    
-    # If the file has more than 'min_points', we proceed with subtile logic
-    if total_points > min_points:
-        print(f"File is too big to be processed in one go. Subtiling is needed before processing...\n")
-        
-        # Call subtiler function to split the file into subtiles and save them
-        subtile_folder = subtiler(file_path, tile_size, overlap_size) 
-        
-        # Once subtiles are generated, we perform inference on each of them
-        predict_subtiles(subtile_folder, model, device, batch_size, window_sizes, grid_resolution, features_to_use, num_workers)
-
-        # stitch subtiles back together to construct final file with predictions
-        stitch_subtiles(subtile_folder=subtile_folder, original_file=las_file, model_directory=model_directory, overlap_size=overlap_size)
-
-        print('\nInference completed succesfully.')
-            
-    else:
-        print(f"File has less than {min_points} points. Performing inference directly on the entire file.")
-        
-        # adapt predict_subtile logic to handle a large file as well (handle the saving to the right folder)
 
 
 def inference(model, dataloader, device, class_names, model_save_folder, inference_file_path, save=False):
@@ -362,3 +284,86 @@ def save_inference_results(conf_matrix, class_report, save_dir, class_names):
     class_report_path = os.path.join(save_dir, 'classification_report.csv')
     df.to_csv(class_report_path, index=False)
     print(f"Classification report saved at {class_report_path}")
+
+
+'''
+def inference_without_ground_truth(model, dataloader, device, data_file, model_path, save_subfolder="predictions"):
+    """
+    Runs inference and writes predictions directly to a LAS file in a batch-wise manner.
+
+    Args:
+    - model (nn.Module): The trained PyTorch model.
+    - dataloader (DataLoader): DataLoader containing the point cloud data for inference.
+    - device (torch.device): Device to perform inference on (CPU or GPU).
+    - data_file (str): Path to the input file (used for naming the output file).
+    - model_path (str): Path to the model to be used for inference.
+    - save_subfolder (str): Subdirectory of the model's folder where the LAS file with predictions will be saved.
+
+    Returns:
+    - las_file_path (str): File path to the saved LAS file. 
+    """
+    
+    mp.set_sharing_strategy('file_system')  # trying to fix too many open files error
+
+    model.eval()
+    # Set up output path
+    model_save_folder = os.path.dirname(model_path)  # Get the directory in which the model file is stored (the parent directory)
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    pred_file_name = f"{os.path.splitext(os.path.basename(data_file))[0]}_CNN_{timestamp}.las"
+    
+    # Create timestamped folder inside the predictions subfolder
+    save_dir = os.path.join(model_save_folder, save_subfolder)
+    os.makedirs(save_dir, exist_ok=True)
+    
+    las_file_path = os.path.join(save_dir, pred_file_name)
+
+    # Open the input LAS file to copy header information
+    original_file = laspy.read(data_file)
+    header = original_file.header
+    
+    # Check and add 'label' as needed
+    if 'label' not in header.point_format.dimension_names:
+        extra_dims = [laspy.ExtraBytesParams(name="label", type=np.int8)]
+        header.add_extra_dims(extra_dims)
+
+    # Initialize the label field with -1 values (-1 = not classified)
+    total_points = len(original_file.x)
+    label_array = np.full(total_points, -1, dtype=np.int8)
+    
+    all_predictions = []  # List to store predictions
+    all_indices = []  # List to store indices
+
+    # Perform inference 
+    with torch.no_grad():
+        for batch in tqdm(dataloader, desc="Performing inference", ascii=True, dynamic_ncols=True, file=sys.stdout):
+            if batch is None:
+                continue
+
+            small_grids, medium_grids, large_grids, _, indices = batch
+            small_grids, medium_grids, large_grids = (
+                small_grids.to(device), medium_grids.to(device), large_grids.to(device)
+            )
+
+            # Run model inference
+            outputs = model(small_grids, medium_grids, large_grids)
+            preds = torch.argmax(outputs, dim=1)
+
+            # Store predictions and indices
+            all_predictions.append(preds.cpu().numpy())
+            all_indices.append(indices)
+    
+    # Concatenate all predictions and indices
+    all_predictions = np.concatenate(all_predictions)
+    all_indices = np.concatenate(all_indices) 
+    
+    # Directly assign predictions to the label array
+    label_array[all_indices] = all_predictions
+            
+    # Create a new LasData object and assign fields for all point data and the label array
+    new_las = laspy.LasData(header)
+    new_las.points = original_file.points  # Copy original points
+    new_las.label = label_array            # Assign the labels to the new dimension
+    
+    new_las.write(las_file_path)    # Write to the new file 
+        
+    return las_file_path'''

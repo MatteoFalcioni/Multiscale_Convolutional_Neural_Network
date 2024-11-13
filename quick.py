@@ -37,7 +37,7 @@ print(f"Total NaN values in the CSV file: {total_nan}")
 print("Number of NaN values per column:")
 print(nan_per_column)'''
 
-def compare_dimensions(original_file, subtile_files):
+'''def compare_dimensions(original_file, subtile_files):
     # Read the original LAS file to get its dimensions
     original_las = laspy.read(original_file)
     original_dimensions = set(original_las.point_format.dimension_names)
@@ -72,4 +72,8 @@ original_file = 'tests/test_subtiler/32_687000_4930000_FP21.las'  # Path to your
 subtile_files = ['tests/test_subtiler/32_687000_4930000_FP21_125_subtiles/subtile_687000_4930000.las']  # List of your subtile files
 
 # Compare dimensions
-compare_dimensions(original_file, subtile_files)
+compare_dimensions(original_file, subtile_files)'''
+
+window_sizes = [('small', 2.5), ('medium', 5.0), ('large', 10.0)]
+large_value = int([value for label, value in window_sizes if label == 'large'][0])
+print(large_value)
