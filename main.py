@@ -168,7 +168,7 @@ def main():
         print("--------------------------------Starting inference process...--------------------------------")
 
         # load pre-trained model 
-        model = load_model(model_path=loaded_model_path, device=device, num_channels=num_channels, num_classes=num_classes)
+        model = load_model(model_path=loaded_model_path, device=device, num_channels=num_channels)
         
         '''#print('Preparing inference dataloader...')      
         inference_loader, _ = prepare_dataloader(
