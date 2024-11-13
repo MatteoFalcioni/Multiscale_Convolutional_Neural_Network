@@ -235,9 +235,8 @@ def main():
         
         predict(file_path=inference_filepath, model=model, model_path=loaded_model_path, device=device,
                 batch_size=batch_size, window_sizes=window_sizes, grid_resolution=grid_resolution, features_to_use=features_to_use,
-                num_workers=num_workers, tile_size=125, overlap_size=30)
+                num_workers=num_workers, tile_size=125)
         
-        # tile size can be hardcoded, but overlap size should be the largest window size always
 
 if __name__ == "__main__":
     main()
