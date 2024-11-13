@@ -183,19 +183,40 @@ def save_model(model, save_dir='models/saved', used_features=None, hyperparamete
     return model_save_folder
 
 
-def load_model(model_path, device, num_channels, num_classes):
+def load_model(model_path, device, num_channels):
     """
     Loads a saved PyTorch model, initializes it, and sets it to evaluation mode.
-
+    Retrieves num_classes from the hyperparameters.csv file stored in the model folder.
+    
     Args:
     - model_path (str): Path to the saved model state dictionary.
     - device (torch.device): Device where the model will be loaded (CPU or GPU).
     - num_channels (int): Number of input channels for the model.
-    - num_classes (int): Number of output classes for the model.
-
+    
     Returns:
     - model (torch.nn.Module): The loaded and initialized model set to evaluation mode.
     """
+    print(f'Loading pre-trained model from path: {model_path}\n')
+
+    # Determine the path to the hyperparameters file (same directory as model)
+    model_dir = os.path.dirname(model_path)
+    hyperparameters_file = os.path.join(model_dir, 'hyperparameters.csv')
+
+    # Read the hyperparameters file to get num_classes
+    num_classes = None
+    if os.path.exists(hyperparameters_file):
+        with open(hyperparameters_file, 'r') as f:
+            reader = csv.reader(f)
+            next(reader)  # Skip header
+            for row in reader:
+                param, value = row
+                if param == 'num_classes':
+                    num_classes = int(value)
+                    break
+
+    if num_classes is None:
+        raise ValueError("num_classes not found in hyperparameters.csv")
+
     # Initialize the model
     model = MultiScaleCNN(channels=num_channels, classes=num_classes).to(device)
     
@@ -204,6 +225,8 @@ def load_model(model_path, device, num_channels, num_classes):
     
     # Set the model to evaluation mode
     model.eval()
+
+    print('Model loaded successfully\n')
     
     return model
 
