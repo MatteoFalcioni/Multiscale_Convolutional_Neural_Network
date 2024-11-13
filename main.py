@@ -4,7 +4,7 @@ import torch.optim as optim
 from models.mcnn import MultiScaleCNN
 from utils.train_data_utils import prepare_dataloader, load_model, load_features_used
 from scripts.train import train_epochs
-from scripts.inference import inference, predict
+from scripts.inference import evaluate_model, predict
 from utils.config_handler import parse_arguments
 from utils.point_cloud_data_utils import read_file_to_numpy, extract_num_classes
 import time
