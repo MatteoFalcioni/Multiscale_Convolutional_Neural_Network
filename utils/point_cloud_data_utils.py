@@ -51,7 +51,7 @@ def read_las_file_to_numpy(file_path, features_to_extract=None):
     - feature_names (list of str): List of feature names corresponding to the columns in the array.
     """
     # Read the LAS file
-    print(f"Processing {file_path}...")
+    # print(f"Processing {file_path}...")
     las_data = laspy.read(file_path)
 
     # Initialize a list to store the features and their names
@@ -109,7 +109,7 @@ def read_las_file_to_numpy(file_path, features_to_extract=None):
 
     # Convert the data list to a numpy array and transpose to match the expected shape (N, num_features)
     data_array = np.vstack(data).T
-    print(f"Loaded NumPy array with shape: {data_array.shape}")
+    # print(f"Loaded NumPy array with shape: {data_array.shape}")
 
     return data_array, feature_names
 
@@ -484,7 +484,7 @@ def subtiler(file_path, tile_size=50, overlap_size=10):
     
     # print(f"Total points in generated subtiles: {total_points}")
     # print(f"Original number of points: {num_points}")
-    print('Subtiles created succesfully.\n')
+    print('\nSubtiles created succesfully.\n')
 
     return output_dir
 
