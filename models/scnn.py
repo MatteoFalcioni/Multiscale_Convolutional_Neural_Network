@@ -18,9 +18,8 @@ class SingleScaleCNN(nn.Module):
         - A 3x3 Convolutional layer with padding of 1.
         - A Batch Normalization layer.
         - A ReLU activation function.
-      - Max pooling layers are applied after the first, second, third, and fifth convolutional layers
-        to downsample the spatial dimensions by half.
-      * 4th block consists only of Batch Normalization and ReLu
+        - Max pooling layers to downsample the spatial dimensions by half.
+      * 4th block consists only of Batch Normalization and ReLu, no max pooling.
       
     - Output: A feature map of size 8x8x128.
 
