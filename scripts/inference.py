@@ -60,7 +60,7 @@ def predict(file_path, model, model_path, device, batch_size, window_sizes, grid
         predict_subtiles(subtile_folder, model, device, batch_size, window_sizes, grid_resolution, features_to_use, num_workers)
 
         # stitch subtiles back together to construct final file with predictions
-        stitch_subtiles(subtile_folder=subtile_folder, original_file=las_file, model_directory=model_directory, overlap_size=overlap_size)
+        stitch_subtiles(subtile_folder=subtile_folder, original_las=las_file, original_filename=file_path, model_directory=model_directory, overlap_size=overlap_size)
 
         # Teardown: Remove the subtile folder and its content
         shutil.rmtree(subtile_folder)  # Removes the entire sub-tile folder
