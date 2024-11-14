@@ -151,7 +151,7 @@ def main():
                     shuffle_train=False  # we dont want to shuffle data for inference
                 )
             
-            conf_matrix, class_report = inference(
+            conf_matrix, class_report = evaluate_model(
                 model=model, 
                 dataloader=inference_loader, 
                 device=device, 
