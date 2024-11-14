@@ -454,9 +454,9 @@ def subtiler(file_path, tile_size=50, overlap_size=10):
             # Determine points within the subtile
             mask = (
                 (x_coords >= subtile_lower_left_x) &
-                (x_coords < subtile_lower_left_x + tile_size) &
+                (x_coords <= subtile_lower_left_x + tile_size) &
                 (y_coords >= subtile_lower_left_y) &
-                (y_coords < subtile_lower_left_y + tile_size)
+                (y_coords <= subtile_lower_left_y + tile_size)
             )
 
             # Create a new LAS file header and set properties
@@ -489,25 +489,27 @@ def subtiler(file_path, tile_size=50, overlap_size=10):
     return output_dir
 
 
-def stitch_subtiles(subtile_folder, original_file, model_directory, overlap_size=30):
+def stitch_subtiles(subtile_folder, original_las, original_filename, model_directory, overlap_size=30):
     """
     Stitches subtiles back together into the original LAS file.
     
     Args:
     - subtile_folder (str): Folder containing the sub-tile files to be stitched.
-    - original_file (str): Path to the original LAS file, used for copying the header.
+    - original_las (laspy.LasData): The loaded LASData object of the original LAS file.
+    - original_filename (str) : File name of the original LAS file.
     - model_directory (str): Directory where the trained PyTorch model is stored.
     - overlap_size (int): Size of the overlap between subtiles in meters.
     """
     # Open the original file to get header info
-    original_las = laspy.read(original_file)
-    og_header = laspy.LasHeader(point_format=original_las.header.point_format,
-                                         version=original_las.header.version)
-    og_header.offsets = original_las.header.offsets
-    og_header.scales = original_las.header.scales
-    
-    # Create the stitched LAS file and copy the header
-    stitched_las = laspy.LasData(og_header) 
+    # original_las = laspy.read(original_file)
+
+    # Create a new header with the correct point format, scales, and offsets 
+    new_header = laspy.LasHeader(point_format=original_las.header.point_format, version=original_las.header.version)
+    new_header.offsets = original_las.header.offsets
+    new_header.scales = original_las.header.scales
+
+    # Create a new LasData object with the new header
+    stitched_las = laspy.LasData(new_header)
     
     if 'label' not in stitched_las.point_format.dimension_names:
         # Add labels as a dimension to the stitched file if it does not exist
@@ -635,7 +637,7 @@ def stitch_subtiles(subtile_folder, original_file, model_directory, overlap_size
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     model_save_dir = os.path.join(model_directory, 'inference', 'predictions')
     os.makedirs(model_save_dir, exist_ok=True)
-    base_filename = os.path.basename(original_file)     # Get the base filename without extension
+    base_filename = os.path.basename(original_filename)     # Get the base filename without extension
     base_filename_without_ext = os.path.splitext(base_filename)[0]
 
     # Construct the final output file path
