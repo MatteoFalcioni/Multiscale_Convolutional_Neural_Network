@@ -131,4 +131,4 @@ def sample_points_from_las(input_las_path, output_las_path, num_samples=1000):
 # Example usage
 input_las_path = 'path_to_your_large_file.las'
 output_las_path = 'sampled_points.las'
-sample_points_from_las(input_las_path='tests/test_subtiler/32_687000_4930000_FP21.las', output_las_path='tests/test_subtiler/sampled_file.las', num_samples=1000)
+sample_points_from_las(input_las_path='tests/test_subtiler/32_687000_4930000_FP21.las', output_las_path=f'tests/test_subtiler/32_687000_4930000_FP21_sampled_100k.las', num_samples=100000)
