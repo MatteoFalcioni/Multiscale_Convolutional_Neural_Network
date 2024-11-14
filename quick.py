@@ -2,6 +2,7 @@ from utils.point_cloud_data_utils import sample_data, combine_and_save_csv_files
 import pandas as pd
 from utils.point_cloud_data_utils import subtiler
 import laspy
+import numpy as np
 
 '''
 input_file = 'data/training_data/21/train_21.csv'
@@ -74,6 +75,60 @@ subtile_files = ['tests/test_subtiler/32_687000_4930000_FP21_125_subtiles/subtil
 # Compare dimensions
 compare_dimensions(original_file, subtile_files)'''
 
-window_sizes = [('small', 2.5), ('medium', 5.0), ('large', 10.0)]
+'''window_sizes = [('small', 2.5), ('medium', 5.0), ('large', 10.0)]
 large_value = int([value for label, value in window_sizes if label == 'large'][0])
-print(large_value)
+print(large_value)'''
+
+
+def sample_points_from_las(input_las_path, output_las_path, num_samples=1000):
+    """
+    Sample a specified number of points from an existing LAS file.
+
+    Args:
+    - input_las_path (str): Path to the original LAS file.
+    - num_samples (int): Number of points to sample from the original LAS file.
+
+    Returns:
+    - sampled_points (dict): Dictionary with NumPy arrays for sampled x, y, z, and intensity.
+    """
+    # Read the LAS file
+    las_data = laspy.read(input_las_path)
+
+    # Get the total number of points in the original file
+    total_points = len(las_data.x)
+    
+    # Ensure we don't sample more points than available
+    num_samples = min(num_samples, total_points)
+
+    # Randomly sample indices from the original points
+    sampled_indices = np.random.choice(total_points, num_samples, replace=False)
+    
+    # Extract the sampled points and intensity
+    sampled_x = las_data.x[sampled_indices]
+    sampled_y = las_data.y[sampled_indices]
+    sampled_z = las_data.z[sampled_indices]
+    sampled_intensity = las_data.intensity[sampled_indices] if 'intensity' in las_data.point_format.dimension_names else np.zeros(num_samples)
+
+    # Create a new header with the correct number of points (sampled points)
+    new_header = laspy.LasHeader(point_format=las_data.header.point_format, version=las_data.header.version)
+    new_header.offsets = las_data.header.offsets
+    new_header.scales = las_data.header.scales
+    # Create a new LasData object with the new header
+    new_las = laspy.LasData(new_header)
+
+    # Assign the sampled points to the new LasData object
+    new_las.x = sampled_x
+    new_las.y = sampled_y
+    new_las.z = sampled_z
+    new_las.intensity = sampled_intensity
+
+    # Write the new LAS file with the sampled points
+    new_las.write(output_las_path)
+
+    print(f"New LAS file created with sampled points at {output_las_path}")
+
+
+# Example usage
+input_las_path = 'path_to_your_large_file.las'
+output_las_path = 'sampled_points.las'
+sample_points_from_las(input_las_path='tests/test_subtiler/32_687000_4930000_FP21.las', output_las_path='tests/test_subtiler/sampled_file.las', num_samples=1000)
