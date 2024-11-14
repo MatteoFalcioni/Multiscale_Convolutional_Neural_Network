@@ -2,11 +2,12 @@ import unittest
 import torch
 import numpy as np
 import laspy
-from scripts.inference import inference, inference_without_ground_truth
-from utils.train_data_utils import prepare_dataloader
+from scripts.inference import predict
+from utils.train_data_utils import prepare_dataloader, load_model
 from models.mcnn import MultiScaleCNN
 import glob
 import os
+import sys
 
 '''
 class TestInferenceWithDummyModel(unittest.TestCase):
@@ -75,75 +76,44 @@ class TestInferenceWithDummyModel(unittest.TestCase):
             
 '''
         
-class TestInferenceLabelOrderWithRealData(unittest.TestCase):
+class TestPredictFunction(unittest.TestCase):
 
     def setUp(self):
-        # Setup parameters
+        """
+        Setup the test environment by creating a sampled LAS file.
+        """
+        self.sampled_las_path = 'tests/test_subtiler/32_687000_4930000_FP21_sampled.las'  # Path to save the sampled LAS file
         self.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-        self.num_classes = 6
-        self.features_to_use = ['intensity', 'return_number', 'number_of_returns', 'planarity']
+        
+        # Set some parameters for the test
+        self.window_sizes = [('small', 2.5), ('medium', 5.0), ('large', 10.0)]  # Example window sizes
+        self.batch_size = 8  
+        self.grid_resolution = 128  
+        self.features_to_use = ['x', 'y', 'z', 'intensity']  
         self.num_channels = len(self.features_to_use)
-        self.batch_size = 32
-        self.grid_resolution = 128
-        self.window_sizes = [("small", 1.0), ("medium", 2.0), ("large", 4.0)]
-        self.num_workers = 32
-        
-        # Initialize the model
-        self.model = MultiScaleCNN(channels=self.num_channels, classes=self.num_classes).to(self.device)
-        
-        # Set up the paths to the LAS files
-        self.large_las_file = "data/chosen_tiles/32_680000_4928500_FP21.las"  
-        self.small_las_file = "test_data_small.las"
+        self.num_workers = 0  # Example number of workers
+        self.tile_size = 250  # Tile size for subtiles
+        self.min_points = 500  # Example threshold for when to subtile
+        self.model = MultiScaleCNN(channels=self.num_channels, classes=6).to(self.device) 
+        # self.model = load_model(model_path='models/saved/mcnn_model_20241030_051517/model.pth', device=self.device, num_channels=self.num_channels)  
 
-        # Create a subsample of the large LAS file for testing
-        las = laspy.read(self.large_las_file)
-        mask = np.full(len(las.x), False)
-        mask[:10000] = True
-        subsampled_points = las.points[mask]
+    def test_predict_with_subtiling_and_inference(self):
+        """
+        Test the entire pipeline of subtile processing, inference, and stitching.
+        """
+        # Run the predict function on the sampled file
+        print(f"Running predict on sampled LAS file: {self.sampled_las_path}")
         
-        # Write the subsampled points to the small LAS file
-        small_las = laspy.LasData(las.header)
-        small_las.points = subsampled_points
-        small_las.write(self.small_las_file)
-
-        # Prepare DataLoader with the small LAS file
-        self.dataloader, _ = prepare_dataloader(
+        predict(
+            file_path=self.sampled_las_path,
+            model=self.model,
+            model_path='tests/test_subtiler/test_predict/',
+            device=self.device,
             batch_size=self.batch_size,
-            data_dir=self.small_las_file,
             window_sizes=self.window_sizes,
             grid_resolution=self.grid_resolution,
             features_to_use=self.features_to_use,
-            train_split=None,
             num_workers=self.num_workers,
-            shuffle_train=False
+            min_points=self.min_points,
+            tile_size=self.tile_size
         )
-
-    def test_inference_without_ground_truth(self):
-        # Run inference which saves predictions directly to LAS file
-        saved_file_path = inference_without_ground_truth(
-            model=self.model,
-            dataloader=self.dataloader,
-            device=self.device,
-            data_file=self.small_las_file,
-            model_path="tests/test_model_output"
-        )
-
-        print(f'Reading {saved_file_path}')
-        # Verify that the predictions were correctly saved in the output LAS file
-        saved_file = laspy.read(saved_file_path)
-        
-        # Check for the 'label' field rather than 'classification'
-        saved_labels = getattr(saved_file, 'label', None)
-        if saved_labels is None:
-            self.fail("Label field was not found in the saved LAS file")
-
-        num_points = len(saved_file.x)
-        
-        # Diagnostic prints
-        print(f"Number of points in saved file: {num_points}")
-        print(f"Read label field length: {len(saved_labels)}")
-        print(f"First 1000 labels: {saved_labels[:1000]}")
-
-        # Check that the number of labels matches the number of points
-        num_points = len(self.dataloader.dataset.data_array)
-        self.assertEqual(len(saved_labels), num_points, "Mismatch in the number of points and saved labels")
