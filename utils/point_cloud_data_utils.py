@@ -580,9 +580,9 @@ def stitch_subtiles(subtile_folder, original_las, original_filename, model_direc
             # Northernmost or rithgmost tiles (keep the whole tile)
             mask = (
             (subtile_las.x >= lower_left_x) & 
-            (subtile_las.x < upper_right_x) &  # Use lower_left_x + tile_size
-            (subtile_las.y >= lower_left_y) &  # Cut the bottom overlap
-            (subtile_las.y < upper_right_y)  # Use lower_left_y + tile_size
+            (subtile_las.x < upper_right_x) &  
+            (subtile_las.y >= lower_left_y) &  
+            (subtile_las.y < upper_right_y) 
             )
         
         # For all other tiles (exclude points from the right and upwards overlap)
