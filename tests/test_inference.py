@@ -82,16 +82,16 @@ class TestPredictFunction(unittest.TestCase):
         """
         Setup the test environment by creating a sampled LAS file.
         """
-        self.sampled_las_path = 'tests/test_subtiler/32_687000_4930000_FP21_sampled.las'  # Path to save the sampled LAS file
+        self.sampled_las_path = 'tests/test_subtiler/32_687000_4930000_FP21_sampled_100k.las'  # Path to save the sampled LAS file
         self.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
         
         # Set some parameters for the test
-        self.window_sizes = [('small', 2.5), ('medium', 5.0), ('large', 10.0)]  # Example window sizes
-        self.batch_size = 8  
+        self.window_sizes = [('small', 10.0), ('medium', 20.0), ('large', 30.0)]  # Example window sizes
+        self.batch_size = 16  
         self.grid_resolution = 128  
         self.features_to_use = ['x', 'y', 'z', 'intensity']  
         self.num_channels = len(self.features_to_use)
-        self.num_workers = 0  # Example number of workers
+        self.num_workers = 32 
         self.tile_size = 250  # Tile size for subtiles
         self.min_points = 500  # Example threshold for when to subtile
         self.model = MultiScaleCNN(channels=self.num_channels, classes=6).to(self.device) 

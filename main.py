@@ -231,10 +231,14 @@ def main():
 
             print(f'Inference process completed successfully for file {file_path}.\nLas file with predicted labels saved at {file_with_predictions}\n')
         '''
-        
-        predict(file_path=inference_filepath, model=model, model_path=loaded_model_path, device=device,
-                batch_size=batch_size, window_sizes=window_sizes, grid_resolution=grid_resolution, features_to_use=features_to_use,
-                num_workers=num_workers, tile_size=125)
+        tiles_folder = 'data/chosen_tiles'
+        file_paths = [os.path.join(tiles_folder, f) for f in os.listdir(tiles_folder) if f.endswith('FP21.las') and os.path.isfile(os.path.join(tiles_folder, f))]
+
+        for inference_filepath in file_paths:
+            # careful here you need to read window sizes for thge model (load them) otherwise the default will be inputted
+            predict(file_path=inference_filepath, model=model, model_path=loaded_model_path, device=device,
+                    batch_size=batch_size, window_sizes=window_sizes, grid_resolution=grid_resolution, features_to_use=features_to_use,
+                    num_workers=num_workers, tile_size=125)
         
 
 if __name__ == "__main__":

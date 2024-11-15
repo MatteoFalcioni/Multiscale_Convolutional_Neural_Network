@@ -440,7 +440,7 @@ def subtiler(file_path, tile_size=50, overlap_size=10):
     y_coords = las_file.y
 
     total_points = 0
-    steps = (500 // tile_size) + 1  # Increase steps to account for overlap
+    steps = 500 // tile_size  # Increase steps to account for overlap
 
     progress_bar = tqdm(total=(steps * steps), desc="Processing subtiles")
 
@@ -489,7 +489,7 @@ def subtiler(file_path, tile_size=50, overlap_size=10):
     return output_dir
 
 
-def stitch_subtiles(subtile_folder, original_las, original_filename, model_directory, overlap_size=30):
+def stitch_subtiles(subtile_folder, original_las, original_filename, model_directory, overlap_size=30, tile_size=50):
     """
     Stitches subtiles back together into the original LAS file.
     
@@ -544,8 +544,8 @@ def stitch_subtiles(subtile_folder, original_las, original_filename, model_direc
         lower_left_coords.append((lower_left_x, lower_left_y))
 
     # Find the maximum x and y values (rightmost and northernmost)
-    max_y = max(lower_left_coords, key=lambda x: x[1])[1]  # Northernmost tile (largest y)
-    max_x = max(lower_left_coords, key=lambda x: x[0])[0]  # Rightmost tile (largest x)
+    up_y = max(lower_left_coords, key=lambda x: x[1])[1]  # Northernmost tiles (largest y)
+    right_x = max(lower_left_coords, key=lambda x: x[0])[0]  # Rightmost tiles (largest x)
     
     # Iterate over each subtile
     for subtile_file in subtile_files:
@@ -556,9 +556,19 @@ def stitch_subtiles(subtile_folder, original_las, original_filename, model_direc
             print(f"Warning: Point format mismatch in {subtile_file}, converting to original format.")
             subtile_las.points = subtile_las.points.convert_to(original_las.point_format)
         
-        # Calculate the overlap boundaries to exclude overlap
+        '''# Calculate the overlap boundaries to exclude overlap
         x_min, y_min = subtile_las.x.min(), subtile_las.y.min()
-        x_max, y_max = subtile_las.x.max(), subtile_las.y.max()
+        x_max, y_max = subtile_las.x.max(), subtile_las.y.max()'''
+        
+        # Extract the current subtile's coordinates from the filename
+        filename = os.path.basename(subtile_file)
+        parts = filename.split('_')
+        lower_left_x = int(parts[1])  # Extract lower-left x from filename
+        lower_left_y = int(parts[2].split('.')[0])  # Extract lower-left y from filename
+
+        # Define upper bounds based on tile size
+        upper_right_x = lower_left_x + tile_size
+        upper_right_y = lower_left_y + tile_size
 
         # Extract the current subtile's coordinates from the filename
         filename = os.path.basename(subtile_file)
@@ -566,21 +576,23 @@ def stitch_subtiles(subtile_folder, original_las, original_filename, model_direc
         lower_left_x = int(parts[1])
         lower_left_y = int(parts[2].split('.')[0])
 
-        if lower_left_y == max_y or lower_left_x == max_x:  # Northernmost or rightmost tiles
-            # For the northernmost and rightmost tiles, keep the overlap points
+        if lower_left_y == up_y or lower_left_x==right_x:  
+            # Northernmost or rithgmost tiles (keep the whole tile)
             mask = (
-                (subtile_las.x >= x_min) & (subtile_las.x <= x_max) &
-                (subtile_las.y >= y_min) & (subtile_las.y <= y_max)
+            (subtile_las.x >= lower_left_x) & 
+            (subtile_las.x < upper_right_x) &  # Use lower_left_x + tile_size
+            (subtile_las.y >= lower_left_y) &  # Cut the bottom overlap
+            (subtile_las.y < upper_right_y)  # Use lower_left_y + tile_size
             )
+        
+        # For all other tiles (exclude points from the right and upwards overlap)
         else:
-            # For all other tiles, exclude points from the left and bottom overlap
-            # Apply the mask to exclude points within the overlap region
             mask = (
-                (subtile_las.x >= x_min) &
-                (subtile_las.x <= (x_max - overlap_size)) &
-                (subtile_las.y >= y_min) &
-                (subtile_las.y <= (y_max - overlap_size))
-            )
+                (subtile_las.x >= lower_left_x) & 
+                (subtile_las.x < upper_right_x - overlap_size) &  # Exclude right overlap
+                (subtile_las.y >= lower_left_y) & 
+                (subtile_las.y < upper_right_y - overlap_size)  # Exclude top overlap
+            )   
 
         subtile_masked = subtile_las.points[mask]
 

@@ -46,6 +46,7 @@ def predict(file_path, model, model_path, device, batch_size, window_sizes, grid
 
     # get overlap size from window sizes: it's the dimension of the largest window size
     overlap_size = int([value for label, value in window_sizes if label == 'large'][0])
+    print(f'overlap size: {overlap_size}')
 
     # print(f"Total points in the file: {total_points}")
     
@@ -60,10 +61,10 @@ def predict(file_path, model, model_path, device, batch_size, window_sizes, grid
         predict_subtiles(subtile_folder, model, device, batch_size, window_sizes, grid_resolution, features_to_use, num_workers)
 
         # stitch subtiles back together to construct final file with predictions
-        stitch_subtiles(subtile_folder=subtile_folder, original_las=las_file, original_filename=file_path, model_directory=model_directory, overlap_size=overlap_size)
+        stitch_subtiles(subtile_folder=subtile_folder, original_las=las_file, original_filename=file_path, model_directory=model_directory, overlap_size=overlap_size, tile_size=tile_size)
 
         # Teardown: Remove the subtile folder and its content
-        shutil.rmtree(subtile_folder)  # Removes the entire sub-tile folder
+        # shutil.rmtree(subtile_folder)  # Removes the entire sub-tile folder
 
         print('\nInference completed succesfully.')
             
@@ -96,8 +97,13 @@ def predict_subtiles(subtile_folder, model, device, batch_size, window_sizes, gr
     # Get all subtile files from the subtile folder
     subtile_files = [os.path.join(subtile_folder, f) for f in os.listdir(subtile_folder) if f.endswith('.las')]
     
+    file_counter = 0
+    total_files = len(subtile_files)
+    
     # Iterate over all subtiles and run inference
     for file_path in subtile_files: 
+        
+        print(f'Processing subtile: {file_counter}/{total_files}')
         
         # Prepare the DataLoader for the current file
         inference_loader, _ = prepare_dataloader(
@@ -143,6 +149,8 @@ def predict_subtiles(subtile_folder, model, device, batch_size, window_sizes, gr
 
                 # Assign predictions directly to the label array for the current subtile
                 label_array[indices] = preds.cpu().numpy()
+                
+        file_counter += 1    
 
         # Save the updated subtile with predictions written into the 'label' field
         new_las = laspy.LasData(header)
