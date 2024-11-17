@@ -6,7 +6,7 @@ learning_rate: 0.01    # Initial learning rate as mentioned in both articles
 learning_rate_decay_factor: 0.5   # mentioned in first article as 0.0005
 learning_rate_decay_epochs: 5    # not mentioned
 momentum: 0.9    # used in first article
-num_workers : 32  # number of workers for parallel processing
+num_workers : 0  # number of workers for parallel processing
 
 training_data_filepath: "data/training_data/21/train_21.csv"   # File path to training data
 
@@ -22,10 +22,16 @@ features_to_use: ['intensity', 'red', 'green' , 'blue' ,'nvi' ,'ndwi']  # featur
 
 model_save_dir: "models/saved/"   # Directory where the model is to be saved after training
 save_model: true    # whether to save the model or to discard. Default is False, i.e., discard the trained model.
-perform_inference_after_training : false    # whether to perform inference directly after training the model
 
+evaluate_model_after_training : false    # whether to evaluate the model after training it
+perform_evaluation : false  # wetheer to evaluate a loaded model
+evaluation_data_filepath : "data/training_data/21/test_21.csv"  # file path to the data to evaluate the model 
+predict_labels: false  # wether to predict labels on an input file or not
+file_to_predict: "data/chosen_tiles/" # file path to the file whose label we need to predict 
 
-load_model: false   # whether to use an already trained model for inference or not
+# load_model: false   # whether to use an already trained model for predictions/evaluation or not
 load_model_filepath : "models/saved/mcnn_model_20240922_231624.pth"   # file path to the model to load for inference
-inference_data_filepath : "data/training_data/21/test_21.csv"  # file path to the data to run inference on
+
+
+
 

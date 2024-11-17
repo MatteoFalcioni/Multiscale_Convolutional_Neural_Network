@@ -404,7 +404,7 @@ def extract_num_classes(raw_file_path=None):
     # Extract the unique number of classes
     num_classes = len(np.unique(class_labels))
 
-    print(f"Number of unique classes: {num_classes}")
+    # print(f"Number of unique classes: {num_classes}")
     
     return num_classes
 

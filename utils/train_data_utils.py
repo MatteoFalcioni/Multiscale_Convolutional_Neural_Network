@@ -1,6 +1,5 @@
 import torch
 from torch.utils.data import Dataset, DataLoader, random_split
-import torch.nn as nn
 import os
 from utils.point_cloud_data_utils import read_file_to_numpy, remap_labels
 from scripts.point_cloud_to_image import generate_multiscale_grids, compute_point_cloud_bounds
@@ -8,8 +7,8 @@ from datetime import datetime
 import pandas as pd
 from scipy.spatial import cKDTree
 import csv
-import matplotlib.pyplot as plt
 from models.mcnn import MultiScaleCNN
+import ast
 
 
 class PointCloudDataset(Dataset):
@@ -229,7 +228,6 @@ def load_model(model_path, device, num_channels):
     print('Model loaded successfully\n')
     
     return model
-
     
     
 def save_used_parameters(used_features=None, hyperparameters=None, save_dir='models/saved'):
@@ -269,20 +267,17 @@ def save_used_parameters(used_features=None, hyperparameters=None, save_dir='mod
         print('hyperparameters were not specified in saving, so they could not be saved together with the model.')
 
 
-
-def load_features_used(model_folder):
+def load_parameters(model_folder):
     """
-    Loads the features used for training from a saved CSV file.
+    Loads the features used for training and window sizes from saved CSV files.
 
     Args:
-    - model_folder (str): Path to the folder containing the saved model and the metadata (hyperparameters, used features).
+    - model_folder (str): Path to the folder containing the saved model and metadata.
 
     Returns:
     - features_list (list): List of features loaded from the CSV file.
-
-    Raises:
-    - FileNotFoundError: If the features file is not found.
-    - ValueError: If the file is empty or not in the expected format.
+    - num_loaded_channels (int): Number of loaded features.
+    - window_sizes (list): Parsed list of window size tuples (e.g., [('small', 10.0), ('medium', 20.0), ('large', 30.0)]).
     """
     
     # Check that model_folder is the actual directory and not a filepath to the model
@@ -293,8 +288,9 @@ def load_features_used(model_folder):
     if not os.path.exists(model_folder):
         raise FileNotFoundError(f"The specified model folder '{model_folder}' does not exist.")
 
-    # Construct the path to features_used.csv file
+    # Construct the paths to the relevant files
     features_file_path = os.path.join(model_folder, 'features_used.csv')
+    hyperparameters_file_path = os.path.join(model_folder, 'hyperparameters.csv')
 
     # Check if the file exists
     if not os.path.exists(features_file_path):
@@ -306,14 +302,36 @@ def load_features_used(model_folder):
             reader = csv.reader(f)
             next(reader)  # Skip the header row
             features_list = next(reader)  # Load the actual features row
+            num_loaded_channels = len(features_list)
 
         if not features_list:
             raise ValueError(f"The features file at {features_file_path} is empty or invalid.")
 
-        return features_list
-
     except Exception as e:
         raise ValueError(f"Error loading features from {features_file_path}: {e}")
+
+
+    # Load window_sizes from hyperparameters.csv
+    if not os.path.exists(hyperparameters_file_path):
+        raise FileNotFoundError(f"Hyperparameters file not found at {hyperparameters_file_path}")
+
+    try:
+        window_sizes = None
+        with open(hyperparameters_file_path, 'r') as f:
+            reader = csv.reader(f)
+            headers = next(reader)  # Read the header row
+            for row in reader:
+                if "window_sizes" in row:
+                    window_sizes_str = row[headers.index("window_sizes")]
+                    window_sizes = ast.literal_eval(window_sizes_str)  # Safely evaluate the string
+
+        if window_sizes is None:
+            raise ValueError(f"'window_sizes' not found in {hyperparameters_file_path}.")
+    except Exception as e:
+        raise ValueError(f"Error loading window_sizes from {hyperparameters_file_path}: {e}")
+
+    return features_list, num_loaded_channels, window_sizes
+
 
 
 

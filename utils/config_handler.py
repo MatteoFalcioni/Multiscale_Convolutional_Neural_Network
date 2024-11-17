@@ -1,6 +1,17 @@
 import argparse
 import yaml
-import ast
+
+# Custom function to parse the window_sizes argument
+def parse_window_sizes(value):
+    # Split the input string into a list of numbers
+    size_list = value.split()
+    
+    # Map the numbers to the window sizes as tuples
+    window_sizes = [('small', float(size_list[0])), 
+                    ('medium', float(size_list[1])), 
+                    ('large', float(size_list[2]))]
+    
+    return window_sizes
 
 
 def load_config(file_path='config.yaml'):
@@ -54,10 +65,11 @@ def parse_arguments():
     parser.add_argument('--training_data_filepath', type=str, default=config.get('training_data_filepath', 'data/training_data/21/test_21.csv'),
                         help='File path to thed ata to be used during training.')
     
-    parser.add_argument('--window_sizes', type=ast.literal_eval,
-                    default=config.get('window_sizes', [('small', 2.5), ('medium', 5.0), ('large', 10.0)]),
-                    help="List of window sizes for grid generation (e.g., [('small', 2.5), ('medium', 5.0), ('large', 10.0)])")
-    
+    parser.add_argument('--window_sizes', 
+                    type=parse_window_sizes,  # Use the custom function
+                    default=[('small', 2.5), ('medium', 5.0), ('large', 10.0)], 
+                    help="List of window sizes for grid generation (e.g., 5 10 20, which translates to [('small', 2.5), ('medium', 5.0), ('large', 10.0)])")
+
     parser.add_argument('--features_to_use', type=str, nargs='+', default=config.get('features_to_use'),
                     help='List of feature names to use for training (e.g., intensity red green blue)')
     
@@ -67,18 +79,30 @@ def parse_arguments():
     parser.add_argument('--save_model', action='store_true', default=config.get('save_model', True),
                         help='If set, save the trained model.')
     
-    parser.add_argument('--perform_inference_after_training', action='store_true', default=config.get('perform_inference_after_training', False),
-                        help='If set, performs inference directly after training the model.')
+    parser.add_argument('--evaluate_model_after_training', action='store_true', default=config.get('evaluate_model_after_training', False),
+                        help='If set, evaluates the model directly after training it.')
     
-    parser.add_argument('--load_model', action='store_true', default=config.get('load_model', False),
-                        help='If set, loads model from load_model_filepath to perform inference')
+    parser.add_argument('--perform_evaluation', action='store_true', default=config.get('perform_evaluation', False),
+                    help='If set, evaluates the loaded model.')
+
+    #parser.add_argument('--load_model', action='store_true', default=config.get('load_model', False),
+    #                    help='If set, loads model from load_model_filepath to perform inference')
     
     parser.add_argument('--load_model_filepath', type=str,
                         default=config.get('load_model_filepath', 'models/saved/mcnn_model_20241015_005511/model.pth'),
                         help='File path to the pre-trained model to be loaded.')
     
-    parser.add_argument('--inference_data_filepath', type=str, default=config.get('inference_data_filepath', 'data/raw'),
-                        help='File path to the data to be used for inference.')
+    parser.add_argument('--evaluation_data_filepath', type=str, default=config.get('evaluation_data_filepath', 'data/raw'),
+                        help='File path to the data to be used for evaluating the model.')
+    
+    parser.add_argument('--predict_labels', action='store_true', default=config.get('predict', False),
+                        help='If set, runs predictions on a given file.')
+    
+    parser.add_argument('--file_to_predict', type=str,
+                        default=config.get('file_to_predict', 'data/chosen_tiles/'),
+                        help='File path to the file we need to run predictions on.')
+    
+    
     
     
     
