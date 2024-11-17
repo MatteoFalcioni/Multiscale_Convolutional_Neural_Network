@@ -1,0 +1,126 @@
+from cuml.neighbors import NearestNeighbors as cuKNN
+import cupy as cp
+import numpy as np
+
+
+def build_cuml_knn(self, data_array, n_neighbors=1):
+        """
+        Builds and returns a cuML KNN model on the GPU for nearest neighbor search.
+        """
+        data_gpu = cp.array(data_array) 
+        cuml_knn = cuKNN(n_neighbors=n_neighbors)
+        cuml_knn.fit(data_gpu)
+        return cuml_knn
+
+
+def create_feature_grid_gpu(center_point, window_size, grid_resolution=128, channels=3):
+    """
+    Creates a grid around the center point and initializes cells to store feature values, on the GPU.
+    Args:
+    - center_point (tuple): The (x, y, z) coordinates of the center point of the grid.
+    - window_size (float): The size of the square window around the center point (in meters).
+    - grid_resolution (int): The number of cells in one dimension of the grid (e.g., 128 for a 128x128 grid).
+    - channels (int): The number of channels in the resulting image.
+
+    Returns:
+    - grid (cupy.ndarray): A 2D grid initialized to zeros, which will store feature values.
+    - cell_size (float): The size of each cell in meters.
+    - x_coords (cupy.ndarray): Array of x coordinates for the centers of the grid cells.
+    - y_coords (cupy.ndarray): Array of y coordinates for the centers of the grid cells.
+    - constant_z (float): The fixed z coordinate for the grid cells.
+    """
+    # Calculate the size of each cell in meters
+    cell_size = window_size / grid_resolution
+
+    # Initialize the grid to zeros on GPU; each cell will eventually hold feature values
+    grid = cp.zeros((grid_resolution, grid_resolution, channels), dtype=cp.float32)
+
+    # Generate cell coordinates for the grid based on the center point, on the GPU
+    i_indices = cp.arange(grid_resolution)
+    j_indices = cp.arange(grid_resolution)
+
+    half_resolution_minus_half = (grid_resolution / 2) - 0.5
+
+    x_coords = center_point[0] - (half_resolution_minus_half - j_indices) * cell_size
+    y_coords = center_point[1] - (half_resolution_minus_half - i_indices) * cell_size
+
+    constant_z = center_point[2]  # Z coordinate is constant for all cells
+
+    return grid, cell_size, x_coords, y_coords, constant_z
+
+
+def assign_features_to_grid_gpu(cuml_knn, gpu_data_array, grid, x_coords, y_coords, constant_z, feature_indices):
+    """
+    Assigns features from the nearest point in the dataset to each cell in the grid using cuML's GPU-accelerated KNN,
+    and directly assigns them to the grid on GPU.
+    """
+    # Generate the grid coordinates on the CPU
+    grid_x, grid_y = cp.meshgrid(x_coords, y_coords, indexing='ij')
+    grid_coords = cp.stack((grid_x.flatten(), grid_y.flatten(), np.full(grid_x.size, constant_z)), axis=-1)
+    
+    # Transfer the grid coordinates to GPU
+    grid_coords_gpu = cp.array(grid_coords)
+
+    # Query the cuML KNN model for nearest neighbors
+    _, indices = cuml_knn.kneighbors(grid_coords_gpu)
+
+    # Assign features using the indices directly on GPU and update the grid
+    grid[:, :, :] = gpu_data_array[indices, :][:, feature_indices].reshape(grid.shape)
+
+    return grid
+
+
+def generate_multiscale_grids_gpu(center_point, data_array, window_sizes, grid_resolution, feature_indices, cuml_knn, point_cloud_bounds):
+    """
+    Generates multiscale grids for a single point in the data array using GPU-based operations.
+    
+    Args:
+    - center_point (numpy.ndarray): (x, y, z) coordinates of the point in the point cloud.
+    - data_array (numpy.ndarray): 2D array containing the point cloud data.
+    - window_sizes (list): List of tuples where each tuple contains (scale_label, window_size). 
+                           Example: [('small', 2.5), ('medium', 5.0), ('large', 10.0)].
+    - grid_resolution (int): Resolution of the grid (e.g., 128 for 128x128 grids).
+    - feature_indices (list): List of feature indices to be selected from the full list of features.
+    - cuml_knn (cuml.neighbors.NearestNeighbors): Prebuilt cuML KNN model for nearest neighbor search.
+    - point_cloud_bounds (dict): Dictionary containing point cloud boundaries in every dimension (x, y, z).
+    
+    Returns:
+    - grids_dict (dict): Dictionary of generated grids for each scale.
+    - skipped (bool): Flag indicating if the point was skipped.
+    """
+    grids_dict = {}  # To store grids for each scale
+    channels = len(feature_indices)
+    skipped = False
+
+    # Generate grid coordinates directly on the GPU for each scale
+    for size_label, window_size in window_sizes:
+        half_window = window_size / 2
+
+        # Check if the point is within bounds
+        if (center_point[0] - half_window < point_cloud_bounds['x_min'] or
+            center_point[0] + half_window > point_cloud_bounds['x_max'] or
+            center_point[1] - half_window < point_cloud_bounds['y_min'] or
+            center_point[1] + half_window > point_cloud_bounds['y_max']):
+            skipped = True
+            break
+
+        # Create grid coordinates on GPU
+        grid, _, x_coords, y_coords, z_coord = create_feature_grid_gpu(
+            center_point, window_size, grid_resolution, channels
+        )
+
+        # Assign features from the nearest point in the data array using the GPU KNN model
+        grid_with_features = assign_features_to_grid_gpu(
+            cuml_knn, cp.array(data_array), grid, x_coords, y_coords, z_coord, feature_indices
+        )
+
+        # Check for NaN or Inf in the grid
+        if cp.isnan(grid_with_features).any() or cp.isinf(grid_with_features).any():
+            skipped = True
+            break
+
+        # Convert grid to PyTorch format (channels first: C, H, W)
+        grid_with_features = cp.transpose(grid_with_features, (2, 0, 1))  # (channels, height, width)
+        grids_dict[size_label] = grid_with_features
+
+    return grids_dict, skipped
