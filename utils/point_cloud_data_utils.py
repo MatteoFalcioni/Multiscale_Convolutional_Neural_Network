@@ -489,7 +489,7 @@ def subtiler(file_path, tile_size=50, overlap_size=10):
     return output_dir
 
 
-def stitch_subtiles(subtile_folder, original_las, original_filename, model_directory, overlap_size=30, tile_size=50):
+def stitch_subtiles(subtile_folder, original_las, original_filename, model_directory, overlap_size=30):
     """
     Stitches subtiles back together into the original LAS file.
     
