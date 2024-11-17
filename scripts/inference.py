@@ -102,8 +102,9 @@ def predict_subtiles(subtile_folder, model, device, batch_size, window_sizes, gr
     
     # Iterate over all subtiles and run inference
     for file_path in subtile_files: 
+        file_counter += 1 
         
-        print(f'Processing subtile: {file_counter}/{total_files}')
+        print(f'Processing subtile {file_counter}/{total_files}')
         
         # Prepare the DataLoader for the current file
         inference_loader, _ = prepare_dataloader(
@@ -148,9 +149,7 @@ def predict_subtiles(subtile_folder, model, device, batch_size, window_sizes, gr
                 preds = torch.argmax(outputs, dim=1)  # Get predicted labels
 
                 # Assign predictions directly to the label array for the current subtile
-                label_array[indices] = preds.cpu().numpy()
-                
-        file_counter += 1    
+                label_array[indices] = preds.cpu().numpy()   
 
         # Save the updated subtile with predictions written into the 'label' field
         new_las = laspy.LasData(header)

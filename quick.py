@@ -3,6 +3,8 @@ import pandas as pd
 from utils.point_cloud_data_utils import subtiler
 import laspy
 import numpy as np
+import os
+from datetime import datetime
 
 '''
 input_file = 'data/training_data/21/train_21.csv'
@@ -79,7 +81,7 @@ compare_dimensions(original_file, subtile_files)'''
 large_value = int([value for label, value in window_sizes if label == 'large'][0])
 print(large_value)'''
 
-
+'''
 def sample_points_from_las(input_las_path, output_las_path, num_samples=1000):
     """
     Sample a specified number of points from an existing LAS file.
@@ -131,4 +133,109 @@ def sample_points_from_las(input_las_path, output_las_path, num_samples=1000):
 # Example usage
 input_las_path = 'path_to_your_large_file.las'
 output_las_path = 'sampled_points.las'
-sample_points_from_las(input_las_path='tests/test_subtiler/32_687000_4930000_FP21.las', output_las_path=f'tests/test_subtiler/32_687000_4930000_FP21_sampled_100k.las', num_samples=100000)
+sample_points_from_las(input_las_path='tests/test_subtiler/32_687000_4930000_FP21.las', output_las_path=f'tests/test_subtiler/32_687000_4930000_FP21_sampled_10k.las', num_samples=10000)
+'''
+
+def apply_mask_to_subtile(subtile_filepath, tile_size=125, overlap_size=30, is_northernmost=False, is_rightmost=False, output_dir=None):
+    """
+    Applies a mask to the given subtile LAS data to exclude overlap regions, saves the masked subtile to a new file,
+    and returns the path to the saved file along with the LAS data.
+
+    Args:
+    - subtile_filepath (str): The LAS subtile file path.
+    - tile_size (int): The size of the subtile in meters.
+    - overlap_size (int): The size of the overlap to exclude.
+    - is_northernmost (bool): If True, this subtile is the northernmost one (no upper overlap to exclude).
+    - is_rightmost (bool): If True, this subtile is the rightmost one (no right overlap to exclude).
+    - output_dir (str): Directory where the new subtile should be saved. If None, saves in the same directory as the original.
+
+    Returns:
+    - str: Path to the saved LAS subtile file.
+    - laspy.LasData: The LAS data object with the mask applied.
+    """
+    # Extract lower-left coordinates from the subtile filename
+    filename = os.path.basename(subtile_filepath)
+    parts = filename.split('_')
+    lower_left_x = int(parts[1])  # Extract lower-left x from filename
+    lower_left_y = int(parts[2].split('.')[0])  # Extract lower-left y from filename
+
+    print(f'lower left x:{lower_left_x}')
+    print(f'lower left y:{lower_left_y}')
+
+    # Load the subtile LAS file
+    subtile_las = laspy.read(subtile_filepath)
+
+    '''# Define the bounds of the subtile
+    upper_right_x = lower_left_x + tile_size
+    upper_right_y = lower_left_y + tile_size'''
+
+    min_x = subtile_las.x.min()
+    max_x = subtile_las.x.max()
+    min_y = subtile_las.y.min()
+    max_y = subtile_las.y.max()
+
+    print(f"Subtile bounds:")
+    print(f"  Min X: {min_x}, Max X: {max_x}")
+    print(f"  Min Y: {min_y}, Max Y: {max_y}")
+
+    upper_bound_x = max_x - (overlap_size/2)
+    upper_bound_y = max_y - (overlap_size/2)
+
+    lower_bound_x = min_x + (overlap_size/2)
+    lower_bound_y = min_y + (overlap_size/2)
+
+    if is_northernmost and is_rightmost:
+        # top right corner subtile: exclude bottom strip and left strip 
+        mask = (
+            (subtile_las.x >= lower_bound_x) & 
+            (subtile_las.y >= lower_bound_y)  
+        )
+
+    elif is_northernmost:
+        # northermost subtiles: exclude bottom strip and right strip of unclassified points
+        mask = (
+            (subtile_las.x < upper_bound_x) &  
+            (subtile_las.y >= lower_bound_y) 
+        )
+    
+    elif is_rightmost:
+        # rightmost subtiles: exclude left strip and top strip
+        mask = (
+            (subtile_las.x >= lower_bound_x) & 
+            (subtile_las.y < upper_bound_y )  
+        )
+        
+    else:
+        # general subtile: exclude right strip and top strip
+        mask = (
+            (subtile_las.x < upper_bound_x) &  # Exclude right overlap if not rightmost
+            (subtile_las.y < upper_bound_y )  # Exclude top overlap if not northernmost
+        )
+        
+
+    # Create a new LAS data object with the same header
+    new_las = laspy.LasData(subtile_las.header)
+
+    # Apply the mask to filter points and copy them to the new LAS data object
+    new_las.points = subtile_las.points[mask]
+    new_las.label = subtile_las.label[mask]
+
+    # Determine the output directory
+    if output_dir is None:
+        output_dir = os.path.dirname(subtile_filepath)  # Default to the same directory as the original
+
+    os.makedirs(output_dir, exist_ok=True)
+
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    # Construct the output filename
+    output_filename = os.path.join(output_dir, f"masked__{timestamp}_{filename}")
+
+    # Save the masked subtile
+    new_las.write(output_filename)
+
+    print(f"Masked subtile saved at: {output_filename}")
+
+    return output_filename, new_las
+
+output_filename, new_las = apply_mask_to_subtile(subtile_filepath='tests/test_subtiler/32_687000_4930000_FP21_sampled_10k_250_subtiles/subtile_687220_4930220.las', 
+                                                 tile_size=250, overlap_size=30, is_northernmost=True, is_rightmost=True, output_dir='tests/test_subtiler/cut_tests')
