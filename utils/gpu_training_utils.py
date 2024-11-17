@@ -61,7 +61,7 @@ class GPU_PointCloudDataset(Dataset):
         return small_grid, medium_grid, large_grid, label, idx
     
 
-def custom_collate_fn(batch):
+def gpu_custom_collate_fn(batch):
     """
     Custom collate function to filter out None values (skipped points) and ensure all data is on the GPU.
     """
@@ -87,7 +87,7 @@ def custom_collate_fn(batch):
     return small_grids, medium_grids, large_grids, labels, indices
 
 
-def prepare_dataloader(batch_size, data_dir=None, 
+def gpu_prepare_dataloader(batch_size, data_dir=None, 
                        window_sizes=None, grid_resolution=128, features_to_use=None, 
                        train_split=None, features_file_path=None, num_workers=4, shuffle_train=True, device='cuda'):
     """
@@ -136,11 +136,11 @@ def prepare_dataloader(batch_size, data_dir=None,
         train_dataset, eval_dataset = random_split(full_dataset, [train_size, eval_size])
 
         # Create DataLoaders for training and evaluation
-        train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=shuffle_train, collate_fn=custom_collate_fn, num_workers=num_workers)
-        eval_loader = DataLoader(eval_dataset, batch_size=batch_size, shuffle=False, collate_fn=custom_collate_fn, num_workers=num_workers)
+        train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=shuffle_train, collate_fn=gpu_custom_collate_fn, num_workers=num_workers)
+        eval_loader = DataLoader(eval_dataset, batch_size=batch_size, shuffle=False, collate_fn=gpu_custom_collate_fn, num_workers=num_workers)
     else:
         # If no train/test split, create one DataLoader for the full dataset
-        train_loader = DataLoader(full_dataset, batch_size=batch_size, shuffle=shuffle_train, collate_fn=custom_collate_fn, num_workers=num_workers)
+        train_loader = DataLoader(full_dataset, batch_size=batch_size, shuffle=shuffle_train, collate_fn=gpu_custom_collate_fn, num_workers=num_workers)
         eval_loader = None
 
     return train_loader, eval_loader
