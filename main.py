@@ -36,7 +36,6 @@ def main():
     # feature images creation params
     window_sizes = args.window_sizes
     grid_resolution = 128   # hard-coded value, following reference article
-    features_to_use = args.features_to_use  # features to use during training
     
     # Set device (GPU if available)
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
@@ -45,7 +44,9 @@ def main():
     if predict_labels and perform_evaluation:
         raise ValueError("You can either predict new labels or evaluate the model's performance. Please set only one among predict_labels and perform evaluation as True.")
 
-    if not predict_labels or not perform_evaluation:
+    if not predict_labels and not perform_evaluation:
+        
+        features_to_use = args.features_to_use  # features to use during training
 
         # training
         model, model_save_folder = train_model(training_data_filepath=training_data_filepath,

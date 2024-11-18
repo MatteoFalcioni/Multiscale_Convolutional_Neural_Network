@@ -319,12 +319,14 @@ def load_parameters(model_folder):
         window_sizes = None
         with open(hyperparameters_file_path, 'r') as f:
             reader = csv.reader(f)
-            headers = next(reader)  # Read the header row
+            next(reader)  # Skip the header row
+            
             for row in reader:
-                if "window_sizes" in row:
-                    window_sizes_str = row[headers.index("window_sizes")]
-                    window_sizes = ast.literal_eval(window_sizes_str)  # Safely evaluate the string
-
+                if len(row) == 2:  # Ensure it's a key-value pair
+                    key, value = row
+                    if key == "window_sizes":
+                        window_sizes = ast.literal_eval(value)  # Safely evaluate the string
+                        
         if window_sizes is None:
             raise ValueError(f"'window_sizes' not found in {hyperparameters_file_path}.")
     except Exception as e:
