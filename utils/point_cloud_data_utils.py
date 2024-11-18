@@ -722,7 +722,7 @@ def reservoir_sample_data(input_file, sample_size, save=False, save_dir='data/sa
     return sampled_data
 '''
 
-'''
+
 def get_feature_indices(features_to_use, known_features):
     """
     Given a list of chosen features and the known features in the data array, this function
@@ -740,7 +740,7 @@ def get_feature_indices(features_to_use, known_features):
     except ValueError as e:
         raise ValueError(f"Feature {str(e).split()[0]} not found in known features: {known_features}")
     
-    return feature_indices'''
+    return feature_indices
 
 
 '''def extract_num_channels(preprocessed_data_dir):

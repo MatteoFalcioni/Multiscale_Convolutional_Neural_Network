@@ -1,13 +1,13 @@
+import cuml
 from cuml.neighbors import NearestNeighbors as cuKNN
 import cupy as cp
-import numpy as np
 
 
-def build_cuml_knn(self, data_array, n_neighbors=1):
+def build_cuml_knn(data_array, n_neighbors=3):
         """
         Builds and returns a cuML KNN model on the GPU for nearest neighbor search.
         """
-        data_gpu = cp.array(data_array) 
+        data_gpu = cp.array(data_array, dtype=cp.float64) 
         cuml_knn = cuKNN(n_neighbors=n_neighbors)
         cuml_knn.fit(data_gpu)
         return cuml_knn
@@ -33,7 +33,7 @@ def create_feature_grid_gpu(center_point, window_size, grid_resolution=128, chan
     cell_size = window_size / grid_resolution
 
     # Initialize the grid to zeros on GPU; each cell will eventually hold feature values
-    grid = cp.zeros((grid_resolution, grid_resolution, channels), dtype=cp.float32)
+    grid = cp.zeros((grid_resolution, grid_resolution, channels), dtype=cp.float64) 
 
     # Generate cell coordinates for the grid based on the center point, on the GPU
     i_indices = cp.arange(grid_resolution)
@@ -54,18 +54,42 @@ def assign_features_to_grid_gpu(cuml_knn, gpu_data_array, grid, x_coords, y_coor
     Assigns features from the nearest point in the dataset to each cell in the grid using cuML's GPU-accelerated KNN,
     and directly assigns them to the grid on GPU.
     """
-    # Generate the grid coordinates on the CPU
+    # print(f"Data types in gpu_data_array: {gpu_data_array.dtype}")
+
+    # Generate the grid coordinates on the GPU
     grid_x, grid_y = cp.meshgrid(x_coords, y_coords, indexing='ij')
-    grid_coords = cp.stack((grid_x.flatten(), grid_y.flatten(), np.full(grid_x.size, constant_z)), axis=-1)
+    grid_coords = cp.stack((grid_x.flatten(), grid_y.flatten(), cp.full(grid_x.size, constant_z)), axis=-1)
     
     # Transfer the grid coordinates to GPU
-    grid_coords_gpu = cp.array(grid_coords)
+    # grid_coords_gpu = cp.array(grid_coords)
 
     # Query the cuML KNN model for nearest neighbors
-    _, indices = cuml_knn.kneighbors(grid_coords_gpu)
+    _, indices = cuml_knn.kneighbors(grid_coords)
+    
+    # print(f"\nGPU indices type: {type(indices)}\n")
+    
+    # print(f'GPU indices dtype: {indices.dtype}')
+    
+    # print(f'shape of indices returned from gpu tree: {indices.shape}\n')
+    
+    # print(f'GPU first 50 indices: {indices[:50]}\n')
+    
+    # print(f'gpu_data_array shape: {gpu_data_array.shape}\n')
 
-    # Assign features using the indices directly on GPU and update the grid
-    grid[:, :, :] = gpu_data_array[indices, :][:, feature_indices].reshape(grid.shape)
+    # print(f'grid shape to reshape to: {grid.shape}\n')
+    
+    # print(f'feature indices type: \n')
+    # print([type(element) for element in feature_indices])
+    # print('\n\n')
+    
+    indices = indices.flatten()
+    selected_features = gpu_data_array[indices, :][:, feature_indices]
+    
+    # print(f'Using now selected_features = gpu_data_array[indices.flatten(), :][:, feature_indices]\n')
+    # print(f'We got that the shape of gpu_data_array[indices.flatten(), :][:, feature_indices] is {gpu_data_array[indices.flatten(), :][:, feature_indices].shape}')
+    # print(f'Specifically, indices.flatten().shape is {(indices.flatten()).shape}')
+    
+    grid[:, :, :] = selected_features.reshape(grid.shape)
 
     return grid
 
@@ -88,6 +112,8 @@ def generate_multiscale_grids_gpu(center_point, data_array, window_sizes, grid_r
     - grids_dict (dict): Dictionary of generated grids for each scale.
     - skipped (bool): Flag indicating if the point was skipped.
     """
+    gpu_data_array = cp.array(data_array).astype(cp.float32)
+    
     grids_dict = {}  # To store grids for each scale
     channels = len(feature_indices)
     skipped = False
@@ -111,7 +137,7 @@ def generate_multiscale_grids_gpu(center_point, data_array, window_sizes, grid_r
 
         # Assign features from the nearest point in the data array using the GPU KNN model
         grid_with_features = assign_features_to_grid_gpu(
-            cuml_knn, cp.array(data_array), grid, x_coords, y_coords, z_coord, feature_indices
+            cuml_knn, gpu_data_array, grid, x_coords, y_coords, z_coord, feature_indices
         )
 
         # Check for NaN or Inf in the grid

@@ -88,6 +88,18 @@ def assign_features_to_grid(tree, data_array, grid, x_coords, y_coords, constant
 
     # Query the KDTree in bulk using all grid coordinates
     _, indices = tree.query(grid_coords)
+    
+    #print(f"\nCPU indices type: {type(indices)}\n")
+    
+    #print(f'shape of indices returned from CPU tree: {indices.shape}\n')
+    
+    #print(f'CPU first 50 indices: {indices[:50]}\n')
+    
+    # print(f' CPU data_array shape: {data_array.shape}\n')
+    
+    #print(f'CPU data_array[indices, :][:, feature_indices] shape: {data_array[indices, :][:, feature_indices].shape}\n')
+
+    #print(f'CPU grid shape to reshape to: {grid.shape}\n')
 
     # Assign features using the bulk indices
     grid[:, :, :] = data_array[indices, :][:, feature_indices].reshape(grid.shape)
