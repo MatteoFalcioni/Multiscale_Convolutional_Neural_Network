@@ -46,7 +46,7 @@ def predict(file_path, model, model_path, device, batch_size, window_sizes, grid
 
     # get overlap size from window sizes: it's the dimension of the largest window size
     overlap_size = int([value for label, value in window_sizes if label == 'large'][0])
-    print(f'overlap size: {overlap_size}')
+    # print(f'overlap size: {overlap_size}')
 
     # print(f"Total points in the file: {total_points}")
     
