@@ -421,7 +421,6 @@ def subtiler(file_path, tile_size=50, overlap_size=10):
     Returns:
     - output_dir (str): Path to the direcotry where subtiles were saved
     """
-    # print(f'\n----------------------------- Subtiling file: {file_path} -----------------------------')
     
     # Load the LiDAR file
     las_file = laspy.read(file_path)
@@ -549,7 +548,7 @@ def stitch_subtiles(subtile_folder, original_las, original_filename, model_direc
     
     # define size of strip to cut off
     cut_off = overlap_size/2
-    print(f'cut off: {cut_off}')
+    # print(f'cut off: {cut_off}')
     
     # Iterate over each subtile
     for subtile_file in subtile_files:
@@ -577,7 +576,7 @@ def stitch_subtiles(subtile_folder, original_las, original_filename, model_direc
         lower_bound_x = min_x + cut_off
         lower_bound_y = min_y + cut_off
 
-        is_northernmost = False
+        '''is_northernmost = False
         is_rightmost = False
 
         if lower_left_y == up_y:
@@ -616,12 +615,13 @@ def stitch_subtiles(subtile_folder, original_las, original_filename, model_direc
             print("this is a general subtile, so we have to cut off :\n")
             print(f"x until the upper bound: {upper_bound_x}\n")
             print(f"y until the upper bound: {upper_bound_y}\n")
-            
-            
-            mask = (
-                (subtile_las.x < upper_bound_x) &  # Exclude right overlap if not rightmost
-                (subtile_las.y < upper_bound_y )  # Exclude top overlap if not northernmost
-            )
+            # eventually implement an is_leftmost and is_lowermost if you want to keep the lower and left -1 pts'''
+        mask = (
+            (subtile_las.x < upper_bound_x) &  # Exclude right overlap if not rightmost
+            (subtile_las.y < upper_bound_y ) &  # Exclude top overlap if not northernmost
+            (subtile_las.x > lower_bound_x) &
+            (subtile_las.y > lower_bound_y)
+        )
 
         subtile_masked = subtile_las.points[mask]
 

@@ -3,12 +3,22 @@ import numpy as np
 from utils.point_cloud_data_utils import read_file_to_numpy
 from utils.plot_utils import visualize_grid  # Assuming this is your visualization function
 from scripts.point_cloud_to_image import generate_multiscale_grids
-from scripts.gpu_grid_gen import generate_multiscale_grids_gpu, build_cuml_knn
+from scripts.gpu_grid_gen import generate_multiscale_grids_gpu#, build_cuml_knn
 from scripts.point_cloud_to_image import compute_point_cloud_bounds
 import cupy as cp
 from scipy.spatial import cKDTree 
 from cuml.neighbors import NearestNeighbors as cuKNN
 import laspy
+
+
+def build_cuml_knn(data_array, n_neighbors=1):
+        """
+        Builds and returns a cuML KNN model on the GPU for nearest neighbor search.
+        """
+        data_gpu = cp.array(data_array, dtype=cp.float64) 
+        cuml_knn = cuKNN(n_neighbors=n_neighbors, metric='euclidean')
+        cuml_knn.fit(data_gpu)
+        return cuml_knn
             
 
 class TestGridGeneration(unittest.TestCase):
@@ -20,17 +30,117 @@ class TestGridGeneration(unittest.TestCase):
         """
         cls.las_path = 'data/chosen_tiles/32_687000_4930000_FP21.las'
         cls.data_array, cls.known_features = read_file_to_numpy(cls.las_path)
+        print(f'data_array type right after reading: {cls.data_array.dtype}')
         cls.window_sizes = [('small', 1.0), ('medium', 2.0), ('large', 3.0)]
         cls.grid_resolution = 128
-        cls.features_to_use = ['intensity', 'red', 'green', 'blue']  # Adjust based on available features
+        cls.features_to_use = ['intensity', 'red', 'green', 'blue']  
         cls.num_channels = len(cls.features_to_use)
         cls.feature_indices = [cls.known_features.index(feature) for feature in cls.features_to_use]
         cls.point_cloud_bounds = compute_point_cloud_bounds(cls.data_array)  # Compute bounds
-
-        # Initialize CPU and GPU KNN models (we'll use a small subset for testing)
+        # Initialize CPU and GPU KNN models 
         cls.cpu_kdtree = cKDTree(cls.data_array[:, :3])  # Build KDTREE for CPU
         cls.gpu_tree = build_cuml_knn(data_array=cls.data_array[:, :3])  # Build cuML KNN model for GPU
+
+    
+    def test_compare_cpu_gpu_knn(self):
+        """
+        Test if the grids match between CPU and GPU, and if the indices returned by CPU and GPU KNN models for the same point match.
+        """
+        np.set_printoptions(precision=16)
+        cp.set_printoptions(precision=16)
         
+        # Take a small subset of points for testing
+        center_point = self.data_array[100005, :].astype(np.float64)  # Testing point
+        window_size = 10.0
+        # Calculate the size of each cell in meters
+        cell_size = window_size / self.grid_resolution
+        
+        # Construct the cpu grid's coordinates
+        # Generate cell coordinates for the grid based on the center point
+        i_indices = np.arange(self.grid_resolution)
+        j_indices = np.arange(self.grid_resolution)
+        half_resolution_minus_half = (self.grid_resolution / 2) - 0.5
+        # following x_k = x_pk - (64.5 - j) * w
+        x_coords = center_point[0] - (half_resolution_minus_half - j_indices) * cell_size
+        y_coords = center_point[1] - (half_resolution_minus_half - i_indices) * cell_size
+        constant_z = center_point[2]  # Z coordinate is constant for all cells
+        cpu_grid_x, cpu_grid_y = np.meshgrid(x_coords, y_coords, indexing='ij') # create a meshgrid
+        cpu_grid_coords = np.stack((cpu_grid_x.flatten(), cpu_grid_y.flatten(), np.full(cpu_grid_x.size, constant_z)), axis=-1)
+        print(f'\ncpu_grid_coords: {type(cpu_grid_coords)}, dtype: {cpu_grid_coords.dtype}\n')
+        
+        # Construct Gpu grid in the same way (trying to enforce float64)
+        gpu_half_resolution_minus_half = np.float64(half_resolution_minus_half)
+        print(f"\ngpu_half_resolution_minus_half: {type(gpu_half_resolution_minus_half)}")
+
+        gpu_center_point = cp.array(center_point).astype(cp.float64)
+        print(f"gpu_center_point: {type(gpu_center_point)}, dtype: {gpu_center_point.dtype}")
+
+        gpu_cell_size = np.float64(window_size / self.grid_resolution)
+        print(f"gpu_cell_size: {type(gpu_cell_size)}")
+
+        gpu_i_indices = cp.arange(self.grid_resolution).astype(cp.float64)
+        print(f"gpu_i_indices: {type(gpu_i_indices)}, dtype: {gpu_i_indices.dtype}")
+
+        gpu_j_indices = cp.arange(self.grid_resolution).astype(cp.float64)
+        print(f"gpu_j_indices: {type(gpu_j_indices)}, dtype: {gpu_j_indices.dtype}")
+
+        gpu_x_coords = gpu_center_point[0] - (gpu_half_resolution_minus_half - gpu_j_indices) * gpu_cell_size
+        print(f"gpu_x_coords (before cp.array): {type(gpu_x_coords)}, dtype: {gpu_x_coords.dtype}")
+
+        gpu_y_coords = gpu_center_point[1] - (gpu_half_resolution_minus_half - gpu_i_indices) * cell_size
+        print(f"gpu_y_coords (before cp.array): {type(gpu_y_coords)}, dtype: {gpu_x_coords.dtype}")
+
+        gpu_x_coords = cp.array(gpu_x_coords, dtype=cp.float64)
+        print(f"gpu_x_coords (after cp.array): {type(gpu_x_coords)}, dtype: {gpu_x_coords.dtype}")
+
+        gpu_y_coords = cp.array(gpu_y_coords, dtype=cp.float64)
+        print(f"gpu_y_coords (after cp.array): {type(gpu_y_coords)}, dtype: {gpu_y_coords.dtype}")
+
+        gpu_grid_x, gpu_grid_y = cp.meshgrid(gpu_x_coords, gpu_y_coords, indexing='ij')
+        print(f"gpu_grid_x: {type(gpu_grid_x)}, dtype: {gpu_grid_x.dtype}")
+        print(f"gpu_grid_y: {type(gpu_grid_y)}, dtype: {gpu_grid_y.dtype}")
+
+        gpu_grid_coords = cp.stack(
+            (gpu_grid_x.flatten(), gpu_grid_y.flatten(), cp.full(gpu_grid_x.size, constant_z)), axis=-1
+        ).astype(cp.float64)
+        print(f"gpu_grid_coords: {type(gpu_grid_coords)}, dtype: {gpu_grid_coords.dtype}")
+        
+        # Check if CPU and GPU grid coordinates match
+        print(f'\ntesting if the grids coordinates match betweeen CPU and GPU...')
+        np.testing.assert_array_equal(cpu_grid_coords, gpu_grid_coords.get(), err_msg="Grid coordinates do not match between CPU and GPU")
+        print(f'\nOK: Grids coordinates match\n')
+        
+        # Get distances for the first point in the list for both CPU and GPU
+        single_cpu_distance, single_cpu_index = self.cpu_kdtree.query(cpu_grid_coords[:1])
+        single_gpu_distance, single_gpu_index = self.gpu_tree.kneighbors(gpu_grid_coords[:1])
+        print(f"Comparing index and distance between CPU and GPU first grid point\nCPU Distance: {single_cpu_distance}\n")
+        print(f"Corresponding CPU index: {np.sort(single_cpu_index)}\n")
+        print(f"GPU Distance: {np.sort(single_gpu_distance)}\n")
+        print(f"Corresponding GPU index: {np.sort(single_gpu_index)}\n")
+        
+        # CPU KNN: Get all grid points indices using the CPU cKDTree
+        cpu_distances, cpu_indices = self.cpu_kdtree.query(cpu_grid_coords)
+        # GPU KNN: Get all grid points indices using the cuML KNN model
+        gpu_distances, gpu_indices = self.gpu_tree.kneighbors(gpu_grid_coords)
+        # Sort the indices to compare 
+        cpu_indices_sorted = np.sort(cpu_indices)
+        gpu_indices_sorted = np.sort(gpu_indices.flatten())
+
+        # Print indices for comparison
+        print(f"\nfirst 20 cpu indices: {cpu_indices_sorted[:20]}\n")
+        print(f"\nfirst 20 gpu indices: {gpu_indices_sorted[:20]}\n")
+
+        # Compare the distances, sorting the corresponding distances for comparison
+        cpu_sorted_distances = cpu_distances[np.argsort(cpu_indices_sorted)]
+        gpu_sorted_distances = gpu_distances[np.argsort(gpu_indices_sorted)]
+        print(f"Corresponding CPU distances: {cpu_sorted_distances[:20]}\n")
+        print(f"Corresponding GPU distances: {(gpu_sorted_distances.flatten())[:20]}")
+
+        # Compare indices (ignoring the order)
+        np.testing.assert_array_equal(cpu_indices_sorted, gpu_indices_sorted.get(), 
+                                    err_msg=f"Indices mismatch")
+
+
     '''def test_knn_synthetic(self):
         # First, check the precision of the data in the LAS file for comparison
         # Load the LAS file
@@ -113,87 +223,6 @@ class TestGridGeneration(unittest.TestCase):
             if not are_equal:
                 print(f'Indices diverged at precision {precision}')
                 break'''
-
-        
-    def test_compare_cpu_gpu_knn(self):
-        """
-        Test if the grids match between CPU and GPU, and if the indices returned by CPU and GPU KNN models for the same point match.
-        """
-        np.set_printoptions(precision=16)
-        cp.set_printoptions(precision=16)
-        
-        # Take a small subset of points for testing
-        center_point = self.data_array[100005, :].astype(np.float64)  # Testing point
-        window_size = 10.0
-        # Calculate the size of each cell in meters
-        cell_size = window_size / self.grid_resolution
-        
-        # Construct the cpu grid's coordinates
-        # Generate cell coordinates for the grid based on the center point
-        i_indices = np.arange(self.grid_resolution)
-        j_indices = np.arange(self.grid_resolution)
-        half_resolution_minus_half = (self.grid_resolution / 2) - 0.5
-        # following x_k = x_pk - (64.5 - j) * w
-        x_coords = center_point[0] - (half_resolution_minus_half - j_indices) * cell_size
-        y_coords = center_point[1] - (half_resolution_minus_half - i_indices) * cell_size
-        constant_z = center_point[2]  # Z coordinate is constant for all cells
-        cpu_grid_x, cpu_grid_y = np.meshgrid(x_coords, y_coords, indexing='ij')
-        cpu_grid_coords = np.stack((cpu_grid_x.flatten(), cpu_grid_y.flatten(), np.full(cpu_grid_x.size, constant_z)), axis=-1)
-        
-        # Construct Gpu grid
-        gpu_half_resolution_minus_half = np.float64(half_resolution_minus_half)
-        gpu_center_point = cp.array(center_point).astype(cp.float64)
-        gpu_cell_size = np.float64(window_size / self.grid_resolution)
-        gpu_i_indices = cp.arange(self.grid_resolution).astype(cp.float64)
-        gpu_j_indices = cp.arange(self.grid_resolution).astype(cp.float64)
-        gpu_x_coords = gpu_center_point[0] - (gpu_half_resolution_minus_half - gpu_j_indices) * gpu_cell_size
-        gpu_y_coords = gpu_center_point[1] - (gpu_half_resolution_minus_half - gpu_i_indices) * cell_size
-        gpu_x_coords = cp.array(gpu_x_coords, dtype=cp.float64)
-        gpu_y_coords = cp.array(gpu_y_coords, dtype=cp.float64)
-        gpu_grid_x, gpu_grid_y = cp.meshgrid(gpu_x_coords, gpu_y_coords, indexing='ij')
-        gpu_grid_coords = cp.stack((gpu_grid_x.flatten(), gpu_grid_y.flatten(), cp.full(gpu_grid_x.size, constant_z)), axis=-1).astype(cp.float64)
-        
-        # Check if CPU and GPU grid coordinates match
-        print(f'\ntesting if the grids coordinates match betweeen CPU and GPU...')
-        print(f'\ngpu grids coordinates[:5]{cpu_grid_coords[:5]}')
-        print(f'\ncpu grids coordinates[:5]{(gpu_grid_coords.get())[:5]}')
-        np.testing.assert_array_equal(cpu_grid_coords, gpu_grid_coords.get(), err_msg="Grid coordinates do not match between CPU and GPU")
-        print(f'\nOK: Grids coordinates match\n\n')
-        
-        # CPU KNN: Get indices using the CPU cKDTree
-        _, cpu_indices = self.cpu_kdtree.query(cpu_grid_coords)
-
-        # GPU KNN: Get indices using the cuML KNN model
-        _, gpu_indices = self.gpu_tree.kneighbors(gpu_grid_coords.astype(cp.float64))
-        
-        # Get distances for the first point in the list for both CPU and GPU
-        single_cpu_distances = self.cpu_kdtree.query(cpu_grid_coords[:1], k=5)[0]
-        single_gpu_distances = self.gpu_tree.kneighbors(gpu_grid_coords[:1], n_neighbors=5)[0]
-        print("CPU Distances:", single_cpu_distances)
-        print("\nGPU Distances:", single_gpu_distances)
-        
-        # Sort the indices to compare without order
-        cpu_indices_sorted = np.sort(cpu_indices)
-        gpu_indices_sorted = np.sort(gpu_indices.flatten())
-
-        # Print indices for comparison
-        print(f"\nfirst 20 cpu indices: {cpu_indices_sorted[:20]}\n")
-        print(f"\nfirst 20 gpu indices: {gpu_indices_sorted[:20]}\n")
-        
-        # Check if the distance between corresponding points is small (precision issue)
-        cpu_distances = self.cpu_kdtree.query(cpu_grid_coords)[0]
-        gpu_distances = self.gpu_tree.kneighbors(gpu_grid_coords)[0]
-
-        # Compare the distances
-        # Also sort the corresponding distances for comparison
-        cpu_sorted_distances = cpu_distances[np.argsort(cpu_indices)]
-        gpu_sorted_distances = gpu_distances[np.argsort(gpu_indices)]
-        print(f"First 20 CPU distances: {cpu_sorted_distances[:20]}")
-        print(f"First 20 GPU distances: {(gpu_sorted_distances.flatten())[:20]}")
-
-        # Compare indices (ignoring the order)
-        np.testing.assert_array_equal(cpu_indices_sorted, gpu_indices_sorted.get(), 
-                                    err_msg=f"Indices mismatch")
 
     '''def test_gpu_grid_generation(self):
         """
