@@ -82,7 +82,7 @@ class TestPredictFunction(unittest.TestCase):
         """
         Setup the test environment by creating a sampled LAS file.
         """
-        self.sampled_las_path = 'tests/test_subtiler/32_687000_4930000_FP21_sampled_100k.las'  # Path to save the sampled LAS file
+        self.sampled_las_path = 'tests/test_subtiler/32_687000_4930000_FP21_sampled_500k.las'  # Path to save the sampled LAS file
         self.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
         
         # Set some parameters for the test
@@ -95,11 +95,11 @@ class TestPredictFunction(unittest.TestCase):
         self.tile_size = 125  # Tile size for subtiles
         self.min_points = 500  # Example threshold for when to subtile
         self.model = MultiScaleCNN(channels=self.num_channels, classes=6).to(self.device) 
-        '''loaded_model_path = 'models/saved/mcnn_model_20241030_051517/model.pth'
+        loaded_model_path = 'models/saved/mcnn_model_20241116_143003/model.pth'
         loaded_features, num_loaded_channels, self.window_sizes = load_parameters(loaded_model_path)
         self.features_to_use = loaded_features
         print(f'window sizes: {self.window_sizes}\nLoaded features: {loaded_features}')
-        self.model = load_model(model_path=loaded_model_path, device=self.device, num_channels=num_loaded_channels) ''' 
+        self.model = load_model(model_path=loaded_model_path, device=self.device, num_channels=num_loaded_channels) 
 
     def test_predict_with_subtiling_and_inference(self):
         """

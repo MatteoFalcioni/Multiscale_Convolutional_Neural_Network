@@ -1,14 +1,10 @@
 import unittest
 import numpy as np
 from utils.point_cloud_data_utils import read_file_to_numpy
-from utils.plot_utils import visualize_grid  # Assuming this is your visualization function
-from scripts.point_cloud_to_image import generate_multiscale_grids
-from scripts.gpu_grid_gen import generate_multiscale_grids_gpu#, build_cuml_knn
 from scripts.point_cloud_to_image import compute_point_cloud_bounds
 import cupy as cp
 from scipy.spatial import cKDTree 
 from cuml.neighbors import NearestNeighbors as cuKNN
-import laspy
 
 
 def build_cuml_knn(data_array, n_neighbors=1):
