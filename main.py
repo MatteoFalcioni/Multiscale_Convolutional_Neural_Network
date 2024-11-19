@@ -34,6 +34,7 @@ def main():
     file_to_predict = args.file_to_predict
     
     # feature images creation params
+    features_to_use = args.features_to_use  # features to use during training
     window_sizes = args.window_sizes
     grid_resolution = 128   # hard-coded value, following reference article
     
@@ -45,8 +46,6 @@ def main():
         raise ValueError("You can either predict new labels or evaluate the model's performance. Please set only one among predict_labels and perform evaluation as True.")
 
     if not predict_labels and not perform_evaluation:
-        
-        features_to_use = args.features_to_use  # features to use during training
 
         # training
         model, model_save_folder = train_model(training_data_filepath=training_data_filepath,
@@ -79,7 +78,7 @@ def main():
 
     elif perform_evaluation:
 
-        # load features used during model training and the respetctive number of channels
+        # load features used during model training and the respetctive number of channels and window sizes
         loaded_features, num_loaded_channels, window_sizes = load_parameters(loaded_model_path)
         # load the pre-trained model
         loaded_model = load_model(model_path=loaded_model_path, device=device, num_channels=num_loaded_channels)
@@ -98,7 +97,7 @@ def main():
         
     elif predict_labels:
 
-        # load features used during model training and the respetctive number of channels
+        # load features used during model training and the respetctive number of channels and window sizes
         loaded_features, num_loaded_channels, window_sizes = load_parameters(loaded_model_path)
         # load pre-trained model 
         loaded_model = load_model(model_path=loaded_model_path, device=device, num_channels=num_loaded_channels)
