@@ -3,7 +3,7 @@ from cuml.neighbors import NearestNeighbors as cuKNN
 import cupy as cp
 
 
-def build_cuml_knn(data_array, n_neighbors=3):
+def build_cuml_knn(data_array, n_neighbors=1):
         """
         Builds and returns a cuML KNN model on the GPU for nearest neighbor search.
         """

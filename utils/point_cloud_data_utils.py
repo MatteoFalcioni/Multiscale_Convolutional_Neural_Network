@@ -547,6 +547,10 @@ def stitch_subtiles(subtile_folder, original_las, original_filename, model_direc
     up_y = max(lower_left_coords, key=lambda x: x[1])[1]  # Northernmost tiles (largest y)
     right_x = max(lower_left_coords, key=lambda x: x[0])[0]  # Rightmost tiles (largest x)
     
+    # define size of strip to cut off
+    cut_off = overlap_size/2
+    print(f'cut off: {cut_off}')
+    
     # Iterate over each subtile
     for subtile_file in subtile_files:
         # Read the subtile
@@ -567,11 +571,11 @@ def stitch_subtiles(subtile_folder, original_las, original_filename, model_direc
         max_x = subtile_las.x.max()
         min_y = subtile_las.y.min()
         max_y = subtile_las.y.max()
-        # Unlabeled strips are of sizes overlap/2
-        upper_bound_x = max_x - (overlap_size/2)    
-        upper_bound_y = max_y - (overlap_size/2)
-        lower_bound_x = min_x + (overlap_size/2)
-        lower_bound_y = min_y + (overlap_size/2)
+        
+        upper_bound_x = max_x - cut_off    
+        upper_bound_y = max_y - cut_off
+        lower_bound_x = min_x + cut_off
+        lower_bound_y = min_y + cut_off
 
         is_northernmost = False
         is_rightmost = False
@@ -604,6 +608,16 @@ def stitch_subtiles(subtile_folder, original_las, original_filename, model_direc
             
         else:
             # general subtile: exclude right strip and top strip
+            print(f"min x: {min_x}\n")
+            print(f"min y: {min_y}\n")
+            print(f"max x: {max_x}\n")
+            print(f"max y: {max_y}\n")
+            
+            print("this is a general subtile, so we have to cut off :\n")
+            print(f"x until the upper bound: {upper_bound_x}\n")
+            print(f"y until the upper bound: {upper_bound_y}\n")
+            
+            
             mask = (
                 (subtile_las.x < upper_bound_x) &  # Exclude right overlap if not rightmost
                 (subtile_las.y < upper_bound_y )  # Exclude top overlap if not northernmost
@@ -722,7 +736,7 @@ def reservoir_sample_data(input_file, sample_size, save=False, save_dir='data/sa
     return sampled_data
 '''
 
-
+'''
 def get_feature_indices(features_to_use, known_features):
     """
     Given a list of chosen features and the known features in the data array, this function
@@ -741,7 +755,7 @@ def get_feature_indices(features_to_use, known_features):
         raise ValueError(f"Feature {str(e).split()[0]} not found in known features: {known_features}")
     
     return feature_indices
-
+'''
 
 '''def extract_num_channels(preprocessed_data_dir):
     """
