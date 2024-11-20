@@ -82,7 +82,7 @@ class TestPredictFunction(unittest.TestCase):
         """
         Setup the test environment by creating a sampled LAS file.
         """
-        self.sampled_las_path = 'tests/test_subtiler/32_687000_4930000_FP21_sampled_500k.las'  # Path to save the sampled LAS file
+        self.sampled_las_path = 'tests/test_subtiler/32_687000_4930000_FP21_sampled_3mil.las'  # Path to save the sampled LAS file
         self.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
         
         # Set some parameters for the test

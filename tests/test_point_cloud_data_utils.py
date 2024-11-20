@@ -130,7 +130,7 @@ class TestSubtiler(unittest.TestCase):
         self.tile_size = 125
         self.overlap_size = 30
         self.output_dir = '.'
-        self.final_output_dir = 'tests/test_subtiler/'
+        self.final_output_dir = 'tests/test_subtiler/test_cut_and_stitch'
 
     """def test_subtiling(self):
         
@@ -183,10 +183,11 @@ class TestSubtiler(unittest.TestCase):
         self.assertEqual(total_points_in_subtiles, len(original_points), "Total points in subtiles do not match original points.")
         """
     def test_stitching(self):
+        las_file = laspy.read(self.input_file)
 
         subtile_folder = subtiler(self.input_file, self.tile_size, self.overlap_size)
         
-        #stitch_subtiles(subtile_folder=subtile_folder, original_file=self.input_file, model_directory=self.final_output_dir, overlap_size=self.overlap_size)
+        stitch_subtiles(subtile_folder=subtile_folder, original_las=las_file, original_filename=self.input_file, model_directory=self.final_output_dir, overlap_size=self.overlap_size)
 
         '''output_pattern = re.compile(r".+_pred_\d{8}_\d{6}\.las$")
         output_dir = os.path.join('tests/test_subtiler/', 'inference', 'predictions')
