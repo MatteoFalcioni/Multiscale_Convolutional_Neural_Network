@@ -10,8 +10,8 @@ import laspy
 from utils.plot_utils import visualize_grid
 from torch_kdtree import build_kd_tree
 import torch
-from scripts.point_cloud_to_image import generate_multiscale_grids
-from scripts.gpu_grid_gen import generate_multiscale_grids_gpu
+from scripts.point_cloud_to_image import generate_multiscale_grids, create_feature_grid, assign_features_to_grid
+from scripts.gpu_grid_gen import generate_multiscale_grids_gpu, create_feature_grid_gpu, assign_features_to_grid_gpu
 
 
 def build_cuml_knn(data_array, n_neighbors=1):
@@ -31,24 +31,130 @@ class TestGridGeneration(unittest.TestCase):
         """
         This will run once before any tests.
         """
+        cls.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+
         cls.las_path = 'data/chosen_tiles/32_687000_4930000_FP21.las'
         cls.data_array, cls.known_features = read_file_to_numpy(cls.las_path)
-        print(f'data_array type right after reading: {cls.data_array.dtype}')
-        cls.window_sizes = [('small', 1.0), ('medium', 2.0), ('large', 3.0)]
+        cls.window_sizes = [('small', 2.5), ('medium', 5.0), ('large', 10.0)]
         cls.grid_resolution = 128
         cls.features_to_use = ['intensity', 'red', 'green', 'blue']  
         cls.num_channels = len(cls.features_to_use)
         cls.feature_indices = [cls.known_features.index(feature) for feature in cls.features_to_use]
         cls.point_cloud_bounds = compute_point_cloud_bounds(cls.data_array)  # Compute bounds
         
-        cls.data_array_gpu = torch.tensor(cls.data_array[:, :3], dtype=torch.float32).to(device="cuda")
+        cls.tensor_data_array = torch.tensor(cls.data_array[:, :3], dtype=torch.float32).to(device=cls.device)
         
         # Initialize CPU and GPU KNN models 
         cls.cpu_kdtree = cKDTree(cls.data_array[:, :3])  # Build KDTREE for CPU
         cls.gpu_kdtree = build_kd_tree(cls.data_array_gpu)  # Build KDTree for GPU
         cls.gpu_knn = build_cuml_knn(data_array=cls.data_array[:, :3])  # Build cuML KNN model for GPU
 
-    
+
+    def test_torch_tree(self):
+        #Dimensionality of the points and KD-Tree
+        d = 3
+
+        #Create some random point clouds
+        points_ref = torch.randn(size=(1000, d), dtype=torch.float32, device=self.device, requires_grad=True) * 1e3
+        points_query = torch.randn(size=(100, d), dtype=torch.float32, device=self.device, requires_grad=True) * 1e3
+
+        #Create the KD-Tree on the GPU and the reference implementation
+        torch_kdtree = build_kd_tree(points_ref)
+        kdtree = cKDTree(points_ref.detach().cpu().numpy())
+
+        #Search for the 5 nearest neighbors of each point in points_query
+        k = 5
+        dists, inds = torch_kdtree.query(points_query, nr_nns_searches=k)
+        dists_ref, inds_ref = kdtree.query(points_query.detach().cpu().numpy(), k=k)
+
+        #Test for correctness 
+        #Note that the cupy_kdtree distances are squared
+        assert(np.all(inds.cpu().numpy() == inds_ref))
+        assert(np.allclose(torch.sqrt(dists).detach().cpu().numpy(), dists_ref, atol=1e-5))
+
+
+    def test_compare_indices_for_grids(self):
+
+        np.set_printoptions(precision=16)
+        torch.set_printoptions(precision=16)
+
+        idx = 10000
+
+        tensor_center_point = self.tensor_data_array[idx, :]
+        center_point = self.data_array[idx, :]  # Testing point
+        window_size = 10.0
+        cell_size = window_size / self.grid_resolution
+
+        # Construct the cpu grid's coordinates
+        i_indices = np.arange(self.grid_resolution)
+        j_indices = np.arange(self.grid_resolution)
+        half_resolution_minus_half = (self.grid_resolution / 2) - 0.5
+        x_coords = center_point[0] - (half_resolution_minus_half - j_indices) * cell_size
+        y_coords = center_point[1] - (half_resolution_minus_half - i_indices) * cell_size
+        constant_z = center_point[2]  # Z coordinate is constant for all cells
+        cpu_grid_x, cpu_grid_y = np.meshgrid(x_coords, y_coords, indexing='ij') # create a meshgrid
+        cpu_grid_coords = np.stack((cpu_grid_x.flatten(), cpu_grid_y.flatten(), np.full(cpu_grid_x.size, constant_z)), axis=-1)
+        print(f'\ncpu_grid_coords: {type(cpu_grid_coords)}, dtype: {cpu_grid_coords.dtype}\n')
+
+        # Construct the grid's coordinates in PyTorch
+        i_indices = torch.arange(self.grid_resolution)
+        j_indices = torch.arange(self.grid_resolution)
+        half_resolution_minus_half = (self.grid_resolution / 2) - 0.5
+        x_coords = tensor_center_point[0] - (half_resolution_minus_half - j_indices) * cell_size
+        y_coords = tensor_center_point[1] - (half_resolution_minus_half - i_indices) * cell_size
+        constant_z = tensor_center_point[2]  # Z coordinate is constant for all cells
+        torch_grid_x, torch_grid_y = torch.meshgrid(x_coords, y_coords, indexing='ij')
+        torch_grid_coords = torch.stack(
+            (torch_grid_x.flatten(), torch_grid_y.flatten(), torch.full((torch_grid_x.numel(),), constant_z)),
+            dim=-1
+        )   # here we are using torch.full, if it works modify it in the function in gpu_grid_gen
+        print(f'\ntorch_grid_coords: {type(torch_grid_coords)}, dtype: {torch_grid_coords.dtype}\n')
+
+        torch_grid_coords_np = torch_grid_coords.cpu().numpy()
+        np.testing.assert_allclose(cpu_grid_coords, torch_grid_coords_np, err_msg="Grid coordinates do not match between CPU and GPU")
+
+        torch_distances, torch_indices = self.gpu_kdtree.query(torch_grid_coords)
+        cpu_distances, cpu_indices = self.cpu_kdtree.query(cpu_grid_coords) 
+
+        torch_indices_np = (torch_indices.flatten()).cpu.numpy()
+
+        np.testing.assert_allclose(torch_indices_np, cpu_indices, err_msg="Indices do not match between CPU and GPU")
+
+    def test_compare_feature_assignment(self):
+
+        idx = 10000
+        tensor_center_point = self.tensor_data_array[idx, :]
+        center_point = self.data_array[idx, :]
+
+        torch_grid, _, torch_x_coords, torch_y_coords, torch_constant_z = create_feature_grid_gpu(center_point_tensor=tensor_center_point,
+                                                                                                                window_size=self.window_size,
+                                                                                                                grid_resolution=self.grid_resolution,
+                                                                                                                channels=self.num_channels)
+        grid, _, x_coords, y_coords, constant_z = create_feature_grid(center_point=center_point,
+                                                                              window_size=self.window_sizes,
+                                                                              grid_resolution=self.grid_resolution
+                                                                              channels=self.num_channels
+                                                                              )
+        grid = assign_features_to_grid(tree=self.cpu_kdtree,
+                                       data_array=self.data_array,
+                                       grid=grid,
+                                       x_coords=x_coords,
+                                       y_coords=y_coords,
+                                       constant_z=constant_z,
+                                       feature_indices=self.feature_indices
+                                       ) 
+        torch_grid = assign_features_to_grid_gpu(gpu_tree=self.gpu_kdtree,
+                                                 gpu_data_array=self.tensor_data_array,
+                                                 grid=torch_grid,
+                                                 x_coords=torch_x_coords,
+                                                 y_coords=torch_y_coords,
+                                                 constant_z=torch_constant_z,
+                                                 feature_indices=self.feature_indices,
+                                                 device=self.device)
+        np.testing.assert_allclose(grid, torch_grid.cpu().numpy(), err_msg="grid with features do not match between Torch and CPU")
+
+
+
     '''def test_compare_cpu_gpu_knn(self):
         """
         Test if the grids match between CPU and GPU, and if the indices returned by CPU and GPU KNN models for the same point match.
@@ -135,8 +241,8 @@ class TestGridGeneration(unittest.TestCase):
         print(f"Corresponding GPU distances (cuML): {gpu_sorted_distances[:20]}")
         print(f"Corresponding GPU distances (CuPy): {cupy_sorted_distances[:20]}")
 
-        np.testing.assert_array_equal(cpu_indices_sorted, cupy_indices_sorted, err_msg="Indices mismatch between CPU and CuPy KDTree")
-        '''
+        np.testing.assert_array_equal(cpu_indices_sorted, cupy_indices_sorted, err_msg="Indices mismatch between CPU and CuPy KDTree")'''
+        
 
     '''def test_knn_synthetic(self):
         # First, check the precision of the data in the LAS file for comparison
@@ -272,7 +378,7 @@ class TestGridGeneration(unittest.TestCase):
                 self.assertFalse(cp.all(grid == 0), f"Grid contains zero cells for {scale} grid at point {center_point}")'''
     
 
-    def test_generate_grids_cpu_vs_gpu(self):
+    '''def test_generate_grids_cpu_vs_gpu(self):
         """
         Test if grids generated on CPU match with those generated on GPU.
         """
@@ -327,7 +433,7 @@ class TestGridGeneration(unittest.TestCase):
                     np.testing.assert_almost_equal(cpu_grid, moved_gpu_grid, decimal=3, 
                                                 err_msg=f"Grids do not match for {scale} scale at point {center_point}")
                 except AssertionError as e:
-                    print(e)  # If grids don't match, print the error message and continue
+                    print(e)  # If grids don't match, print the error message and continue'''
 
 if __name__ == '__main__':
     unittest.main()
