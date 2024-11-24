@@ -58,10 +58,10 @@ def predict(file_path, model, model_path, device, batch_size, window_sizes, grid
         subtile_folder = subtiler(file_path, tile_size, overlap_size) 
         
         # Once subtiles are generated, we perform inference on each of them
-        predict_subtiles(subtile_folder, model, device, batch_size, window_sizes, grid_resolution, features_to_use, num_workers)
+        prediction_folder = predict_subtiles(subtile_folder, model, device, batch_size, window_sizes, grid_resolution, features_to_use, num_workers)
 
         # stitch subtiles back together to construct final file with predictions
-        stitch_subtiles(subtile_folder=subtile_folder, original_las=las_file, original_filename=file_path, model_directory=model_directory, overlap_size=overlap_size)
+        stitch_subtiles(subtile_folder=prediction_folder, original_las=las_file, original_filename=file_path, model_directory=model_directory, overlap_size=overlap_size)
 
         # Teardown: Remove the subtile folder and its content
         # shutil.rmtree(subtile_folder)  # Removes the entire sub-tile folder
@@ -90,12 +90,15 @@ def predict_subtiles(subtile_folder, model, device, batch_size, window_sizes, gr
     - num_workers (int): Number of workers for loading data.
 
     Returns:
-    - all_predictions (np.ndarray): Array of predictions for all points in the file.
-    - all_indices (np.ndarray): Array of indices corresponding to the predictions.
+    - prediction_folder (str): subfolder where the predicted subtiles have been saved.
     """
 
     # Get all subtile files from the subtile folder
     subtile_files = [os.path.join(subtile_folder, f) for f in os.listdir(subtile_folder) if f.endswith('.las')]
+
+    # Create a subfolder for predicted subtiles
+    predictions_folder = os.path.join(subtile_folder, 'subtiles_predicted')
+    os.makedirs(predictions_folder, exist_ok=True)
     
     file_counter = 0
     total_files = len(subtile_files)
@@ -119,8 +122,8 @@ def predict_subtiles(subtile_folder, model, device, batch_size, window_sizes, gr
         )
 
         # Open the subtile file to copy header information
-        original_file = laspy.read(file_path)
-        header = original_file.header
+        original_subtile_file = laspy.read(file_path)
+        header = original_subtile_file.header
 
         # Check and add 'label' as needed
         if 'label' not in header.point_format.dimension_names:
@@ -128,7 +131,7 @@ def predict_subtiles(subtile_folder, model, device, batch_size, window_sizes, gr
             header.add_extra_dims(extra_dims)
 
         # Initialize the label field with -1 values (-1 = not classified)
-        label_array = np.full(len(original_file.x), -1, dtype=np.int8)
+        label_array = np.full(len(original_subtile_file.x), -1, dtype=np.int8)
 
         # Perform inference 
         model.eval()  # Set model to evaluation mode
@@ -149,18 +152,20 @@ def predict_subtiles(subtile_folder, model, device, batch_size, window_sizes, gr
                 preds = torch.argmax(outputs, dim=1)  # Get predicted labels
 
                 # Assign predictions directly to the label array for the current subtile
-                label_array[indices] = preds.cpu().numpy()   
+                cpu_preds = preds.cpu()
+                label_array[indices] = cpu_preds.numpy()   
 
         # Save the updated subtile with predictions written into the 'label' field
         new_las = laspy.LasData(header)
-        new_las.points = original_file.points  # Copy original points
-        new_las.label = label_array            # Assign the labels to the new dimension
+        new_las.points = original_subtile_file.points  # Copy original points
+        new_las.label = label_array  # Assign the labels to the new dimension
         
-        # Overwrite the original subtile file with predictions
-        new_las.write(file_path)  
+        # Save the file to the predictions folder with a '_pred' suffix
+        base_name, ext = os.path.splitext(os.path.basename(file_path))
+        pred_file_path = os.path.join(predictions_folder, f"{base_name}_pred{ext}")
+        new_las.write(pred_file_path)
 
-        # print(f"Predictions written and subtile file overwritten: {file_path}")
-    return None
+    return predictions_folder
 
 
 def evaluate_model(model, dataloader, device, class_names, model_save_folder, inference_file_path, save=False):
