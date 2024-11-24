@@ -128,6 +128,7 @@ def generate_multiscale_grids(center_point, data_array, window_sizes, grid_resol
             center_point[0] + half_window > point_cloud_bounds['x_max'] or
             center_point[1] - half_window < point_cloud_bounds['y_min'] or
             center_point[1] + half_window > point_cloud_bounds['y_max']):
+            # print(f"Skipping point {center_point}: out of bounds for window size {window_size}.")
             skipped = True
             # skip grid generation for all scales if one scale is invalid
             break
@@ -143,6 +144,7 @@ def generate_multiscale_grids(center_point, data_array, window_sizes, grid_resol
 
         # Check for NaN or Inf in the grid
         if np.isnan(grid_with_features).any() or np.isinf(grid_with_features).any():
+            print(f"Skipping point {center_point}: grid contains NaN or Inf values for window size {window_size}.")
             skipped = True
             # skip grid generation for all scales if one scale is invalid
             break
