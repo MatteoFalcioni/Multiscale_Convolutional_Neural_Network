@@ -579,8 +579,8 @@ def stitch_subtiles(subtile_folder, original_las, original_filename, model_direc
         lower_bound_y = min_y + cut_off
 
         mask = (
-            (subtile_las.x < upper_bound_x) &  # Exclude right overlap if not rightmost
-            (subtile_las.y < upper_bound_y ) &  # Exclude top overlap if not northernmost
+            (subtile_las.x < upper_bound_x) &  
+            (subtile_las.y < upper_bound_y ) & 
             (subtile_las.x > lower_bound_x) &
             (subtile_las.y > lower_bound_y)
         )

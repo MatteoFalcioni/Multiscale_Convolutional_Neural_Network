@@ -31,6 +31,7 @@ class TestPredictFunction(unittest.TestCase):
         self.features_to_use = loaded_features
         print(f'window sizes: {self.window_sizes}\nLoaded features: {loaded_features}')
         self.overlap_size = int([value for label, value in self.window_sizes if label == 'large'][0])   # size of the largest window 
+        self.cut_off = self.overlap_size/2
         self.model = load_model(model_path=loaded_model_path, device=self.device, num_channels=num_loaded_channels) 
 
 
@@ -77,8 +78,8 @@ class TestPredictFunction(unittest.TestCase):
             lower_bound_y = min_y + cut_off
 
             mask = (
-            (labeled_las.x < upper_bound_x) &  # Exclude right overlap if not rightmost
-            (labeled_las.y < upper_bound_y ) &  # Exclude top overlap if not northernmost
+            (labeled_las.x < upper_bound_x) &  
+            (labeled_las.y < upper_bound_y ) &  
             (labeled_las.x > lower_bound_x) &
             (labeled_las.y > lower_bound_y)
             )
@@ -118,18 +119,49 @@ class TestPredictFunction(unittest.TestCase):
             num_workers=self.num_workers
         )
 
-        las_file = laspy.read(self.original_las_path)
+        original_las = laspy.read(self.original_las_path)
         out_dir = 'tests/test_inference/'
         # stitch predictions back together
-        stitch_subtiles(subtile_folder=prediction_folder,
-                        original_las=las_file,
+        predicted_filepath = stitch_subtiles(subtile_folder=prediction_folder,
+                        original_las=original_las,
                         original_filename=self.original_las_path, 
                         model_directory=out_dir, 
                         overlap_size=self.overlap_size)
         
-        # inspect stitched file output
-        final_out_dir = os.path.join(final_out_dir, 'predictions')  # the results are in the predictions subfolder
-        predicted_filepath = [os.path.join(prediction_folder, f) for f in os.listdir(prediction_folder) if f.endswith('.las')]
+        # inspect stitched file output and compare it to the original las file
+        predicted_las = laspy.read(predicted_filepath)
+
+        # Check that the header was correctly updated in predictions to the new number of points
+        print("=== Header Checks ===")
+        print(f"Original LAS point count: {original_las.header.point_count}")
+        print(f"Predicted LAS point count: {predicted_las.header.point_count}")
+        assert predicted_las.header.point_count == len(predicted_las.x), "Mismatch between header point count and actual points!"
+        self.assertNotEqual(original_las.header.point_count, predicted_las.header.point_count,
+                        "Point count in the stitched file should differ due to overlap removal.")
+
+        # Check offsets and scales
+        print(f"Original Offsets: {original_las.header.offsets}")
+        print(f"Predicted Offsets: {predicted_las.header.offsets}")
+        self.assertTrue(np.allclose(original_las.header.offsets, predicted_las.header.offsets, atol=1e-6),
+                    "Offsets in stitched LAS file should be consistent with the original.")
+
+        print(f"Original Scales: {original_las.header.scales}")
+        print(f"Predicted Scales: {predicted_las.header.scales}")
+        self.assertTrue(np.allclose(original_las.header.scales, predicted_las.header.scales, atol=1e-9),
+                    "Scales in stitched LAS file should be consistent with the original.")
+        
+        # Ensure the label field exists
+        self.assertIn('label', predicted_las.point_format.dimension_names, 
+                    "Label field is missing in the stitched LAS file.")
+
+        # check how many -1 labels (unclassified points) are present in stitching
+        label_array = predicted_las.label
+        total_points = len(label_array)
+        unprocessed_labels = np.sum(label_array == -1)
+        print(f"Unprocessed labels without borders: {unprocessed_labels} / {total_points}")
+
+
+
 
 
 
