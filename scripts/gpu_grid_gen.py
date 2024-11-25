@@ -101,7 +101,7 @@ def generate_multiscale_grids_gpu(center_point_tensor, data_array, window_sizes,
     - skipped (bool): Flag indicating if the point was skipped.
     """
     # Convert the data array to a tensor if it's not already on GPU
-    gpu_data_array = torch.tensor(data_array, dtype=torch.float32).to(device)
+    gpu_data_array = torch.tensor(data_array, dtype=torch.float64).to(device)
     
     grids_dict = {}  # To store grids for each scale
     channels = len(feature_indices)
