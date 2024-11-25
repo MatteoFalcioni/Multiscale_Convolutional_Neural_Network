@@ -16,11 +16,12 @@ class TestPredictFunction(unittest.TestCase):
         """
         Setup the test environment by creating a sampled LAS file.
         """
-        self.sampled_las_path = 'tests/test_subtiler/32_687000_4930000_FP21_sampled_10k.las'  # Path to save the sampled LAS file
+        self.sampled_las_path = 'tests/test_subtiler/32_687000_4930000_FP21_sampled_10k.las'  
         self.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
         
         # Set some parameters for the test
-        self.window_sizes = [('small', 10.0), ('medium', 20.0), ('large', 30.0)]  
+        self.window_sizes = [('small', 10.0), ('medium', 20.0), ('large', 30.0)] 
+        self.overlap_size = 30.0  # size of the largest window 
         self.batch_size = 16  
         self.grid_resolution = 128  
         self.features_to_use = ['x', 'y', 'z', 'intensity']  
@@ -29,7 +30,7 @@ class TestPredictFunction(unittest.TestCase):
         self.tile_size = 125  # Tile size for subtiles
         self.min_points = 500  # Example threshold for when to subtile
         self.model = MultiScaleCNN(channels=self.num_channels, classes=6).to(self.device) 
-        loaded_model_path = 'models/saved/mcnn_model_20241116_143003/model.pth'
+        loaded_model_path = 'models/saved/mcnn_model_20241030_051517/model.pth'
         loaded_features, num_loaded_channels, self.window_sizes = load_parameters(loaded_model_path)
         self.features_to_use = loaded_features
         print(f'window sizes: {self.window_sizes}\nLoaded features: {loaded_features}')
@@ -41,7 +42,8 @@ class TestPredictFunction(unittest.TestCase):
         Test the predict_subtiles function for correctness and consistency in label assignment.
         """
         # Create a temporary directory for subtile tests
-        subtile_test_dir = 'tests/test_subtiler/test_subtile_preds'
+        """here: put a directory with some real subtiles, with million of points"""
+        subtile_test_dir = 'tests/test_subtiler/32_687000_4930000_FP21_sampled_10k_250_subtiles'
         os.makedirs(subtile_test_dir, exist_ok=True)
 
         # Run predict_subtiles on the test subtile directory
@@ -56,20 +58,49 @@ class TestPredictFunction(unittest.TestCase):
             num_workers=self.num_workers
         )
 
-        subtile_files = [os.path.join( prediction_folder, f) for f in os.listdir( prediction_folder) if f.endswith('_pred.las')]
+        predicted_subtiles = [os.path.join(prediction_folder, f) for f in os.listdir(prediction_folder) if f.endswith('_pred.las')]
 
-        for subtile_path in subtile_files:
+        for subtile_path in predicted_subtiles:
 
             labeled_las = laspy.read(subtile_path)
-
             # Verify the label field was added and populated
             self.assertIn('label', labeled_las.point_format.dimension_names, "Label field not added to LAS file header.")
-            label_array = labeled_las.label
 
-            # Ensure no unprocessed labels (-1) exist in non-edge points
+            # Define upper bounds based on tile size (to cut off strips of unlabeled points)
+            cut_off = self.overlap_size/2
+
+            min_x = labeled_las.x.min()
+            max_x = labeled_las.x.max()
+            min_y = labeled_las.y.min()
+            max_y = labeled_las.y.max()
+            
+            upper_bound_x = max_x - cut_off    
+            upper_bound_y = max_y - cut_off
+            lower_bound_x = min_x + cut_off
+            lower_bound_y = min_y + cut_off
+
+            mask = (
+            (labeled_las.x < upper_bound_x) &  # Exclude right overlap if not rightmost
+            (labeled_las.y < upper_bound_y ) &  # Exclude top overlap if not northernmost
+            (labeled_las.x > lower_bound_x) &
+            (labeled_las.y > lower_bound_y)
+            )
+
+            subtile_masked = labeled_las.points[mask]   # get the 'inside' of the subtiles, without borders of -1 labels
+
+            label_array = labeled_las.label
+            # Check unprocessed labels (-1) considering borders
             unprocessed_labels = np.sum(label_array == -1)
             total_points = len(label_array)
-            print(f"Unprocessed labels (-1): {unprocessed_labels} / {total_points}")
+            print(f"Unprocessed labels with borders: {unprocessed_labels} / {total_points}")
+
+            label_array_no_borders = subtile_masked.label
+            print(f"Number of points before masking: {len(label_array)}")
+            print(f"Number of points after masking (inside borders): {len(subtile_masked)}")
+            # Check unprocessed labels without borders  
+            unprocessed_labels_no_borders = np.sum(label_array_no_borders == -1)
+            total_points_no_borders = len(label_array_no_borders)
+            print(f"Unprocessed labels without borders: {unprocessed_labels_no_borders} / {total_points_no_borders}")
 
 
     '''def test_predict(self):

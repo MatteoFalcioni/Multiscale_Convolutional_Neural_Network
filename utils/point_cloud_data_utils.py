@@ -536,7 +536,7 @@ def stitch_subtiles(subtile_folder, original_las, original_filename, model_direc
     lower_left_coords = []
 
     # Get all subtile files from the subtile folder
-    subtile_files = [os.path.join(subtile_folder, f) for f in os.listdir(subtile_folder) if f.endswith('.las')]
+    subtile_files = [os.path.join(subtile_folder, f) for f in os.listdir(subtile_folder) if f.endswith('_pred.las')]
 
     for subtile_file in subtile_files:
         # Extract coordinates from filename
@@ -549,12 +549,11 @@ def stitch_subtiles(subtile_folder, original_las, original_filename, model_direc
         lower_left_coords.append((lower_left_x, lower_left_y))
 
     # Find the maximum x and y values (rightmost and northernmost tiles)
-    up_y = max(lower_left_coords, key=lambda x: x[1])[1]  # Northernmost tiles (largest y)
-    right_x = max(lower_left_coords, key=lambda x: x[0])[0]  # Rightmost tiles (largest x)
+    # up_y = max(lower_left_coords, key=lambda x: x[1])[1]  # Northernmost tiles (largest y)
+    # right_x = max(lower_left_coords, key=lambda x: x[0])[0]  # Rightmost tiles (largest x)
     
     # define size of strip to cut off
     cut_off = overlap_size/2
-    # print(f'cut off: {cut_off}')
     
     # Iterate over each subtile
     for subtile_file in subtile_files:
