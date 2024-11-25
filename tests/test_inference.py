@@ -33,6 +33,9 @@ class TestPredictFunction(unittest.TestCase):
         self.overlap_size = int([value for label, value in self.window_sizes if label == 'large'][0])   # size of the largest window 
         self.cut_off = self.overlap_size/2
         self.model = load_model(model_path=loaded_model_path, device=self.device, num_channels=num_loaded_channels) 
+        
+        self.subtile_test_dir = 'tests/test_inference/two_subtiles/'  # contains two subtile from one of the 'chosen tiles'
+        os.makedirs(self.subtile_test_dir, exist_ok=True)
 
 
     def test_predict_subtiles(self):
@@ -40,13 +43,9 @@ class TestPredictFunction(unittest.TestCase):
         Test the predict_subtiles function for correctness and consistency in label assignment.
         """
 
-        """*******here: put a directory with one (or more) real subtile(s) OF THE ORIGINAL FILE, with million of points*******"""
-        subtile_test_dir = 'tests/test_subtiler/32_687000_4930000_FP21_sampled_10k_250_subtiles'
-        os.makedirs(subtile_test_dir, exist_ok=True)
-
         # Run predict_subtiles on the test subtile directory
         prediction_folder = predict_subtiles(
-            subtile_folder=subtile_test_dir,
+            subtile_folder=self.subtile_test_dir,
             model=self.model,
             device=self.device,
             batch_size=self.batch_size,
@@ -103,13 +102,9 @@ class TestPredictFunction(unittest.TestCase):
         
     def test_predict_subtiles_and_stitching(self):
 
-        """*******here: put a directory with one (or more) real subtile(s) OF THE ORIGINAL FILE, with million of points*******"""
-        subtile_test_dir = 'tests/test_subtiler/32_687000_4930000_FP21_sampled_10k_250_subtiles'
-        os.makedirs(subtile_test_dir, exist_ok=True)
-
         # Run predict_subtiles on the test subtile directory
         prediction_folder = predict_subtiles(
-            subtile_folder=subtile_test_dir,
+            subtile_folder=self.subtile_test_dir,
             model=self.model,
             device=self.device,
             batch_size=self.batch_size,
@@ -159,11 +154,6 @@ class TestPredictFunction(unittest.TestCase):
         total_points = len(label_array)
         unprocessed_labels = np.sum(label_array == -1)
         print(f"Unprocessed labels without borders: {unprocessed_labels} / {total_points}")
-
-
-
-
-
 
 
     '''def test_predict(self):

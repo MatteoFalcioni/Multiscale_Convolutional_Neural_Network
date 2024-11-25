@@ -132,7 +132,7 @@ class TestGridGeneration(unittest.TestCase):
                                                                                                                 channels=self.num_channels)
         grid, _, x_coords, y_coords, constant_z = create_feature_grid(center_point=center_point,
                                                                               window_size=self.window_sizes,
-                                                                              grid_resolution=self.grid_resolution
+                                                                              grid_resolution=self.grid_resolution,
                                                                               channels=self.num_channels
                                                                               )
         grid = assign_features_to_grid(tree=self.cpu_kdtree,
