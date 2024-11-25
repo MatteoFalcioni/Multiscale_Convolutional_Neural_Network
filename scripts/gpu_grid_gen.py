@@ -21,7 +21,7 @@ def build_cuml_knn(data_array, n_neighbors=1):
         return cuml_knn
 
 
-def create_feature_grid_gpu(center_point_tensor, window_size, grid_resolution=128, channels=3):
+def create_feature_grid_gpu(center_point_tensor, device, window_size, grid_resolution=128, channels=3):
     """
     Creates a grid around the center point and initializes cells to store feature values, on the GPU.
     Args:
@@ -31,7 +31,6 @@ def create_feature_grid_gpu(center_point_tensor, window_size, grid_resolution=12
     - channels (int): The number of channels in the resulting image.
 
     Returns:
-    - grid (torch.Tensor): A 2D grid initialized to zeros, which will store feature values.
     - cell_size (float): The size of each cell in meters.
     - x_coords (torch.Tensor): Array of x coordinates for the centers of the grid cells.
     - y_coords (torch.Tensor): Array of y coordinates for the centers of the grid cells.
@@ -41,13 +40,13 @@ def create_feature_grid_gpu(center_point_tensor, window_size, grid_resolution=12
     cell_size = window_size / grid_resolution
 
     # Initialize the grid to zeros on GPU; each cell will eventually hold feature values
-    grid = torch.zeros((grid_resolution, grid_resolution, channels), dtype=torch.float32, device="cuda") 
+    grid = torch.zeros((grid_resolution, grid_resolution, channels), dtype=torch.float64, device=device) 
 
     # Generate cell coordinates for the grid based on the center point, on the GPU
-    i_indices = torch.arange(grid_resolution, device="cuda")
-    j_indices = torch.arange(grid_resolution, device="cuda")
+    i_indices = torch.arange(grid_resolution, device=device)
+    j_indices = torch.arange(grid_resolution, device=device)
 
-    half_resolution_minus_half = (grid_resolution / 2) - 0.5
+    half_resolution_minus_half = torch.tensor((grid_resolution / 2) - 0.5, device=device, dtype=torch.float64)
 
     x_coords = center_point_tensor[0] - (half_resolution_minus_half - j_indices) * cell_size
     y_coords = center_point_tensor[1] - (half_resolution_minus_half - i_indices) * cell_size
@@ -64,8 +63,14 @@ def assign_features_to_grid_gpu(gpu_tree, gpu_data_array, grid, x_coords, y_coor
     """
     # Generate the grid coordinates on the GPU
     grid_x, grid_y = torch.meshgrid(x_coords, y_coords, indexing='ij')
-    grid_coords = torch.stack((grid_x.flatten(), grid_y.flatten(), torch.full_like(grid_x.flatten(), constant_z, device=device)), dim=-1)
-
+    grid_coords = torch.stack(
+            (
+                grid_x.flatten(),
+                grid_y.flatten(),
+                torch.full((grid_x.numel(),), constant_z, device=device, dtype=torch.float64)
+            ),
+            dim=-1
+        )
     # Query the GPU KNN model for nearest neighbors using the GPU-based KDTree
     _, indices = gpu_tree.query(grid_coords)
 
@@ -77,7 +82,7 @@ def assign_features_to_grid_gpu(gpu_tree, gpu_data_array, grid, x_coords, y_coor
     return grid
 
 
-def generate_multiscale_grids_gpu(center_point_tensor, data_array, window_sizes, grid_resolution, feature_indices, gpu_tree, point_cloud_bounds):
+def generate_multiscale_grids_gpu(center_point_tensor, data_array, window_sizes, grid_resolution, feature_indices, gpu_tree, point_cloud_bounds, device):
     """
     Generates multiscale grids for a single point in the data array using GPU-based operations.
     
@@ -96,7 +101,7 @@ def generate_multiscale_grids_gpu(center_point_tensor, data_array, window_sizes,
     - skipped (bool): Flag indicating if the point was skipped.
     """
     # Convert the data array to a tensor if it's not already on GPU
-    gpu_data_array = torch.tensor(data_array, dtype=torch.float32).to(device="cuda")
+    gpu_data_array = torch.tensor(data_array, dtype=torch.float32).to(device)
     
     grids_dict = {}  # To store grids for each scale
     channels = len(feature_indices)
