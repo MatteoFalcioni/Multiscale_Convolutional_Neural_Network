@@ -61,17 +61,17 @@ def predict(file_path, model, model_path, device, batch_size, window_sizes, grid
         prediction_folder = predict_subtiles(subtile_folder, model, device, batch_size, window_sizes, grid_resolution, features_to_use, num_workers)
 
         # stitch subtiles back together to construct final file with predictions
-        stitch_subtiles(subtile_folder=prediction_folder, original_las=las_file, original_filename=file_path, model_directory=model_directory, overlap_size=overlap_size)
+        output_filepath = stitch_subtiles(subtile_folder=prediction_folder, original_las=las_file, original_filename=file_path, model_directory=model_directory, overlap_size=overlap_size)
 
         # Teardown: Remove the subtile folder and its content
         # shutil.rmtree(subtile_folder)  # Removes the entire sub-tile folder
 
-        print('\nInference completed succesfully.')
+        print(f'\nInference completed succesfully. File saved at {output_filepath}')
             
     else:
         print(f"File has less than {min_points} points. Performing inference directly on the entire file.")
         
-        # adapt predict_subtile logic to handle a file with less than min points
+        # adapt predict_subtiles logic to handle a file with less than min points
 
 
 def predict_subtiles(subtile_folder, model, device, batch_size, window_sizes, grid_resolution, features_to_use, num_workers):

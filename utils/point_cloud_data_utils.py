@@ -504,6 +504,9 @@ def stitch_subtiles(subtile_folder, original_las, original_filename, model_direc
     - original_filename (str) : File name of the original LAS file.
     - model_directory (str): Directory where the trained PyTorch model is stored.
     - overlap_size (int): Size of the overlap between subtiles in meters.
+
+    Return:
+    - output_filepath (str): File path to the output stitched file.
     """
 
     # Create a new header with the correct point format, scales, and offsets 
@@ -653,7 +656,7 @@ def stitch_subtiles(subtile_folder, original_las, original_filename, model_direc
     # Save the stitched file
     stitched_las.write(output_filepath)
 
-    print(f"Stitching completed. Stitched file saved at: {output_filepath}")
+    # print(f"Stitching completed. Stitched file saved at: {output_filepath}")
 
     return output_filepath
     
