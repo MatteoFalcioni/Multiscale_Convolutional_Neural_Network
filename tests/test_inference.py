@@ -4,6 +4,7 @@ import numpy as np
 import laspy
 from scripts.inference import predict, predict_subtiles
 from utils.train_data_utils import prepare_dataloader, load_model, load_parameters
+from utils.point_cloud_data_utils import stitch_subtiles
 from models.mcnn import MultiScaleCNN
 import glob
 import os
@@ -16,24 +17,20 @@ class TestPredictFunction(unittest.TestCase):
         """
         Setup the test environment by creating a sampled LAS file.
         """
+        self.original_las_path = 'original file.las'
         self.sampled_las_path = 'tests/test_subtiler/32_687000_4930000_FP21_sampled_10k.las'  
         self.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
         
         # Set some parameters for the test
-        self.window_sizes = [('small', 10.0), ('medium', 20.0), ('large', 30.0)] 
-        self.overlap_size = 30.0  # size of the largest window 
         self.batch_size = 16  
         self.grid_resolution = 128  
-        self.features_to_use = ['x', 'y', 'z', 'intensity']  
-        self.num_channels = len(self.features_to_use)
         self.num_workers = 0 
-        self.tile_size = 125  # Tile size for subtiles
-        self.min_points = 500  # Example threshold for when to subtile
         self.model = MultiScaleCNN(channels=self.num_channels, classes=6).to(self.device) 
         loaded_model_path = 'models/saved/mcnn_model_20241030_051517/model.pth'
         loaded_features, num_loaded_channels, self.window_sizes = load_parameters(loaded_model_path)
         self.features_to_use = loaded_features
         print(f'window sizes: {self.window_sizes}\nLoaded features: {loaded_features}')
+        self.overlap_size = int([value for label, value in self.window_sizes if label == 'large'][0])   # size of the largest window 
         self.model = load_model(model_path=loaded_model_path, device=self.device, num_channels=num_loaded_channels) 
 
 
@@ -41,8 +38,8 @@ class TestPredictFunction(unittest.TestCase):
         """
         Test the predict_subtiles function for correctness and consistency in label assignment.
         """
-        # Create a temporary directory for subtile tests
-        """here: put a directory with some real subtiles, with million of points"""
+
+        """*******here: put a directory with one (or more) real subtile(s) OF THE ORIGINAL FILE, with million of points*******"""
         subtile_test_dir = 'tests/test_subtiler/32_687000_4930000_FP21_sampled_10k_250_subtiles'
         os.makedirs(subtile_test_dir, exist_ok=True)
 
@@ -95,12 +92,46 @@ class TestPredictFunction(unittest.TestCase):
             print(f"Unprocessed labels with borders: {unprocessed_labels} / {total_points}")
 
             label_array_no_borders = subtile_masked.label
-            print(f"Number of points before masking: {len(label_array)}")
-            print(f"Number of points after masking (inside borders): {len(subtile_masked)}")
+            #print(f"Number of points before masking: {len(label_array)}")
+            #print(f"Number of points after masking (inside borders): {len(subtile_masked)}")
             # Check unprocessed labels without borders  
             unprocessed_labels_no_borders = np.sum(label_array_no_borders == -1)
             total_points_no_borders = len(label_array_no_borders)
             print(f"Unprocessed labels without borders: {unprocessed_labels_no_borders} / {total_points_no_borders}")
+
+        
+    def test_predict_subtiles_and_stitching(self):
+
+        """*******here: put a directory with one (or more) real subtile(s) OF THE ORIGINAL FILE, with million of points*******"""
+        subtile_test_dir = 'tests/test_subtiler/32_687000_4930000_FP21_sampled_10k_250_subtiles'
+        os.makedirs(subtile_test_dir, exist_ok=True)
+
+        # Run predict_subtiles on the test subtile directory
+        prediction_folder = predict_subtiles(
+            subtile_folder=subtile_test_dir,
+            model=self.model,
+            device=self.device,
+            batch_size=self.batch_size,
+            window_sizes=self.window_sizes,
+            grid_resolution=self.grid_resolution,
+            features_to_use=self.features_to_use,
+            num_workers=self.num_workers
+        )
+
+        las_file = laspy.read(self.original_las_path)
+        out_dir = 'tests/test_inference/'
+        # stitch predictions back together
+        stitch_subtiles(subtile_folder=prediction_folder,
+                        original_las=las_file,
+                        original_filename=self.original_las_path, 
+                        model_directory=out_dir, 
+                        overlap_size=self.overlap_size)
+        
+        # inspect stitched file output
+        final_out_dir = os.path.join(final_out_dir, 'predictions')  # the results are in the predictions subfolder
+        predicted_filepath = [os.path.join(prediction_folder, f) for f in os.listdir(prediction_folder) if f.endswith('.las')]
+
+
 
 
     '''def test_predict(self):

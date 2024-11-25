@@ -505,8 +505,6 @@ def stitch_subtiles(subtile_folder, original_las, original_filename, model_direc
     - model_directory (str): Directory where the trained PyTorch model is stored.
     - overlap_size (int): Size of the overlap between subtiles in meters.
     """
-    # Open the original file to get header info
-    # original_las = laspy.read(original_file)
 
     # Create a new header with the correct point format, scales, and offsets 
     new_header = laspy.LasHeader(point_format=original_las.header.point_format, version=original_las.header.version)
@@ -547,10 +545,6 @@ def stitch_subtiles(subtile_folder, original_las, original_filename, model_direc
         lower_left_x = int(parts[1])
         lower_left_y = int(parts[2].split('.')[0])  # Extract y (before the file extension)
         lower_left_coords.append((lower_left_x, lower_left_y))
-
-    # Find the maximum x and y values (rightmost and northernmost tiles)
-    # up_y = max(lower_left_coords, key=lambda x: x[1])[1]  # Northernmost tiles (largest y)
-    # right_x = max(lower_left_coords, key=lambda x: x[0])[0]  # Rightmost tiles (largest x)
     
     # define size of strip to cut off
     cut_off = overlap_size/2
@@ -581,46 +575,6 @@ def stitch_subtiles(subtile_folder, original_las, original_filename, model_direc
         lower_bound_x = min_x + cut_off
         lower_bound_y = min_y + cut_off
 
-        '''is_northernmost = False
-        is_rightmost = False
-
-        if lower_left_y == up_y:
-            is_northernmost = True
-        if lower_left_x == right_x:
-            is_rightmost = True
-
-        if is_northernmost and is_rightmost:
-            # top right corner subtile: exclude bottom strip and left strip 
-            mask = (
-                (subtile_las.x >= lower_bound_x) & 
-                (subtile_las.y >= lower_bound_y)  
-            )
-
-        elif is_northernmost:
-            # northermost subtiles: exclude bottom strip and right strip of unclassified points
-            mask = (
-                (subtile_las.x < upper_bound_x) &  
-                (subtile_las.y >= lower_bound_y) 
-            )
-        
-        elif is_rightmost:
-            # rightmost subtiles: exclude left strip and top strip
-            mask = (
-                (subtile_las.x >= lower_bound_x) & 
-                (subtile_las.y < upper_bound_y )  
-            )
-            
-        else:
-            # general subtile: exclude right strip and top strip
-            print(f"min x: {min_x}\n")
-            print(f"min y: {min_y}\n")
-            print(f"max x: {max_x}\n")
-            print(f"max y: {max_y}\n")
-            
-            print("this is a general subtile, so we have to cut off :\n")
-            print(f"x until the upper bound: {upper_bound_x}\n")
-            print(f"y until the upper bound: {upper_bound_y}\n")
-            # eventually implement an is_leftmost and is_lowermost if you want to keep the lower and left -1 pts'''
         mask = (
             (subtile_las.x < upper_bound_x) &  # Exclude right overlap if not rightmost
             (subtile_las.y < upper_bound_y ) &  # Exclude top overlap if not northernmost
@@ -665,6 +619,10 @@ def stitch_subtiles(subtile_folder, original_las, original_filename, model_direc
     all_return_number = np.concatenate(all_return_number)
     all_number_of_returns = np.concatenate(all_number_of_returns)
     all_classification = np.concatenate(all_classification)
+
+    # Verify lengths
+    print(f"Total points: {len(all_points)}, Total labels: {len(all_labels)}")
+    assert len(all_points) == len(all_labels), "Mismatch between points and labels!"
     
     stitched_las.x = all_points[:, 0]
     stitched_las.y = all_points[:, 1]
@@ -679,21 +637,72 @@ def stitch_subtiles(subtile_folder, original_las, original_filename, model_direc
     stitched_las.number_of_returns = all_number_of_returns
     stitched_las.classification = all_classification
 
+    # Update header
+    stitched_las.update_header()
+
     # Construct the path for saving the final stitched file inside the model's directory
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    model_save_dir = os.path.join(model_directory, 'inference', 'predictions')
+    model_save_dir = os.path.join(model_directory, 'predictions')
     os.makedirs(model_save_dir, exist_ok=True)
     base_filename = os.path.basename(original_filename)     # Get the base filename without extension
     base_filename_without_ext = os.path.splitext(base_filename)[0]
 
     # Construct the final output file path
-    output_file = os.path.join(model_save_dir, f"{base_filename_without_ext}_pred_{timestamp}.las")
+    output_filepath = os.path.join(model_save_dir, f"{base_filename_without_ext}_pred_{timestamp}.las")
 
     # Save the stitched file
-    stitched_las.write(output_file)
+    stitched_las.write(output_filepath)
 
-    print(f"Stitching completed. Stitched file saved at: {output_file}")
+    print(f"Stitching completed. Stitched file saved at: {output_filepath}")
+
+    return output_filepath
     
+
+''' THIS WAS INSIDE STITCH
+# Find the maximum x and y values (rightmost and northernmost tiles) this was outside for loop
+    # up_y = max(lower_left_coords, key=lambda x: x[1])[1]  # Northernmost tiles (largest y)
+    # right_x = max(lower_left_coords, key=lambda x: x[0])[0]  # Rightmost tiles (largest x)
+is_northernmost = False
+        is_rightmost = False
+
+        if lower_left_y == up_y:
+            is_northernmost = True
+        if lower_left_x == right_x:
+            is_rightmost = True
+
+        if is_northernmost and is_rightmost:
+            # top right corner subtile: exclude bottom strip and left strip 
+            mask = (
+                (subtile_las.x >= lower_bound_x) & 
+                (subtile_las.y >= lower_bound_y)  
+            )
+
+        elif is_northernmost:
+            # northermost subtiles: exclude bottom strip and right strip of unclassified points
+            mask = (
+                (subtile_las.x < upper_bound_x) &  
+                (subtile_las.y >= lower_bound_y) 
+            )
+        
+        elif is_rightmost:
+            # rightmost subtiles: exclude left strip and top strip
+            mask = (
+                (subtile_las.x >= lower_bound_x) & 
+                (subtile_las.y < upper_bound_y )  
+            )
+            
+        else:
+            # general subtile: exclude right strip and top strip
+            print(f"min x: {min_x}\n")
+            print(f"min y: {min_y}\n")
+            print(f"max x: {max_x}\n")
+            print(f"max y: {max_y}\n")
+            
+            print("this is a general subtile, so we have to cut off :\n")
+            print(f"x until the upper bound: {upper_bound_x}\n")
+            print(f"y until the upper bound: {upper_bound_y}\n")
+            # eventually implement an is_leftmost and is_lowermost if you want to keep the lower and left -1 pts'''
+
 
 
 '''def old_subtiler(file_path, tile_size=50, overlap_size=10):
