@@ -11,8 +11,9 @@ import re
 class TestPointCloudDataUtils(unittest.TestCase):
     def setUp(self):
         # Path to a small LAS file for testing
-        self.test_file_path = 'data/test_files/test.las'
-        self.features_to_extract = ['intensity', 'red', 'green', 'blue']
+        self.test_file_path = 'data/chosen_tiles/32_687000_4930000_FP21.las'
+        self.features_to_extract = ['intensity', 'red', 'green', 'blue', 'nir', 'delta_z', 'l1', 'l2', 'l3']
+        self.features_to_use = ['intensity', 'red', 'green', 'blue']
 
     def test_read_las_file_to_numpy(self):
         # Check if the test file exists
@@ -35,6 +36,26 @@ class TestPointCloudDataUtils(unittest.TestCase):
 
         # Print the shape of the data
         print(f"Data shape: {data_array.shape}")
+        
+    def test_feature_indices(self):
+        # Read the LAS file
+        data_array, feature_names = read_las_file_to_numpy(self.test_file_path)
+
+        # Calculate feature indices
+        feature_indices = [feature_names.index(f) for f in self.features_to_use]
+
+        # Assertions
+        print(f"Feature names: {feature_names}")
+        print(f"Features to use: {self.features_to_use}")
+        print(f"Feature indices: {feature_indices}")
+
+        # Check the feature indices align correctly
+        for feature, index in zip(self.features_to_use, feature_indices):
+            self.assertIn(feature, feature_names, f"Feature {feature} not found in feature names.")
+            self.assertEqual(feature_names[index], feature, f"Index mismatch for feature {feature}.")
+
+        # Validate feature indices are the correct length
+        self.assertEqual(len(feature_indices), len(self.features_to_use), "Mismatch in feature indices length.")
 
 
 '''class TestPointCloudDataUtils(unittest.TestCase):
