@@ -4,7 +4,7 @@ import numpy as np
 import laspy
 from scripts.inference import predict, predict_subtiles
 from utils.train_data_utils import prepare_dataloader, load_model, load_parameters
-from utils.point_cloud_data_utils import stitch_subtiles
+from utils.point_cloud_data_utils import stitch_subtiles, read_file_to_numpy, numpy_to_dataframe
 from models.mcnn import MultiScaleCNN
 import glob
 import os
@@ -27,7 +27,7 @@ class TestPredictFunction(unittest.TestCase):
         self.num_workers = 16 
         self.load = True
         if self.load:
-            loaded_model_path = 'models/saved/mcnn_model_20241116_143003/model.pth'
+            loaded_model_path = 'models/saved/mcnn_model_20241029_080203/model.pth'
             loaded_features, num_loaded_channels, self.window_sizes = load_parameters(loaded_model_path)
             self.features_to_use = loaded_features
             self.num_channels = num_loaded_channels
@@ -36,9 +36,9 @@ class TestPredictFunction(unittest.TestCase):
             print(f"\nLoaded num channels: {self.num_channels}")
             print(f"\nLoaded window sizes: {self.window_sizes}")
         else:
-            self.features_to_use = ['intensity', 'red', 'green', 'blue']
+            self.features_to_use = ['intensity', 'red', 'green', 'blue', 'nir', 'delta_z', 'l1', 'l2', 'l3']
             self.num_channels = len(self.features_to_use)
-            self.model = MultiScaleCNN(channels=self.num_channels, classes=6) 
+            self.model = MultiScaleCNN(channels=self.num_channels, classes=6).to(self.device)
             self.window_sizes = [('small', 10.0), ('medium', 20.0), ('large', 30.0)]
         
         print(f'window sizes: {self.window_sizes}\n')
@@ -47,6 +47,26 @@ class TestPredictFunction(unittest.TestCase):
         
         self.subtile_test_dir = 'tests/test_inference/two_subtiles/'  # contains two subtile from one of the 'chosen tiles'
         os.makedirs(self.subtile_test_dir, exist_ok=True)
+        
+    def test_inspect_data_for_bad_values(self):
+        
+        data_array, known_features = read_file_to_numpy(self.original_las_path, features_to_use=None)
+        
+        # Check for NaNs and Infs in np array
+        for i, feature in enumerate(known_features):
+            nan_count = np.isnan(data_array[:, i]).sum()
+            inf_count = np.isinf(data_array[:, i]).sum()
+            print(f"Feature '{feature}': NaNs: {nan_count}, Infs: {inf_count}\n\n")
+        
+        df = numpy_to_dataframe(data_array=data_array, feature_names=known_features)
+        
+        # Inspect each feature for NaNs and Infs
+        for feature in df.columns:
+            nan_count = df[feature].isna().sum()
+            inf_count = np.isinf(df[feature]).sum()
+            print(f"Feature: {feature} | NaN Count: {nan_count} | Inf Count: {inf_count}")
+            
+        
 
 
     '''def test_predict_subtiles(self):
@@ -109,7 +129,7 @@ class TestPredictFunction(unittest.TestCase):
             # Check unprocessed labels without borders  
             unprocessed_labels_no_borders = np.sum(label_array_no_borders == -1)
             total_points_no_borders = len(label_array_no_borders)
-            print(f"Unprocessed labels without borders: {unprocessed_labels_no_borders} / {total_points_no_borders}")'''
+            print(f"Unprocessed labels without borders: {unprocessed_labels_no_borders} / {total_points_no_borders}")
 
         
     def test_predict_subtiles_and_stitching(self):
@@ -165,7 +185,7 @@ class TestPredictFunction(unittest.TestCase):
         label_array = predicted_las.label
         total_points = len(label_array)
         unprocessed_labels = np.sum(label_array == -1)
-        print(f"Unprocessed labels without borders: {unprocessed_labels} / {total_points}")
+        print(f"Unprocessed labels without borders: {unprocessed_labels} / {total_points}")'''
 
 
     '''def test_predict(self):

@@ -111,6 +111,7 @@ class TestSaveLoadModel(unittest.TestCase):
 
         print("Real model saving and loading validated successfully.") 
         
+        
     def test_compare_dummy_and_real_model(self):
         
         fresh_model = MultiScaleCNN(channels=9, classes=6).to(self.device)
