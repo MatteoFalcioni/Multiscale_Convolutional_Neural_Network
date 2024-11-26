@@ -18,10 +18,14 @@ class TestPointCloudToImage(unittest.TestCase):
 
         # Load LAS file and get data with user-selected features
         self.full_data, self.feature_names = read_file_to_numpy(data_dir=self.file_path, features_to_use=self.features_to_use)
-        num_points = int(1e3)
-        beg_idx = int(1e5)
-        self.sliced_data = self.full_data[beg_idx:beg_idx+num_points, :]    # slice 'in the middle' of the point cloud
-        print(f'feature names in test file: {self.feature_names}')
+        
+        # Randomly sample num_points from the point cloud
+        np.random.seed(42)  # For reproducibility
+        num_points = int(5*1e4)
+        random_indices = np.random.choice(self.full_data.shape[0], num_points, replace=False)
+        self.sliced_data = self.full_data[random_indices, :]
+        
+        print(f'\nfeature names in test file: {self.feature_names}')
         self.feature_indices = [self.feature_names.index(feature) for feature in self.features_to_use]
         self.tree = KDTree(self.full_data[:, :3])
         self.point_cloud_bounds = compute_point_cloud_bounds(self.full_data)
@@ -34,20 +38,17 @@ class TestPointCloudToImage(unittest.TestCase):
         # Append labels as a new column
         self.full_data = np.hstack((self.full_data, labels.reshape(-1, 1)))'''
         
-        np.random.seed(42)  # For reproducibility
         self.sample_size = 1000  # Subset for testing
         self.sampled_data = self.full_data[np.random.choice(self.full_data.shape[0], self.sample_size, replace=False)]
         self.idx = 100000
 
         # Define the window sizes for multiscale grids
-        self.window_sizes = [('small', 2.5), ('medium', 5.0), ('large', 10.0)]
+        self.window_sizes = [('small', 1.0), ('medium', 2.0), ('large', 3.0)]
 
         self.save_imgs_bool = False  # if True, save the generated images
         self.save_imgs_dir = 'tests/test_feature_imgs'   # directory to save test images
         os.makedirs(self.save_imgs_dir, exist_ok=True)
-
-        self.grid_save_dir = 'tests/multiscale_grids'
-        os.makedirs(self.grid_save_dir, exist_ok=True)
+        
 
     def test_create_and_assign_grids(self):
 
@@ -58,6 +59,7 @@ class TestPointCloudToImage(unittest.TestCase):
         self.assertGreaterEqual(self.sliced_data.shape[1], 4)  # At least x, y, z, and one feature
 
         test_window_size = 10.0
+        out_of_bounds = 0
 
         for center_point in tqdm(self.sliced_data, desc="testing grid creation and feat. assignment", unit="processed points"):
 
@@ -67,31 +69,30 @@ class TestPointCloudToImage(unittest.TestCase):
                 center_point[0] + half_window > self.point_cloud_bounds['x_max'] or
                 center_point[1] - half_window < self.point_cloud_bounds['y_min'] or
                 center_point[1] + half_window > self.point_cloud_bounds['y_max']):
-                print(f"Out of bounds skip")
+                # print(f"Out of bounds skip")
+                out_of_bounds += 1
                 continue
 
             # Create a grid around the center point
             grid, _, x_coords, y_coords, z_coord = create_feature_grid(
                 center_point, window_size=test_window_size, grid_resolution=self.grid_resolution, channels=self.channels
             )
+            
+            # Check for NaN or Inf in the grid right after creation
+            self.assertFalse(np.isnan(grid).any(), "NaN values found in grid creation.")
+            self.assertFalse(np.isinf(grid).any(), "Inf values found in grid creation.")
 
             # Ensure grid has the correct shape
             self.assertEqual(grid.shape, (self.grid_resolution, self.grid_resolution, self.channels))
 
-            # Identify feature indices dynamically
-            # print(f'features to use: {self.features_to_use}, known features: {self.feature_names}')
-            # print(f'feature indices: {self.feature_indices}')
-
             # Assign features using the pre-built KDTree
             grid_with_features = assign_features_to_grid(self.tree, self.full_data, grid, x_coords, y_coords, z_coord, self.feature_indices)
+            grid_with_features = np.transpose(grid_with_features, (2, 0, 1))
 
             # Check how many grid cells are still zero after assigning features
             non_zero_cells = np.count_nonzero(grid_with_features)
             total_cells = grid_with_features.size
             zero_cells_percentage = (total_cells - non_zero_cells) / total_cells * 100
-            # Check how many grid cells are still zero after assigning features
-
-
             if zero_cells_percentage > 0:
                 print(f"WARNING: percentage of zero cells in the grid: {zero_cells_percentage}%. This could be due to the use of a subsample of the point cloud\
                       during testing. Be sure to test with a full point cloud, and eventually slice the array to test on less points.\
@@ -110,13 +111,12 @@ class TestPointCloudToImage(unittest.TestCase):
             self.assertFalse(np.isnan(grid_with_features).any(), "NaN values found in grid features.")
             self.assertFalse(np.isinf(grid_with_features).any(), "Inf values found in grid features.")
 
-            # Check if KDTree queries returned valid indices
-            '''error here ...'''
-            # self.assertFalse(np.any(grid_with_features == 0), "Assigned grid cells are unexpectedly empty.")
+            self.assertFalse(np.any(grid_with_features == 0), "Assigned grid cells are unexpectedly empty.")
+            
+        print(f"Total number of out of bounds points: {out_of_bounds}")
 
         # Transpose the grid to match PyTorch's 'channels x height x width' format for visualization
         # grid_with_features = np.transpose(grid_with_features, (2, 0, 1))
-
         # Visualize and eventually save feature images (if save = True)
         '''for chan in range(0, self.channels):
             # Create a filename for saving the image
@@ -143,6 +143,9 @@ class TestPointCloudToImage(unittest.TestCase):
         self.assertEqual(self.tree.n, num_points, "KDTree does not contain all points from the dataset.")
 
         test_window_size = 10.0
+        
+        # number of out of bounds points
+        out_of_bounds = 0
 
         for center_point in tqdm(self.sliced_data, desc="Testing KD tree", unit="processed points"):
 
@@ -152,7 +155,8 @@ class TestPointCloudToImage(unittest.TestCase):
                 center_point[0] + half_window > self.point_cloud_bounds['x_max'] or
                 center_point[1] - half_window < self.point_cloud_bounds['y_min'] or
                 center_point[1] + half_window > self.point_cloud_bounds['y_max']):
-                print(f"Out of bounds skip")
+                # print(f"Out of bounds skip")
+                out_of_bounds += 1
                 continue
 
             # Create grid and query KDTree for nearest neighbors
@@ -187,12 +191,17 @@ class TestPointCloudToImage(unittest.TestCase):
             # Ensure valid distances (no NaN/Inf in distances)
             self.assertFalse(np.isnan(distances).any(), "KDTree returned NaN distances.")
             self.assertFalse(np.isinf(distances).any(), "KDTree returned Inf distances.")
+            
+        print(f"total number of out of bound points: {out_of_bounds}")
     
     
     def test_generate_multiscale_grids(self):
         print('Testing multiscale grid generation')
         
-        for point in tqdm(self.sliced_data, desc="Testing skipped points", unit="processed points"):
+        num_points = len(self.sliced_data)
+        not_skipped_points = 0
+        
+        for point in tqdm(self.sliced_data, desc="Testing multiscale grids", unit="processed points"):
 
             grids_dict, skipped = generate_multiscale_grids(
                 center_point=point,
@@ -205,6 +214,7 @@ class TestPointCloudToImage(unittest.TestCase):
             )
 
             if not skipped:
+                not_skipped_points += 1
                 # Verify that grids for each scale are generated and not empty
                 for scale_label, _ in self.window_sizes:
                     self.assertIn(scale_label, grids_dict, f"Scale {scale_label} is missing from the grids_dict.")
@@ -216,4 +226,6 @@ class TestPointCloudToImage(unittest.TestCase):
                     self.assertFalse(np.isnan(grid).any(), f"Grid for scale {scale_label} contains NaN values.")
                     self.assertFalse(np.isinf(grid).any(), f"Grid for scale {scale_label} contains Inf values.")
                     self.assertGreater(np.count_nonzero(grid), 0, f"Grid for scale {scale_label} is all zeros.")
+                    
+        print(f"Total number of skipped points: {num_points - not_skipped_points} ; percentage of skipped points: {num_points - not_skipped_points} / {num_points}")
 

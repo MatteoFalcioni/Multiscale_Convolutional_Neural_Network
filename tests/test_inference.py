@@ -17,15 +17,15 @@ class TestPredictFunction(unittest.TestCase):
         """
         Setup the test environment by creating a sampled LAS file.
         """
-        self.original_las_path = 'original file.las'
+        self.original_las_path = 'data/chosen_tiles/32_687000_4930000_FP21.las'
         self.sampled_las_path = 'tests/test_subtiler/32_687000_4930000_FP21_sampled_10k.las'  
         self.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
         
         # Set some parameters for the test
-        self.batch_size = 16  
+        self.batch_size = 32 
         self.grid_resolution = 128  
-        self.num_workers = 0 
-        self.model = MultiScaleCNN(channels=self.num_channels, classes=6).to(self.device) 
+        self.num_workers = 16 
+        # self.model = MultiScaleCNN(channels=self.num_channels, classes=6).to(self.device) 
         loaded_model_path = 'models/saved/mcnn_model_20241030_051517/model.pth'
         loaded_features, num_loaded_channels, self.window_sizes = load_parameters(loaded_model_path)
         self.features_to_use = loaded_features
@@ -33,8 +33,9 @@ class TestPredictFunction(unittest.TestCase):
         self.overlap_size = int([value for label, value in self.window_sizes if label == 'large'][0])   # size of the largest window 
         self.cut_off = self.overlap_size/2
         self.model = load_model(model_path=loaded_model_path, device=self.device, num_channels=num_loaded_channels) 
+        self.num_channels = num_loaded_channels
         
-        self.subtile_test_dir = 'tests/test_inference/two_subtiles/'  # contains two subtile from one of the 'chosen tiles'
+        self.subtile_test_dir = 'tests/test_inference/original_tile/'  # contains two subtile from one of the 'chosen tiles'
         os.makedirs(self.subtile_test_dir, exist_ok=True)
 
 
@@ -55,7 +56,8 @@ class TestPredictFunction(unittest.TestCase):
             num_workers=self.num_workers
         )
 
-        predicted_subtiles = [os.path.join(prediction_folder, f) for f in os.listdir(prediction_folder) if f.endswith('_pred.las')]
+        # predicted_subtiles = [os.path.join(prediction_folder, f) for f in os.listdir(prediction_folder) if f.endswith('_pred.las')]
+        predicted_subtiles = [os.path.join(prediction_folder, f) for f in os.listdir(prediction_folder) if f.endswith('.las')]
 
         for subtile_path in predicted_subtiles:
 

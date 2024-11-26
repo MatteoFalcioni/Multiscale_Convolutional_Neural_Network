@@ -13,7 +13,7 @@ class TestPointCloudDataset(unittest.TestCase):
         # Mock point cloud data for the test
         self.data_array, self.known_features = read_file_to_numpy(data_dir='data/sampled/sampled_data_500000.csv')
         self.data_array, _ = remap_labels(self.data_array)
-        self.window_sizes = [('small', 2.5), ('medium', 5.0), ('large', 10.0)]
+        self.window_sizes = [('small', 10.0), ('medium', 20.0), ('large', 30.0)]
         self.grid_resolution = 128
         self.features_to_use = ['intensity', 'red', 'green', 'blue']
 
