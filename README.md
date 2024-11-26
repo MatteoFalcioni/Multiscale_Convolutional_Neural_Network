@@ -83,11 +83,11 @@ In both cases, a folder `inference/<timestamp>` will be created inside the model
 
 ## Model predictions
 You can use the trained models to predict labels for your point cloud data. 
-In order to do so, you must specify from command line the arguments `--predict_labels` and `--file_to_predict`, followed by the file path to the file whose labels you want to predict. 
+In order to do so, you must specify from command line the file path to the model you want to use for predictions with `--load_model_filepath <filepath_to_model>`, and the arguments `--predict_labels` and `--file_to_predict <path_to_las_file_to_predict>`, with the file path to the file whose labels you want to predict. 
 This file must be in `.las` format.
 For example:  
 ```bash
-python main.py --predict_labels --file_to_predict <path_to_las_file>
+python main.py --load_model_filepath --predict_labels --file_to_predict <path_to_las_file_to_predict>
 ```
 
 Since this model is computationally expensive (it requires the creation of 3 multi-channel feature images for each point-cloud point) the code will automatically check the input file size and, if it's retained too big to be processed in one go, it will be automatically split into subtiles, each of which will be then processed. 
