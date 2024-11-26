@@ -107,12 +107,12 @@ def predict_subtiles(subtile_folder, model, device, batch_size, window_sizes, gr
     for file_path in subtile_files: 
         file_counter += 1 
         
-        print(f'Processing subtile {file_counter}/{total_files}')
+        print(f'Processing subtile {file_path} : {file_counter}/{total_files}')
         
         # Prepare the DataLoader for the current file
         inference_loader, _ = prepare_dataloader(
             batch_size=batch_size,
-            data_dir=file_path,
+            data_filepath=file_path,
             window_sizes=window_sizes,
             grid_resolution=grid_resolution,
             features_to_use=features_to_use,

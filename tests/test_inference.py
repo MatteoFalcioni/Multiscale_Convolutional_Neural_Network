@@ -25,15 +25,23 @@ class TestPredictFunction(unittest.TestCase):
         self.batch_size = 32 
         self.grid_resolution = 128  
         self.num_workers = 16 
-        # self.model = MultiScaleCNN(channels=self.num_channels, classes=6).to(self.device) 
-        loaded_model_path = 'models/saved/mcnn_model_20241030_051517/model.pth'
-        loaded_features, num_loaded_channels, self.window_sizes = load_parameters(loaded_model_path)
-        self.features_to_use = loaded_features
-        print(f'window sizes: {self.window_sizes}\nLoaded features: {loaded_features}')
+        self.load = True
+        if self.load:
+            loaded_model_path = 'models/saved/mcnn_model_20241030_051517/model.pth'
+            loaded_features, num_loaded_channels, self.window_sizes = load_parameters(loaded_model_path)
+            self.features_to_use = loaded_features
+            self.num_channels = num_loaded_channels
+            self.model = load_model(model_path=loaded_model_path, device=self.device, num_channels=num_loaded_channels)
+            print(f"\nLoaded features:{self.features_to_use} \n")
+        else:
+            self.features_to_use = ['intensity', 'red', 'green', 'blue']
+            self.num_channels = len(self.features_to_use)
+            self.model = MultiScaleCNN(channels=self.num_channels, classes=6).to(self.device) 
+            self.window_sizes = [('small', 10.0), ('medium', 20.0), ('large', 30.0)]
+        
+        print(f'window sizes: {self.window_sizes}\n')
         self.overlap_size = int([value for label, value in self.window_sizes if label == 'large'][0])   # size of the largest window 
         self.cut_off = self.overlap_size/2
-        self.model = load_model(model_path=loaded_model_path, device=self.device, num_channels=num_loaded_channels) 
-        self.num_channels = num_loaded_channels
         
         self.subtile_test_dir = 'tests/test_inference/original_tile/'  # contains two subtile from one of the 'chosen tiles'
         os.makedirs(self.subtile_test_dir, exist_ok=True)

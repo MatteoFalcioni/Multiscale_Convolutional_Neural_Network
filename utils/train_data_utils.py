@@ -58,9 +58,9 @@ class PointCloudDataset(Dataset):
             return None
         
         # Convert grids to PyTorch tensors
-        small_grid = torch.tensor(grids_dict['small'], dtype=torch.float64)
-        medium_grid = torch.tensor(grids_dict['medium'], dtype=torch.float64)
-        large_grid = torch.tensor(grids_dict['large'], dtype=torch.float64)
+        small_grid = torch.tensor(grids_dict['small'], dtype=torch.float32)
+        medium_grid = torch.tensor(grids_dict['medium'], dtype=torch.float32)
+        large_grid = torch.tensor(grids_dict['large'], dtype=torch.float32)
 
         # Convert label to tensor
         label = torch.tensor(label, dtype=torch.long)
