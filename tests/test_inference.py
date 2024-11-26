@@ -4,7 +4,7 @@ import numpy as np
 import laspy
 from scripts.inference import predict, predict_subtiles
 from utils.train_data_utils import prepare_dataloader, load_model, load_parameters
-from utils.point_cloud_data_utils import stitch_subtiles, read_file_to_numpy, numpy_to_dataframe
+from utils.point_cloud_data_utils import stitch_subtiles, read_file_to_numpy, numpy_to_dataframe, clean_nan_values
 from models.mcnn import MultiScaleCNN
 import glob
 import os
@@ -57,17 +57,15 @@ class TestPredictFunction(unittest.TestCase):
             nan_count = np.isnan(data_array[:, i]).sum()
             inf_count = np.isinf(data_array[:, i]).sum()
             print(f"Feature '{feature}': NaNs: {nan_count}, Infs: {inf_count}\n\n")
-        
-        df = numpy_to_dataframe(data_array=data_array, feature_names=known_features)
-        
-        # Inspect each feature for NaNs and Infs
-        for feature in df.columns:
-            nan_count = df[feature].isna().sum()
-            inf_count = np.isinf(df[feature]).sum()
-            print(f"Feature: {feature} | NaN Count: {nan_count} | Inf Count: {inf_count}")
             
+        data_array = clean_nan_values(data_array=data_array, feature_names=known_features)
         
-
+        # Check for NaNs and Infs in np array
+        for i, feature in enumerate(known_features):
+            nan_count = np.isnan(data_array[:, i]).sum()
+            inf_count = np.isinf(data_array[:, i]).sum()
+            print(f"\nFeature '{feature}': NaNs: {nan_count}, Infs: {inf_count}")
+        
 
     '''def test_predict_subtiles(self):
         """

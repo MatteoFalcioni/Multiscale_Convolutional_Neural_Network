@@ -661,6 +661,35 @@ def stitch_subtiles(subtile_folder, original_las, original_filename, model_direc
     return output_filepath
     
 
+def clean_nan_values(data_array, feature_names, default_value=0.0):
+    """
+    Cleans NaN and Inf values in a NumPy array by replacing them with a specified default value.
+
+    Args:
+    - data_array (numpy.ndarray): The NumPy array to clean.
+    - feature_names (list): List of feature names corresponding to the columns in the data array.
+    - default_value (numeric): The value to replace NaN and Inf values with. Default is 0.
+
+    Returns:
+    - numpy.ndarray: The cleaned NumPy array.
+    """
+    cleaned_array = data_array.copy()
+    for i, feature in enumerate(feature_names):
+        nan_mask = np.isnan(cleaned_array[:, i])
+        inf_mask = np.isinf(cleaned_array[:, i])
+        total_issues = nan_mask.sum() + inf_mask.sum()
+        if total_issues > 0:
+            print(f"Cleaning feature '{feature}': Replacing {total_issues} NaN/Inf values with {default_value} values\n")
+            cleaned_array[:, i][nan_mask | inf_mask] = default_value
+    return cleaned_array
+
+
+
+
+
+
+
+
 ''' THIS WAS INSIDE STITCH
 # Find the maximum x and y values (rightmost and northernmost tiles) this was outside for loop
     # up_y = max(lower_left_coords, key=lambda x: x[1])[1]  # Northernmost tiles (largest y)
