@@ -8,6 +8,35 @@ import laspy
 import re
 
 
+class TestPointCloudDataUtils(unittest.TestCase):
+    def setUp(self):
+        # Path to a small LAS file for testing
+        self.test_file_path = 'data/test_files/test.las'
+        self.features_to_extract = ['intensity', 'red', 'green', 'blue']
+
+    def test_read_las_file_to_numpy(self):
+        # Check if the test file exists
+        self.assertTrue(os.path.exists(self.test_file_path), f"Test file not found: {self.test_file_path}")
+
+        # Call the function to read the LAS file
+        data_array, feature_names = read_las_file_to_numpy(self.test_file_path, features_to_extract=self.features_to_extract)
+
+        # Assertions for basic functionality
+        self.assertIsNotNone(data_array, "The data array should not be None.")
+        self.assertGreater(len(data_array), 0, "The data array should not be empty.")
+        self.assertEqual(len(feature_names), data_array.shape[1], "Feature names count must match the number of columns in the data array.")
+
+        # Assertions for features
+        print(f"Extracted feature names: {feature_names}")
+        self.assertIn('x', feature_names, "'x' should be in the feature names.")
+        self.assertIn('intensity', feature_names, "'intensity' should be in the feature names.")
+        self.assertEqual(feature_names[:3], ['x', 'y', 'z'], "First three features should be 'x', 'y', 'z'.")
+        self.assertEqual(feature_names[-1], 'label', "Last feature should be 'label' if it exists.")
+
+        # Print the shape of the data
+        print(f"Data shape: {data_array.shape}")
+
+
 '''class TestPointCloudDataUtils(unittest.TestCase):
 
     def setUp(self):

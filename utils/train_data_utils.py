@@ -45,20 +45,25 @@ class PointCloudDataset(Dataset):
         # Extract the single point's data using `idx`
         center_point = self.data_array[idx, :3]  # Get the x, y, z coordinates
         label = self.data_array[idx, -1]  # Get the label for this point
+        # Log the center point being processed
+        print(f"Processing point at index {idx}, center: {center_point}")
 
         # Generate multiscale grids for this point
-        grids_dict, skipped = generate_multiscale_grids(center_point, data_array=self.data_array, window_sizes=self.window_sizes, grid_resolution=self.grid_resolution, feature_indices=self.feature_indices, kdtree=self.kdtree, point_cloud_bounds=self.point_cloud_bounds)
+        grids_dict, status = generate_multiscale_grids(center_point, data_array=self.data_array, window_sizes=self.window_sizes, grid_resolution=self.grid_resolution, feature_indices=self.feature_indices, kdtree=self.kdtree, point_cloud_bounds=self.point_cloud_bounds)
 
-        if not skipped: 
-            # Convert grids to PyTorch tensors
-            small_grid = torch.tensor(grids_dict['small'], dtype=torch.float32)
-            medium_grid = torch.tensor(grids_dict['medium'], dtype=torch.float32)
-            large_grid = torch.tensor(grids_dict['large'], dtype=torch.float32)
-
-            # Convert label to tensor
-            label = torch.tensor(label, dtype=torch.long)
-        else:
+        if status is not None: # i.e., point was skipped
+            if status == 'nan/inf':
+                print(f"Skipping point because of nan/inf value")
+            #print(f"Skipping point at index {idx}: {status}")
             return None
+        
+        # Convert grids to PyTorch tensors
+        small_grid = torch.tensor(grids_dict['small'], dtype=torch.float32)
+        medium_grid = torch.tensor(grids_dict['medium'], dtype=torch.float32)
+        large_grid = torch.tensor(grids_dict['large'], dtype=torch.float32)
+
+        # Convert label to tensor
+        label = torch.tensor(label, dtype=torch.long)
 
         # Return the grids and label
         return small_grid, medium_grid, large_grid, label, idx

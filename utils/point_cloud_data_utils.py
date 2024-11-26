@@ -44,7 +44,8 @@ def read_las_file_to_numpy(file_path, features_to_extract=None):
     Parameters:
     - file_path (str): The path to the LAS file.
     - features_to_extract (list): List of features to extract from the LAS file.
-                                  If None, all available features except 'x', 'y', 'z', 'segment_id', and 'label' will be selected.
+                                  If None, all available features except 'x', 'y', 'z' will be selected.
+                                  Notice that 'segment_id', and 'label' are always included in the extracted features. 
 
     Returns:
     - np.ndarray: A numpy array containing the extracted data from the LAS file.
@@ -105,7 +106,7 @@ def read_las_file_to_numpy(file_path, features_to_extract=None):
         data.append(las_data['label'])
         feature_names.append('label')
     else:
-        raise ValueError('The LAS data does not contain a label column, which is needed for training. Process stopped.')
+        print('***The LAS data does not contain a label column, which is needed for training. If you are training, choose a different file, with labels.***')
 
     # Convert the data list to a numpy array and transpose to match the expected shape (N, num_features)
     data_array = np.vstack(data).T

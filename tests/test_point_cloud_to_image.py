@@ -203,7 +203,7 @@ class TestPointCloudToImage(unittest.TestCase):
         
         for point in tqdm(self.sliced_data, desc="Testing multiscale grids", unit="processed points"):
 
-            grids_dict, skipped = generate_multiscale_grids(
+            grids_dict, status = generate_multiscale_grids(
                 center_point=point,
                 data_array=self.full_data,
                 window_sizes=self.window_sizes,
@@ -213,7 +213,7 @@ class TestPointCloudToImage(unittest.TestCase):
                 point_cloud_bounds=self.point_cloud_bounds
             )
 
-            if not skipped:
+            if status is None:   # which means not skipped
                 not_skipped_points += 1
                 # Verify that grids for each scale are generated and not empty
                 for scale_label, _ in self.window_sizes:
