@@ -1,7 +1,7 @@
 import torch
 from torch.utils.data import Dataset, DataLoader, random_split
 import os
-from utils.point_cloud_data_utils import read_file_to_numpy, remap_labels
+from utils.point_cloud_data_utils import read_file_to_numpy, remap_labels, clean_nan_values
 from scripts.point_cloud_to_image import generate_multiscale_grids, compute_point_cloud_bounds
 from datetime import datetime
 import pandas as pd
@@ -49,8 +49,6 @@ class PointCloudDataset(Dataset):
         # Extract the single point's data using `idx`
         center_point = self.data_array[idx, :3]  # Get the x, y, z coordinates
         label = self.data_array[idx, -1]  # Get the label for this point
-        # Log the center point being processed
-        #print(f"Processing point at index {idx}, center: {center_point}")
 
         # Generate multiscale grids for this point
         grids_dict, status = generate_multiscale_grids(center_point, data_array=self.data_array, window_sizes=self.window_sizes, grid_resolution=self.grid_resolution, feature_indices=self.feature_indices, kdtree=self.kdtree, point_cloud_bounds=self.point_cloud_bounds)
@@ -58,7 +56,6 @@ class PointCloudDataset(Dataset):
         if status is not None:  # i.e., point was skipped
             if status == 'nan/inf':
                 print(f"Skipping point because of nan/inf value")
-            #print(f"Skipping point at index {idx}: {status}")
             return None
         
         # Convert grids to PyTorch tensors
@@ -127,7 +124,8 @@ def prepare_dataloader(batch_size, data_filepath=None,
     data_array, known_features = read_file_to_numpy(data_dir=data_filepath, features_to_use=None, features_file_path=features_file_path)
 
     # Remap labels to ensure they vary continuously (needed for CrossEntropyLoss)
-    data_array, _ = remap_labels(data_array)
+    data_array, _ = remap_labels(data_array=data_array)
+    data_array = clean_nan_values(data_array=data_array)
 
     # Create the dataset 
     full_dataset = PointCloudDataset(

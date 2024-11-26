@@ -56,18 +56,18 @@ class TestPredictFunction(unittest.TestCase):
         for i, feature in enumerate(known_features):
             nan_count = np.isnan(data_array[:, i]).sum()
             inf_count = np.isinf(data_array[:, i]).sum()
-            print(f"Feature '{feature}': NaNs: {nan_count}, Infs: {inf_count}\n\n")
+            print(f"\nFeature '{feature}': NaNs: {nan_count}, Infs: {inf_count}")
             
-        data_array = clean_nan_values(data_array=data_array, feature_names=known_features)
+        data_array = clean_nan_values(data_array=data_array)
         
         # Check for NaNs and Infs in np array
         for i, feature in enumerate(known_features):
             nan_count = np.isnan(data_array[:, i]).sum()
             inf_count = np.isinf(data_array[:, i]).sum()
-            print(f"\nFeature '{feature}': NaNs: {nan_count}, Infs: {inf_count}")
+            print(f"\nCLEANED ARRAY: \nFeature '{feature}': NaNs: {nan_count}, Infs: {inf_count}")
         
 
-    '''def test_predict_subtiles(self):
+    def test_predict_subtiles(self):
         """
         Test the predict_subtiles function for correctness and consistency in label assignment.
         """
@@ -183,7 +183,7 @@ class TestPredictFunction(unittest.TestCase):
         label_array = predicted_las.label
         total_points = len(label_array)
         unprocessed_labels = np.sum(label_array == -1)
-        print(f"Unprocessed labels without borders: {unprocessed_labels} / {total_points}")'''
+        print(f"Unprocessed labels without borders: {unprocessed_labels} / {total_points}")
 
 
     '''def test_predict(self):
