@@ -46,21 +46,21 @@ class PointCloudDataset(Dataset):
         center_point = self.data_array[idx, :3]  # Get the x, y, z coordinates
         label = self.data_array[idx, -1]  # Get the label for this point
         # Log the center point being processed
-        print(f"Processing point at index {idx}, center: {center_point}")
+        #print(f"Processing point at index {idx}, center: {center_point}")
 
         # Generate multiscale grids for this point
         grids_dict, status = generate_multiscale_grids(center_point, data_array=self.data_array, window_sizes=self.window_sizes, grid_resolution=self.grid_resolution, feature_indices=self.feature_indices, kdtree=self.kdtree, point_cloud_bounds=self.point_cloud_bounds)
 
-        if status is not None: # i.e., point was skipped
+        if status is not None:  # i.e., point was skipped
             if status == 'nan/inf':
                 print(f"Skipping point because of nan/inf value")
             #print(f"Skipping point at index {idx}: {status}")
             return None
         
         # Convert grids to PyTorch tensors
-        small_grid = torch.tensor(grids_dict['small'], dtype=torch.float32)
-        medium_grid = torch.tensor(grids_dict['medium'], dtype=torch.float32)
-        large_grid = torch.tensor(grids_dict['large'], dtype=torch.float32)
+        small_grid = torch.tensor(grids_dict['small'], dtype=torch.float64)
+        medium_grid = torch.tensor(grids_dict['medium'], dtype=torch.float64)
+        large_grid = torch.tensor(grids_dict['large'], dtype=torch.float64)
 
         # Convert label to tensor
         label = torch.tensor(label, dtype=torch.long)
@@ -93,7 +93,7 @@ def custom_collate_fn(batch):
     return small_grids, medium_grids, large_grids, labels, indices
     
 
-def prepare_dataloader(batch_size, data_dir=None, 
+def prepare_dataloader(batch_size, data_filepath=None, 
                        window_sizes=None, grid_resolution=128, features_to_use=None, 
                        train_split=None, features_file_path=None, num_workers=4, shuffle_train=True):
     """
@@ -101,7 +101,7 @@ def prepare_dataloader(batch_size, data_dir=None,
     
     Args:
     - batch_size (int): The batch size to be used for training.
-    - data_dir (str): Path to the raw data (e.g., .las or .csv file). Default is None.
+    - data_filepath (str): Path to the raw data (e.g., .las or .csv file). Default is None.
     - window_sizes (list): List of window sizes to use for grid generation. Default is None.
     - grid_resolution (int): Resolution of the grid (e.g., 128x128).
     - features_to_use (list): List of feature names to use for grid generation. Default is None.
@@ -116,11 +116,11 @@ def prepare_dataloader(batch_size, data_dir=None,
     """
     
     # Check if data directory was passed as input
-    if data_dir is None:
-        raise ValueError('ERROR: Data directory was not passed as input to the dataloader.')
+    if data_filepath is None:
+        raise ValueError('ERROR: Data filepath was not passed as input to the dataloader.')
 
     # Read the raw point cloud data 
-    data_array, known_features = read_file_to_numpy(data_dir=data_dir, features_to_use=None, features_file_path=features_file_path)
+    data_array, known_features = read_file_to_numpy(data_dir=data_filepath, features_to_use=None, features_file_path=features_file_path)
 
     # Remap labels to ensure they vary continuously (needed for CrossEntropyLoss)
     data_array, _ = remap_labels(data_array)

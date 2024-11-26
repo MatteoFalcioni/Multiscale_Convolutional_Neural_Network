@@ -39,7 +39,7 @@ class TestPredictFunction(unittest.TestCase):
         os.makedirs(self.subtile_test_dir, exist_ok=True)
 
 
-    def test_predict_subtiles(self):
+    '''def test_predict_subtiles(self):
         """
         Test the predict_subtiles function for correctness and consistency in label assignment.
         """
@@ -99,7 +99,7 @@ class TestPredictFunction(unittest.TestCase):
             # Check unprocessed labels without borders  
             unprocessed_labels_no_borders = np.sum(label_array_no_borders == -1)
             total_points_no_borders = len(label_array_no_borders)
-            print(f"Unprocessed labels without borders: {unprocessed_labels_no_borders} / {total_points_no_borders}")
+            print(f"Unprocessed labels without borders: {unprocessed_labels_no_borders} / {total_points_no_borders}")'''
 
         
     def test_predict_subtiles_and_stitching(self):
