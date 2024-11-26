@@ -34,6 +34,10 @@ class PointCloudDataset(Dataset):
         self.feature_indices = [known_features.index(feature) for feature in features_to_use]
         
         self.point_cloud_bounds = compute_point_cloud_bounds(data_array)
+        
+        print(f"\n{len(known_features)} known features read from data: {known_features}\
+            \nSelected features to use: {features_to_use}\
+            \nResulting in indexing: {self.feature_indices}\n")
 
     def __len__(self):
         return len(self.data_array)

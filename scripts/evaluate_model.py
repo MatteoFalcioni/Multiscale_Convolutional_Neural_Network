@@ -2,7 +2,7 @@ from utils.train_data_utils import prepare_dataloader
 from scripts.inference import evaluate_model
 
 
-def evaluate_model(batch_size, data_dir, window_sizes, grid_resolution, features_to_use, num_workers, model, device, model_save_folder, evaluation_data_filepath):
+def evaluate_model(batch_size, data_filepath, window_sizes, grid_resolution, features_to_use, num_workers, model, device, model_save_folder, evaluation_data_filepath):
     """
     Evaluates the performance of a trained model on a given dataset and generates a confusion matrix and classification report.
 
@@ -10,7 +10,7 @@ def evaluate_model(batch_size, data_dir, window_sizes, grid_resolution, features
 
     Args:
         batch_size (int): The batch size to use for inference.
-        data_dir (str): The directory where the evaluation data is located.
+        data_filepath (str): Filepath to the evaluation data.
         window_sizes (list): List of window sizes to be used for feature images generation.
         grid_resolution (int): Resolution of the grid used for preparing input data.
         features_to_use (list): List of features to use during the evaluation (e.g., x, y, z, intensity).
@@ -23,11 +23,11 @@ def evaluate_model(batch_size, data_dir, window_sizes, grid_resolution, features
     Returns:
         None
     """
-    print(f'\nEvaluating model performance on file: {data_dir}')
+    print(f'\nEvaluating model performance on file: {data_filepath}')
 
     inference_loader, _ = prepare_dataloader(
             batch_size=batch_size,
-            data_dir=data_dir,  
+            data_filepath=data_filepath,  
             window_sizes=window_sizes,
             grid_resolution=grid_resolution,
             features_to_use=features_to_use,

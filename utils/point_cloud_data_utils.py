@@ -273,7 +273,6 @@ def read_file_to_numpy(data_dir, features_to_use=None, features_file_path=None):
     return data_array, known_features
 
 
-
 def combine_and_save_csv_files(csv_files, save=False, save_dir='data/combined_data'):
     """
     Combines multiple CSV files into a single NumPy array and optionally saves the combined data to a file.
