@@ -139,7 +139,6 @@ def predict_subtiles(subtile_folder, model, device, batch_size, window_sizes, gr
         with torch.no_grad():  # No gradient calculation during inference
             for batch in tqdm(inference_loader, desc="Performing inference"):
                 if batch is None:
-                    print('skipped entire batch')
                     continue
 
                 # Unpack the batch and move to the correct device

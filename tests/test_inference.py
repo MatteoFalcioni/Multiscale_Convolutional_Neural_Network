@@ -27,7 +27,7 @@ class TestPredictFunction(unittest.TestCase):
         self.num_workers = 16 
         self.load = True
         if self.load:
-            loaded_model_path = 'models/saved/mcnn_model_20241029_080203/model.pth'
+            loaded_model_path = 'models/saved/mcnn_model_20241116_143003/model.pth'
             loaded_features, num_loaded_channels, self.window_sizes = load_parameters(loaded_model_path)
             self.features_to_use = loaded_features
             self.num_channels = num_loaded_channels
@@ -64,7 +64,8 @@ class TestPredictFunction(unittest.TestCase):
         for i, feature in enumerate(known_features):
             nan_count = np.isnan(data_array[:, i]).sum()
             inf_count = np.isinf(data_array[:, i]).sum()
-            print(f"\nCLEANED ARRAY: \nFeature '{feature}': NaNs: {nan_count}, Infs: {inf_count}")
+            print("Array has beem cleaned: ")
+            print(f"\nFeature '{feature}': NaNs: {nan_count}, Infs: {inf_count}")
         
 
     def test_predict_subtiles(self):
