@@ -88,9 +88,13 @@ def assign_features_to_grid(tree, data_array, grid, x_coords, y_coords, constant
 
     # Query the KDTree in bulk using all grid coordinates
     _, indices = tree.query(grid_coords)
+    
+    selected_features = data_array[indices, :][:, feature_indices]
+    assert selected_features.shape[1] == len(feature_indices), (f"Shape mismatch: Selected features have {selected_features.shape[1]} channels, "
+                                                                f"but expected {len(feature_indices)} channels.")
 
     # Assign features using the bulk indices
-    grid[:, :, :] = data_array[indices, :][:, feature_indices].reshape(grid.shape)
+    grid[:, :, :] = selected_features.reshape(grid.shape)
 
     return grid
 
