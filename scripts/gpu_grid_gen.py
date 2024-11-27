@@ -11,7 +11,7 @@ def build_gpu_tree(data_array):
     return gpu_kdtree
 
 
-def mask_out_of_bounds_points_gpu(tensor_data_array, point_cloud_bounds, window_sizes):
+def mask_out_of_bounds_points_gpu(tensor_data_array, window_sizes, point_cloud_bounds):
     """
     Masks points that are too close to the boundaries of the dataset using GPU operations and precomputed bounds.
 
