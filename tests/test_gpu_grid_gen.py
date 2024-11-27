@@ -50,6 +50,11 @@ class TestGridGeneration(unittest.TestCase):
         cls.cpu_kdtree = cKDTree(cls.data_array[:, :3])  # Build KDTREE for CPU
         cls.gpu_kdtree = build_kd_tree(cls.tensor_data_array[:, :3])  # Build KDTree for GPU
         cls.gpu_knn = build_cuml_knn(data_array=cls.data_array[:, :3])  # Build cuML KNN model for GPU
+        
+        # sample indices randomly for tests
+        cls.num_samples = 5
+        np.random.seed(42)
+        cls.random_idxs = np.random.choice(len(cls.data_array), size=cls.num_samples, replace=False)
 
 
     def test_torch_tree(self):
@@ -80,7 +85,7 @@ class TestGridGeneration(unittest.TestCase):
         np.set_printoptions(precision=16)
         torch.set_printoptions(precision=16)
 
-        idxs = [10000, 50000, 100000, 1000000, 5000000]
+        idxs = self.random_idxs
 
         for idx in idxs:
             tensor_center_point = self.tensor_data_array[idx, :].to(self.device, dtype=torch.float64)
@@ -135,7 +140,7 @@ class TestGridGeneration(unittest.TestCase):
 
     def test_compare_feature_assignment(self):
 
-        idx = 500000
+        idx = self.random_idxs[0]
         
         tensor_center_point = self.tensor_data_array[idx, :].to(self.device, dtype=torch.float64)
         center_point = self.data_array[idx, :]  # Testing point
@@ -224,32 +229,14 @@ class TestGridGeneration(unittest.TestCase):
         
         visualize_grid(grid=cpu_grid, channel=3, title='CPU')
         visualize_grid(grid=torch_grid_np, channel=3, title='GPU')
-        
-        '''print(f"torch selected features shape: {self.tensor_data_array[torch_indices_flattened, :][:, self.feature_indices].shape}")
-        print(f"tensor_data_array shape: {self.tensor_data_array.shape}")
-        print(f"torch indices flattened: {torch_indices_flattened}")
-        print(f"Max index in torch_indices_flattened: {torch_indices_flattened.max().item()}")
-        print(f"Min index in torch_indices_flattened: {torch_indices_flattened.min().item()}")
-        invalid_indices = torch_indices_flattened[
-            (torch_indices_flattened < 0) | (torch_indices_flattened >= self.tensor_data_array.size(0))
-        ]
-        
-        print(f"Invalid indices: {invalid_indices}")'''
-        
-        '''print(f"torch_grid shape after reshaping: {(self.tensor_data_array[torch_indices_flattened, :][:, self.feature_indices]).view(torch_grid.shape)}")
-        torch_grid = self.tensor_data_array[torch_indices_flattened, :][:, self.feature_indices]
-        
-        np.testing.assert_allclose(cpu_grid, torch_grid.cpu().numpy(), err_msg="grid with features do not match between Torch and CPU")'''
 
-
-
-        '''torch_grid, _, torch_x_coords, torch_y_coords, torch_constant_z = create_feature_grid_gpu(center_point_tensor=tensor_center_point,
-                                                                                                                window_size=test_window_size,
+        torch_grid, _, torch_x_coords, torch_y_coords, torch_constant_z = create_feature_grid_gpu(center_point_tensor=tensor_center_point,
+                                                                                                                window_size=self.test_window_size,
                                                                                                                 grid_resolution=self.grid_resolution,
                                                                                                                 channels=self.num_channels,
                                                                                                                 device=self.device)
         grid, _, x_coords, y_coords, constant_z = create_feature_grid(center_point=center_point,
-                                                                              window_size=test_window_size,
+                                                                              window_size=self.test_window_size,
                                                                               grid_resolution=self.grid_resolution,
                                                                               channels=self.num_channels
                                                                               )
@@ -262,14 +249,99 @@ class TestGridGeneration(unittest.TestCase):
                                        feature_indices=self.feature_indices
                                        ) 
         torch_grid = assign_features_to_grid_gpu(gpu_tree=self.gpu_kdtree,
-                                                 gpu_data_array=self.tensor_data_array,
+                                                 tensor_data_array=self.tensor_data_array,
                                                  grid=torch_grid,
                                                  x_coords=torch_x_coords,
                                                  y_coords=torch_y_coords,
                                                  constant_z=torch_constant_z,
-                                                 feature_indices=self.feature_indices,
+                                                 feature_indices_tensor=feature_indices_tensor,
                                                  device=self.device)
-        np.testing.assert_allclose(grid, torch_grid.cpu().numpy(), err_msg="grid with features do not match between Torch and CPU")'''
+        np.testing.assert_allclose(grid, torch_grid.cpu().numpy(), err_msg="grid with features do not match between Torch and CPU")
+        
+        
+    def test_gpu_grid_generation(self):
+        """
+        Test that the GPU grid generation works correctly for a subset of points.
+        """
+        
+        idxs = self.random_idxs
+        feature_indices_tensor = torch.tensor(self.feature_indices, device=self.device)
+
+        for idx in idxs:
+            center_point_tensor = self.tensor_data_array[idx, :]
+            # Generate grids using the GPU pipeline
+            gpu_grids, gpu_status = generate_multiscale_grids_gpu(
+                center_point_tensor=center_point_tensor, tensor_data_array=self.tensor_data_array, window_sizes=self.window_sizes,
+                grid_resolution=self.grid_resolution, feature_indices_tensor=feature_indices_tensor,
+                gpu_tree=self.gpu_kdtree, point_cloud_bounds=self.point_cloud_bounds, device=self.device
+            )
+
+            if gpu_status is not None:
+                # print('Skipped point')
+                continue
+            
+            # Check if the generated grids contain any NaN or Inf values
+            for scale in ['small', 'medium', 'large']:
+                grid = gpu_grids[scale]
+
+                # Check if there are any NaN or Inf values in the grid
+                self.assertFalse(torch.isnan(grid).any(), f"NaN found in {scale} grid for point {center_point_tensor}")
+                self.assertFalse(torch.isinf(grid).any(), f"Inf found in {scale} grid for point {center_point_tensor}")
+
+                # Check if the grid has the expected shape (C, H, W)
+                self.assertEqual(grid.shape, (self.num_channels, self.grid_resolution, self.grid_resolution),  # Assuming 4 channels (features)
+                                 f"Grid shape mismatch for {scale} grid at point {center_point_tensor}")
+
+                # Check if there are no zero cells in the grid (i.e., no cells without assigned features)
+                self.assertFalse(torch.all(grid == 0), f"Grid contains zero cells for {scale} grid at point {center_point_tensor}")
+                
+                
+    def test_generate_grids_cpu_vs_gpu(self):
+        """
+        Test if grids generated on CPU match with those generated on GPU.
+        """
+        idxs = self.random_idxs
+        feature_indices_tensor = torch.tensor(self.feature_indices, device=self.device)
+
+        for idx in idxs:
+            center_point_tensor = self.tensor_data_array[idx, :]
+            center_point = self.data_array[idx, :]
+            # Generate grids using the CPU pipeline
+            cpu_grids, cpu_status = generate_multiscale_grids(
+                center_point, data_array=self.data_array, window_sizes=self.window_sizes,
+                grid_resolution=self.grid_resolution, feature_indices=self.feature_indices,
+                kdtree=self.cpu_kdtree, point_cloud_bounds=self.point_cloud_bounds
+            )
+
+            # Generate grids using the GPU pipeline
+            gpu_grids, gpu_status = generate_multiscale_grids_gpu(
+                center_point_tensor=center_point_tensor, tensor_data_array=self.tensor_data_array, window_sizes=self.window_sizes,
+                grid_resolution=self.grid_resolution, feature_indices_tensor=feature_indices_tensor,
+                gpu_tree=self.gpu_kdtree, point_cloud_bounds=self.point_cloud_bounds, device=self.device
+            )
+            
+            self.assertEqual(cpu_status, gpu_status, f"Error: status doesn't match between gpu and cpu.") 
+            
+            if gpu_status is None:  # i.e., point wasnt skipped
+                
+            # Compare the grids from CPU and GPU (for the same point)
+                for scale in ['small', 'medium', 'large']:
+                    cpu_grid = cpu_grids[scale]
+                    gpu_grid = gpu_grids[scale]
+                    
+                    # Move the GPU grid to CPU 
+                    moved_gpu_grid = gpu_grid.cpu().numpy()  
+
+                    # Visualize the grids (optional)
+                    visualize_grid(cpu_grid, channel=3, feature_names=self.features_to_use, save=False)
+                    visualize_grid(moved_gpu_grid, channel=3, feature_names=self.features_to_use, save=False)
+
+                    # Check if the grids are approximately equal
+                    try:
+                        np.testing.assert_almost_equal(cpu_grid, moved_gpu_grid, decimal=6, 
+                                                    err_msg=f"Grids do not match for {scale} scale at point {center_point}")
+                    except AssertionError as e:
+                        print(e)  # If grids don't match, print the error message and continue
         
         
 
@@ -457,101 +529,7 @@ class TestGridGeneration(unittest.TestCase):
             if not are_equal_cpu_gpu or not are_equal_cpu_torch or not are_equal_gpu_torch:
                 print(f'Indices diverged at precision {precision}')
                 break'''
-
-    '''def test_gpu_grid_generation(self):
-        """
-        Test that the GPU grid generation works correctly for a subset of points.
-        """
-        # Take a small subset of points for testing
-        points_to_test = self.data_array[:10, :]  # Testing with 10 points
-
-        for center_point in points_to_test:
-            # Generate grids using the GPU pipeline
-            gpu_grids, skipped_gpu = generate_multiscale_grids_gpu(
-                center_point, data_array=self.data_array, window_sizes=self.window_sizes,
-                grid_resolution=self.grid_resolution, feature_indices=self.feature_indices,
-                cuml_knn=self.gpu_tree, point_cloud_bounds=self.point_cloud_bounds
-            )
-            
-            # Print the keys of gpu_grids
-            # print(f"Generated grids keys: {gpu_grids.keys()}")
-
-            if skipped_gpu:
-                # print('Skipped point')
-                continue
-            
-            # Check if the generated grids contain any NaN or Inf values
-            for scale in ['small', 'medium', 'large']:
-                grid = gpu_grids[scale]
-
-                # Check if there are any NaN or Inf values in the grid
-                self.assertFalse(cp.isnan(grid).any(), f"NaN found in {scale} grid for point {center_point}")
-                self.assertFalse(cp.isinf(grid).any(), f"Inf found in {scale} grid for point {center_point}")
-
-                # Check if the grid has the expected shape (C, H, W)
-                self.assertEqual(grid.shape, (4, self.grid_resolution, self.grid_resolution),  # Assuming 4 channels (features)
-                                 f"Grid shape mismatch for {scale} grid at point {center_point}")
-
-                # Check if there are no zero cells in the grid (i.e., no cells without assigned features)
-                self.assertFalse(cp.all(grid == 0), f"Grid contains zero cells for {scale} grid at point {center_point}")'''
     
-
-    '''def test_generate_grids_cpu_vs_gpu(self):
-        """
-        Test if grids generated on CPU match with those generated on GPU.
-        """
-        # Take a small subset of points for comparison
-        points_to_test = self.data_array[200000:200010, :]  # Testing with 10 points
-        
-        # print(f'checking points {points_to_test}')
-
-        for center_point in points_to_test:
-            # Generate grids using the CPU pipeline
-            cpu_grids, skipped_cpu = generate_multiscale_grids(
-                center_point, data_array=self.data_array, window_sizes=self.window_sizes,
-                grid_resolution=self.grid_resolution, feature_indices=self.feature_indices,
-                kdtree=self.cpu_kdtree, point_cloud_bounds=self.point_cloud_bounds
-            )
-
-            # Generate grids using the GPU pipeline
-            gpu_grids, skipped_gpu = generate_multiscale_grids_gpu(
-                center_point, data_array=self.data_array, window_sizes=self.window_sizes,
-                grid_resolution=self.grid_resolution, feature_indices=self.feature_indices,
-                gpu_tree=self.gpu_kdtree, point_cloud_bounds=self.point_cloud_bounds
-            )
-            
-            if skipped_cpu and not skipped_gpu:
-                print(f'error: point skipped by cpu but not fom gpu')
-                
-            if skipped_gpu and not skipped_cpu:
-                print(f'error: point skipped by gpu but not fom cpu')
-            
-            if skipped_cpu and skipped_gpu:
-                print(f'The point was skipped by both gpu and cpu')
-                continue
-            
-            
-            # Compare the grids from CPU and GPU (for the same point)
-            for scale in ['small', 'medium', 'large']:
-                cpu_grid = cpu_grids[scale]
-                gpu_grid = gpu_grids[scale]
-                
-                # Move the GPU grid to CPU (if it's a PyTorch tensor)
-                if isinstance(gpu_grid, torch.Tensor):
-                    moved_gpu_grid = gpu_grid.cpu().numpy()  # Use .cpu() for PyTorch tensors
-                else:
-                    moved_gpu_grid = gpu_grid.get()  # If it's a CuPy array, use .get()
-                
-                # Visualize the grids (optional)
-                visualize_grid(cpu_grid, channel=3, feature_names=self.features_to_use, save=False)
-                visualize_grid(moved_gpu_grid, channel=3, feature_names=self.features_to_use, save=False)
-
-                # Check if the grids are approximately equal
-                try:
-                    np.testing.assert_almost_equal(cpu_grid, moved_gpu_grid, decimal=3, 
-                                                err_msg=f"Grids do not match for {scale} scale at point {center_point}")
-                except AssertionError as e:
-                    print(e)  # If grids don't match, print the error message and continue'''
 
 if __name__ == '__main__':
     unittest.main()

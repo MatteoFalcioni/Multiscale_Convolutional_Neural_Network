@@ -11,14 +11,14 @@ def build_gpu_tree(data_array, n_neighbors=1):
     return gpu_kdtree
 
 
-def build_cuml_knn(data_array, n_neighbors=1):
+'''def build_cuml_knn(data_array, n_neighbors=1):
         """
         Builds and returns a cuML KNN model on the GPU for nearest neighbor search.
         """
         data_gpu = cp.array(data_array, dtype=cp.float64) 
         cuml_knn = cuKNN(n_neighbors=n_neighbors)
         cuml_knn.fit(data_gpu)
-        return cuml_knn
+        return cuml_knn'''
 
 
 def create_feature_grid_gpu(center_point_tensor, device, window_size, grid_resolution=128, channels=3):
@@ -56,7 +56,7 @@ def create_feature_grid_gpu(center_point_tensor, device, window_size, grid_resol
     return grid, cell_size, x_coords, y_coords, constant_z
 
 
-def assign_features_to_grid_gpu(gpu_tree, gpu_data_array, grid, x_coords, y_coords, constant_z, feature_indices, device):
+def assign_features_to_grid_gpu(gpu_tree, tensor_data_array, grid, x_coords, y_coords, constant_z, feature_indices_tensor, device):
     """
     Assigns features from the nearest point in the dataset to each cell in the grid using torch_kdtree's GPU-accelerated KNN,
     and directly assigns them to the grid on GPU.
@@ -74,38 +74,35 @@ def assign_features_to_grid_gpu(gpu_tree, gpu_data_array, grid, x_coords, y_coor
     # Query the GPU KNN model for nearest neighbors using the GPU-based KDTree
     _, indices = gpu_tree.query(grid_coords)
 
-    indices = indices.flatten()
-    selected_features = gpu_data_array[indices, :][:, feature_indices]
+    indices_flattened = indices.flatten()
 
-    grid[:, :, :] = selected_features.reshape(grid.shape)
+    grid[:, :, :] = tensor_data_array[indices_flattened, :][:, feature_indices_tensor].reshape(grid.shape)
 
     return grid
 
 
-def generate_multiscale_grids_gpu(center_point_tensor, data_array, window_sizes, grid_resolution, feature_indices, gpu_tree, point_cloud_bounds, device):
+def generate_multiscale_grids_gpu(center_point_tensor, tensor_data_array, window_sizes, grid_resolution, feature_indices_tensor, gpu_tree, point_cloud_bounds, device):
     """
     Generates multiscale grids for a single point in the data array using GPU-based operations.
     
     Args:
     - center_point_tensor (torch.Tensor): (x, y, z) coordinates of the point in the point cloud.
-    - data_array (torch.Tensor): 2D array containing the point cloud data (on GPU).
+    - tensor_data_array (torch.Tensor): 2D array containing the point cloud data (on GPU).
     - window_sizes (list): List of tuples where each tuple contains (scale_label, window_size).
                            Example: [('small', 2.5), ('medium', 5.0), ('large', 10.0)].
     - grid_resolution (int): Resolution of the grid (e.g., 128 for 128x128 grids).
-    - feature_indices (list): List of feature indices to be selected from the full list of features.
+    - feature_indices_tensor (torch.Tensor): List of feature indices to be selected from the full list of features, in tensor form.
     - gpu_tree (torch_kdtree): Prebuilt torch_kdtree model for nearest neighbor search.
     - point_cloud_bounds (dict): Dictionary containing point cloud boundaries in every dimension (x, y, z).
     
     Returns:
     - grids_dict (dict): Dictionary of generated grids for each scale.
-    - skipped (bool): Flag indicating if the point was skipped.
+    - status (str or None): "out_of_bounds", "nan/inf", or None (valid).
     """
-    # Convert the data array to a tensor if it's not already on GPU
-    gpu_data_array = torch.tensor(data_array, dtype=torch.float64).to(device)
     
     grids_dict = {}  # To store grids for each scale
-    channels = len(feature_indices)
-    skipped = False
+    channels = len(feature_indices_tensor)
+    status = None   # Default: point is not skipped
 
     # Generate grid coordinates directly on the GPU for each scale
     for size_label, window_size in window_sizes:
@@ -116,26 +113,26 @@ def generate_multiscale_grids_gpu(center_point_tensor, data_array, window_sizes,
             center_point_tensor[0] + half_window > point_cloud_bounds['x_max'] or
             center_point_tensor[1] - half_window < point_cloud_bounds['y_min'] or
             center_point_tensor[1] + half_window > point_cloud_bounds['y_max']):
-            skipped = True
+            status = "out_of_bounds"
             break
 
         # Create grid coordinates on GPU
         grid, _, x_coords, y_coords, z_coord = create_feature_grid_gpu(
-            center_point_tensor, window_size, grid_resolution, channels
+            center_point_tensor, device, window_size, grid_resolution, channels
         )
 
         # Assign features from the nearest point in the data array using the GPU KNN model
         grid_with_features = assign_features_to_grid_gpu(
-            gpu_tree, gpu_data_array, grid, x_coords, y_coords, z_coord, feature_indices
+            gpu_tree, tensor_data_array, grid, x_coords, y_coords, z_coord, feature_indices_tensor, device
         )
 
         # Check for NaN or Inf in the grid
         if torch.isnan(grid_with_features).any() or torch.isinf(grid_with_features).any():
-            skipped = True
+            status = "nan/inf"
             break
 
         # Convert grid to PyTorch format (channels first: C, H, W)
         grid_with_features = grid_with_features.permute(2, 0, 1)  # (channels, height, width)
         grids_dict[size_label] = grid_with_features
 
-    return grids_dict, skipped
+    return grids_dict, status
