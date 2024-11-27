@@ -1,8 +1,8 @@
 import torch
 from torch.utils.data import Dataset, DataLoader, random_split
 import os
-from utils.point_cloud_data_utils import read_file_to_numpy, remap_labels, clean_nan_values, mask_out_of_bounds_points
-from scripts.point_cloud_to_image import generate_multiscale_grids, compute_point_cloud_bounds
+from utils.point_cloud_data_utils import read_file_to_numpy, remap_labels, clean_nan_values, mask_out_of_bounds_points, compute_point_cloud_bounds
+from scripts.point_cloud_to_image import generate_multiscale_grids_masked
 from datetime import datetime
 import pandas as pd
 from scipy.spatial import cKDTree
@@ -38,7 +38,7 @@ class PointCloudDataset(Dataset):
     
 
     def __len__(self):
-        return len(self.data_array)
+        return len(self.selected_array)
 
     def __getitem__(self, idx):
         """
@@ -49,12 +49,12 @@ class PointCloudDataset(Dataset):
         label = self.selected_array[idx, -1]  # Get the label for this point
 
         # Generate multiscale grids for this point using the entire dataset for feature assignment
-        grids_dict, status = generate_multiscale_grids(center_point, data_array=self.data_array, window_sizes=self.window_sizes, grid_resolution=self.grid_resolution, feature_indices=self.feature_indices, kdtree=self.kdtree, point_cloud_bounds=self.point_cloud_bounds)
+        grids_dict = generate_multiscale_grids_masked(center_point, data_array=self.data_array, window_sizes=self.window_sizes, grid_resolution=self.grid_resolution, feature_indices=self.feature_indices, kdtree=self.kdtree) # , point_cloud_bounds=self.point_cloud_bounds
 
-        if status is not None:  # i.e., point was skipped
+        '''if status is not None:  # i.e., point was skipped
             if status == 'nan/inf':
                 print(f"Skipping point because of nan/inf value")
-            return None
+            return None'''
         
         # Convert grids to PyTorch tensors
         small_grid = torch.tensor(grids_dict['small'], dtype=torch.float32)
@@ -67,7 +67,7 @@ class PointCloudDataset(Dataset):
         # Return the grids and label
         return small_grid, medium_grid, large_grid, label, idx
     
-
+'''
 def custom_collate_fn(batch):
     """
     Custom collate function to filter out None values (skipped points).
@@ -89,7 +89,7 @@ def custom_collate_fn(batch):
     labels = torch.stack(labels)
     indices = torch.tensor(indices)
     
-    return small_grids, medium_grids, large_grids, labels, indices
+    return small_grids, medium_grids, large_grids, labels, indices'''
     
 
 def prepare_dataloader(batch_size, data_filepath=None, 
@@ -142,11 +142,11 @@ def prepare_dataloader(batch_size, data_filepath=None,
         train_dataset, eval_dataset = random_split(full_dataset, [train_size, eval_size])
 
         # Create DataLoaders for training and evaluation
-        train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=shuffle_train, collate_fn=custom_collate_fn, num_workers=num_workers)
-        eval_loader = DataLoader(eval_dataset, batch_size=batch_size, shuffle=False, collate_fn=custom_collate_fn, num_workers=num_workers)
+        train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=shuffle_train, num_workers=num_workers) #collate_fn=custom_collate_fn,
+        eval_loader = DataLoader(eval_dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers)
     else:
         # If no train/test split, create one DataLoader for the full dataset
-        train_loader = DataLoader(full_dataset, batch_size=batch_size, shuffle=shuffle_train, collate_fn=custom_collate_fn, num_workers=num_workers)
+        train_loader = DataLoader(full_dataset, batch_size=batch_size, shuffle=shuffle_train, num_workers=num_workers)
         eval_loader = None
 
     return train_loader, eval_loader
