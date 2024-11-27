@@ -679,13 +679,14 @@ def clean_nan_values(data_array, default_value=0.0):
     return cleaned_array
 
 
-def mask_out_of_bounds_points(data_array, window_sizes):
+def mask_out_of_bounds_points(data_array, window_sizes, bounds):
     """
     Masks points that are too close to the boundaries of the dataset to generate grids.
 
     Args:
     - data_array (numpy.ndarray): Full point cloud data.
     - window_sizes (list): List of tuples for grid window sizes (e.g., [('small', 1.0), ...]).
+    - bounds (dict): Precomputed point cloud bounds.
 
     Returns:
     - valid_points (numpy.ndarray): Points that are not out of bounds.
@@ -695,8 +696,8 @@ def mask_out_of_bounds_points(data_array, window_sizes):
     max_half_window = max(window_size / 2 for _, window_size in window_sizes)
 
     # Compute dataset boundaries
-    x_min, x_max = data_array[:, 0].min(), data_array[:, 0].max()
-    y_min, y_max = data_array[:, 1].min(), data_array[:, 1].max()
+    x_min, x_max = bounds['x_min'], bounds['x_max']
+    y_min, y_max = bounds['y_min'], bounds['y_max']
 
     # Apply the mask to filter out out-of-bound points
     mask = (

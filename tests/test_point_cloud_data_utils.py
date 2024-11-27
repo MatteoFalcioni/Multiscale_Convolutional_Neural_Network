@@ -80,7 +80,7 @@ class TestPointCloudDataUtils(unittest.TestCase):
         manual_mask = np.array(manual_mask)  # Convert to NumPy array
         manual_masked_array = self.data_array[manual_mask]  # Filter the valid points
 
-        masked_array, mask = mask_out_of_bounds_points(data_array=self.data_array, window_sizes=self.window_sizes)
+        masked_array, mask = mask_out_of_bounds_points(data_array=self.data_array, window_sizes=self.window_sizes, bounds=self.point_cloud_bounds)
 
         np.testing.assert_array_equal(manual_masked_array, masked_array, err_msg="masked array doesnt match manually cleaned array")        
         np.testing.assert_equal(len(manual_masked_array), len(masked_array), err_msg="the same number of points should be excluded from both arrays.")

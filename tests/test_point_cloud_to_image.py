@@ -1,7 +1,7 @@
 import unittest
 import numpy as np
-from utils.point_cloud_data_utils import numpy_to_dataframe, read_file_to_numpy
-from scripts.point_cloud_to_image import create_feature_grid, assign_features_to_grid, generate_multiscale_grids, compute_point_cloud_bounds, generate_grids_for_selected_points
+from utils.point_cloud_data_utils import numpy_to_dataframe, read_file_to_numpy, mask_out_of_bounds_points, clean_nan_values, compute_point_cloud_bounds
+from scripts.point_cloud_to_image import create_feature_grid, assign_features_to_grid, generate_multiscale_grids, generate_multiscale_grids_selected
 from utils.plot_utils import visualize_grid, visualize_grid_with_comparison
 from scipy.spatial import cKDTree as KDTree
 import os
@@ -18,6 +18,7 @@ class TestPointCloudToImage(unittest.TestCase):
 
         # Load LAS file and get data with user-selected features
         self.full_data, self.feature_names = read_file_to_numpy(data_dir=self.file_path, features_to_use=self.features_to_use)
+        self.full_data = clean_nan_values(data_array=self.full_data)
         
         # Randomly sample num_points from the point cloud
         np.random.seed(42)  # For reproducibility
@@ -134,9 +135,6 @@ class TestPointCloudToImage(unittest.TestCase):
         
 
     def test_kd_tree(self):
-        """
-        Test that the KDTree is constructed properly and that KDTree queries return valid indices.
-        """
 
         num_points = len(self.full_data)
         # Verify the KDTree contains all points
@@ -228,4 +226,75 @@ class TestPointCloudToImage(unittest.TestCase):
                     self.assertGreater(np.count_nonzero(grid), 0, f"Grid for scale {scale_label} is all zeros.")
                     
         print(f"Total number of skipped points: {num_points - not_skipped_points} ; percentage of skipped points: {num_points - not_skipped_points} / {num_points}")
+        
+        
+    def test_masked_vs_unmasked_grid_gen(self):
+        
+        masked_sliced_data, mask = mask_out_of_bounds_points(self.sliced_data, self.window_sizes, self.point_cloud_bounds)
+        usual_grids = []
+        masked_grids = []
+        usual_coords = []
+        masked_coords = []
+        
+        out_of_bounds = 0
+        
+        for point in self.sliced_data:
+
+            grids_dict, status = generate_multiscale_grids(
+                                    center_point=point,
+                                    data_array=self.full_data,
+                                    window_sizes=self.window_sizes,
+                                    grid_resolution=self.grid_resolution,
+                                    feature_indices=self.feature_indices,
+                                    kdtree=self.tree,  # Pass the prebuilt KDTree
+                                    point_cloud_bounds=self.point_cloud_bounds
+                                )
+            
+            if status is None:
+                usual_grids.append(grids_dict)
+                usual_coords.append(tuple(point))
+            
+            elif status == 'out_of_bounds':
+                out_of_bounds += 1
+            elif status == 'nan/inf':
+                print(f"Oh no! nan/inf encountered!")
+                
+        print(f"Out of bounds point excluded in grid generation: {out_of_bounds}")
+            
+        print(f"sliced data shape: {self.sliced_data.shape}")
+        print(f"masked_sliced_data: {masked_sliced_data.shape}")
+        for point in masked_sliced_data:
+            
+            masked_grids_dict = generate_multiscale_grids_selected(
+                                    center_point=point,
+                                    data_array=self.full_data,
+                                    window_sizes=self.window_sizes,
+                                    grid_resolution=self.grid_resolution,
+                                    feature_indices=self.feature_indices,
+                                    kdtree=self.tree
+                                )
+            masked_grids.append(masked_grids_dict)
+            masked_coords.append(tuple(point))
+        
+        print(f"out of bound points detected from usual grid gen: {out_of_bounds}")
+            
+        self.assertEqual(len(masked_grids), len(usual_grids), f"Number of grids dosnt match betweeen the masked implementation ({len(masked_grids)}) and the usual ({len(usual_grids)}).")
+        self.assertEqual(sorted(masked_coords), sorted(usual_coords), "Coordinates do not match between masked and unmasked approaches.")
+
+        # Compare the grids for matching coordinates
+        for coord in masked_coords:
+            # Find the index of the matching coordinate in the usual approach
+            usual_index = usual_coords.index(coord)
+            masked_index = masked_coords.index(coord)
+
+            usual_grids_dict = usual_grids[usual_index]
+            masked_grids_dict = masked_grids[masked_index]
+
+            # Compare grids at all scales
+            for scale_label in self.window_sizes:
+                scale = scale_label[0]
+                np.testing.assert_array_equal(
+                    masked_grids_dict[scale], usual_grids_dict[scale],
+                    err_msg=f"Grid values differ for point {coord} at scale {scale}."
+                )
         
