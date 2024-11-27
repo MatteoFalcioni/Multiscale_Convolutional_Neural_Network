@@ -7,8 +7,6 @@
 # (4) class rebalancing and trai/eval split: you dont want cars to be too under-represented so you downsample 
 # the most represented classes. Then you split. *All this is probably better to do on csv instead of las
 
-# (5) eventually you can choose to reate a 'big' dataset where you downsample less. Then if gpu implementation works
-# we might be able to use that one. But maybe it's not even necessary.
 
 from collections import defaultdict
 import os
