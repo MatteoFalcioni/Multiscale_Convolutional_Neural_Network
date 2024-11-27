@@ -1,7 +1,7 @@
 import unittest
 import numpy as np
 from utils.point_cloud_data_utils import numpy_to_dataframe, read_file_to_numpy, mask_out_of_bounds_points, clean_nan_values, compute_point_cloud_bounds
-from scripts.point_cloud_to_image import create_feature_grid, assign_features_to_grid, generate_multiscale_grids, generate_multiscale_grids_selected
+from scripts.point_cloud_to_image import create_feature_grid, assign_features_to_grid, generate_multiscale_grids, generate_multiscale_grids_masked
 from utils.plot_utils import visualize_grid, visualize_grid_with_comparison
 from scipy.spatial import cKDTree as KDTree
 import os
@@ -265,7 +265,7 @@ class TestPointCloudToImage(unittest.TestCase):
         print(f"masked_sliced_data: {masked_sliced_data.shape}")
         for point in masked_sliced_data:
             
-            masked_grids_dict = generate_multiscale_grids_selected(
+            masked_grids_dict = generate_multiscale_grids_masked(
                                     center_point=point,
                                     data_array=self.full_data,
                                     window_sizes=self.window_sizes,
