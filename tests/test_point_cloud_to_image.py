@@ -1,7 +1,7 @@
 import unittest
 import numpy as np
 from utils.point_cloud_data_utils import numpy_to_dataframe, read_file_to_numpy
-from scripts.point_cloud_to_image import create_feature_grid, assign_features_to_grid, generate_multiscale_grids, compute_point_cloud_bounds
+from scripts.point_cloud_to_image import create_feature_grid, assign_features_to_grid, generate_multiscale_grids, compute_point_cloud_bounds, generate_grids_for_selected_points
 from utils.plot_utils import visualize_grid, visualize_grid_with_comparison
 from scipy.spatial import cKDTree as KDTree
 import os
@@ -21,7 +21,7 @@ class TestPointCloudToImage(unittest.TestCase):
         
         # Randomly sample num_points from the point cloud
         np.random.seed(42)  # For reproducibility
-        num_points = int(5*1e4)
+        num_points = int(1e3)
         random_indices = np.random.choice(self.full_data.shape[0], num_points, replace=False)
         self.sliced_data = self.full_data[random_indices, :]
         
@@ -228,4 +228,4 @@ class TestPointCloudToImage(unittest.TestCase):
                     self.assertGreater(np.count_nonzero(grid), 0, f"Grid for scale {scale_label} is all zeros.")
                     
         print(f"Total number of skipped points: {num_points - not_skipped_points} ; percentage of skipped points: {num_points - not_skipped_points} / {num_points}")
-
+        

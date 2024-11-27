@@ -158,7 +158,46 @@ def generate_multiscale_grids(center_point, data_array, window_sizes, grid_resol
     return grids_dict, status
 
 
+def generate_multiscale_grids_selected(center_point, data_array, window_sizes, grid_resolution, feature_indices, kdtree):
 
+    grids_dict = {}  # To store grids for each scale
+    channels = len(feature_indices)
+
+    for size_label, window_size in window_sizes:
+
+        # Generate the grid for the current scale
+        grid, _, x_coords, y_coords, z_coord = create_feature_grid(
+            center_point, window_size, grid_resolution, channels
+        )
+
+        # Assign features from the nearest point in the data array using the KDTree
+        grid_with_features = assign_features_to_grid(kdtree, data_array, grid, x_coords, y_coords, z_coord, feature_indices)
+        grid_with_features = np.transpose(grid_with_features, (2, 0, 1))  # Convert to channels first (Torch format)
+
+        grids_dict[size_label] = grid_with_features
+
+    return grids_dict
+
+
+def generate_grids_for_selected_points(selected_array, data_array, window_sizes, grid_resolution, feature_indices, kdtree):
+    """
+    Generate multiscale grids for selected points only.
+
+    Args:
+    - selected_array (numpy.ndarray): Subset of points for which grids will be created.
+    - data_array (numpy.ndarray): Full point cloud data for neighbor search.
+    - window_sizes, grid_resolution, feature_indices, kdtree, point_cloud_bounds: As defined earlier.
+
+    Returns:
+    - result_dict: Dictionary mapping each point to its multiscale grids and status.
+    """
+    result_dict = {}
+    for point in selected_array:
+        grids_dict, status = generate_multiscale_grids_selected(
+            point, data_array, window_sizes, grid_resolution, feature_indices, kdtree
+        )
+        result_dict[tuple(point)] = {"grids": grids_dict, "status": status}
+    return result_dict
 
 
 

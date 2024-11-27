@@ -1,7 +1,7 @@
 import torch
 from torch.utils.data import Dataset, DataLoader, random_split
 import os
-from utils.point_cloud_data_utils import read_file_to_numpy, remap_labels, clean_nan_values
+from utils.point_cloud_data_utils import read_file_to_numpy, remap_labels, clean_nan_values, mask_points
 from scripts.point_cloud_to_image import generate_multiscale_grids, compute_point_cloud_bounds
 from datetime import datetime
 import pandas as pd
@@ -12,7 +12,7 @@ import ast
 
 
 class PointCloudDataset(Dataset):
-    def __init__(self, data_array, window_sizes, grid_resolution, features_to_use, known_features):
+    def __init__(self, data_array, window_sizes, grid_resolution, features_to_use, known_features, selection_criteria):
         """
         Dataset class for streaming multiscale grid generation from point cloud data.
 
@@ -22,6 +22,7 @@ class PointCloudDataset(Dataset):
         - grid_resolution (int): Grid resolution (e.g., 128x128).
         - features_to_use (list): List of feature names for generating grids.
         - known_features (list): All known feature names in the data array.
+        - selection_criteria (callable, optional): A function to apply selection masking. Defaults to None (use all points).
         """
         self.data_array = data_array
         self.window_sizes = window_sizes
@@ -33,7 +34,11 @@ class PointCloudDataset(Dataset):
         self.kdtree = cKDTree(data_array[:, :3])  # Use coordinates for KDTree
         self.feature_indices = [known_features.index(feature) for feature in features_to_use]
         
-        self.point_cloud_bounds = compute_point_cloud_bounds(data_array)
+        # Use only a subset of points if a selection criteria is provided
+        if selection_criteria is not None:
+            self.selected_array, mask = mask_points(data_array, selection_criteria)
+        else:
+            self.selected_array = data_array
     
 
     def __len__(self):
@@ -43,11 +48,11 @@ class PointCloudDataset(Dataset):
         """
         Generates multiscale grids for the point at index `idx` and returns them as PyTorch tensors, along with the index.
         """
-        # Extract the single point's data using `idx`
-        center_point = self.data_array[idx, :3]  # Get the x, y, z coordinates
-        label = self.data_array[idx, -1]  # Get the label for this point
+        # Extract the single point's data from the selected array using `idx`
+        center_point = self.selected_array[idx, :3]  # Get the x, y, z coordinates
+        label = self.selected_array[idx, -1]  # Get the label for this point
 
-        # Generate multiscale grids for this point
+        # Generate multiscale grids for this point using the entire dataset for feature assignment
         grids_dict, status = generate_multiscale_grids(center_point, data_array=self.data_array, window_sizes=self.window_sizes, grid_resolution=self.grid_resolution, feature_indices=self.feature_indices, kdtree=self.kdtree, point_cloud_bounds=self.point_cloud_bounds)
 
         if status is not None:  # i.e., point was skipped

@@ -679,6 +679,44 @@ def clean_nan_values(data_array, default_value=0.0):
     return cleaned_array
 
 
+def mask_out_of_bounds_points(data_array, window_sizes):
+    """
+    Masks points that are too close to the boundaries of the dataset to generate grids.
+
+    Args:
+    - data_array (numpy.ndarray): Full point cloud data.
+    - window_sizes (list): List of tuples for grid window sizes (e.g., [('small', 1.0), ...]).
+
+    Returns:
+    - valid_points (numpy.ndarray): Points that are not out of bounds.
+    - mask (numpy.ndarray): Boolean array indicating valid points.
+    """
+    # Determine the maximum half window size from all scales
+    max_half_window = max(window_size / 2 for _, window_size in window_sizes)
+
+    # Compute dataset boundaries
+    x_min, x_max = data_array[:, 0].min(), data_array[:, 0].max()
+    y_min, y_max = data_array[:, 1].min(), data_array[:, 1].max()
+    z_min, z_max = data_array[:, 2].min(), data_array[:, 2].max()
+
+    # Apply the mask to filter out out-of-bound points
+    mask = (
+        (data_array[:, 0] - max_half_window >= x_min) & (data_array[:, 0] + max_half_window <= x_max) &
+        (data_array[:, 1] - max_half_window >= y_min) & (data_array[:, 1] + max_half_window <= y_max) &
+        (data_array[:, 2] - max_half_window >= z_min) & (data_array[:, 2] + max_half_window <= z_max)
+    )
+
+    # Return valid points and the mask
+    return data_array[mask], mask
+
+
+
+
+
+
+
+
+
 ''' THIS WAS INSIDE STITCH
 # Find the maximum x and y values (rightmost and northernmost tiles) this was outside for loop
     # up_y = max(lower_left_coords, key=lambda x: x[1])[1]  # Northernmost tiles (largest y)
