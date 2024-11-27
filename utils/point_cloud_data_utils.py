@@ -738,6 +738,33 @@ def compute_point_cloud_bounds(data_array, padding=0.0):
     return bounds_dict
 
 
+def las_to_csv(las_file, output_csv_filepath):
+    """
+    Converts a LAS file to a CSV file by extracting its data and features.
+
+    This function reads a LAS file, converts its contents into a NumPy array, 
+    and transforms the array into a Pandas DataFrame. The DataFrame is then saved 
+    as a CSV file at the specified output location.
+
+    Args:
+    - las_file (str): Path to the input LAS file.
+    - output_csv_filepath (str): Path to save the output CSV file.
+
+    Returns:
+    - output_csv_filepath (str): Path to the saved CSV file.
+    """
+
+    # read the las to numpy and get the features
+    data_array, known_features = read_file_to_numpy(las_file)
+
+    # convert array to dataframe
+    df = numpy_to_dataframe(data_array=data_array, feature_names=known_features)
+
+    # Save the DataFrame to a CSV file
+    os.makedirs(os.path.dirname(output_csv_filepath), exist_ok=True)
+    df.to_csv(output_csv_filepath, index=False)
+
+    return output_csv_filepath
 
 
 
