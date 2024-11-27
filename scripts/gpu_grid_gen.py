@@ -1,6 +1,6 @@
-import cuml
+'''import cuml
 from cuml.neighbors import NearestNeighbors as cuKNN
-import cupy as cp
+import cupy as cp'''
 from torch_kdtree import build_kd_tree
 import torch
 

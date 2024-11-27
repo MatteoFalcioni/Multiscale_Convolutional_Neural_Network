@@ -1,7 +1,7 @@
 import torch
 from torch.utils.data import Dataset, DataLoader, random_split
 import os
-from utils.point_cloud_data_utils import read_file_to_numpy, remap_labels, clean_nan_values, mask_points
+from utils.point_cloud_data_utils import read_file_to_numpy, remap_labels, clean_nan_values, mask_out_of_bounds_points
 from scripts.point_cloud_to_image import generate_multiscale_grids, compute_point_cloud_bounds
 from datetime import datetime
 import pandas as pd
@@ -12,7 +12,7 @@ import ast
 
 
 class PointCloudDataset(Dataset):
-    def __init__(self, data_array, window_sizes, grid_resolution, features_to_use, known_features, selection_criteria):
+    def __init__(self, data_array, window_sizes, grid_resolution, features_to_use, known_features):
         """
         Dataset class for streaming multiscale grid generation from point cloud data.
 
@@ -22,7 +22,6 @@ class PointCloudDataset(Dataset):
         - grid_resolution (int): Grid resolution (e.g., 128x128).
         - features_to_use (list): List of feature names for generating grids.
         - known_features (list): All known feature names in the data array.
-        - selection_criteria (callable, optional): A function to apply selection masking. Defaults to None (use all points).
         """
         self.data_array = data_array
         self.window_sizes = window_sizes
@@ -34,11 +33,7 @@ class PointCloudDataset(Dataset):
         self.kdtree = cKDTree(data_array[:, :3])  # Use coordinates for KDTree
         self.feature_indices = [known_features.index(feature) for feature in features_to_use]
         
-        # Use only a subset of points if a selection criteria is provided
-        if selection_criteria is not None:
-            self.selected_array, mask = mask_points(data_array, selection_criteria)
-        else:
-            self.selected_array = data_array
+        self.selected_array, mask = mask_out_of_bounds_points(data_array=data_array, window_sizes=window_sizes)
     
 
     def __len__(self):

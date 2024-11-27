@@ -711,6 +711,32 @@ def mask_out_of_bounds_points(data_array, window_sizes):
 
 
 
+def compute_point_cloud_bounds(data_array, padding=0.0):
+    """
+    Computes the spatial boundaries (min and max) of the point cloud data.
+    
+    Args:
+    - data_array (numpy.ndarray): Array containing point cloud data where the first three columns are (x, y, z) coordinates.
+    - padding (float): Optional padding to extend the boundaries by a fixed amount in all directions.
+    
+    Returns:
+    - bounds_dict (dict): Dictionary with 'x_min', 'x_max', 'y_min', 'y_max' defining the spatial limits of the point cloud.
+    """
+    # Calculate the min and max values for x and y coordinates
+    x_min = data_array[:, 0].min() - padding
+    x_max = data_array[:, 0].max() + padding
+    y_min = data_array[:, 1].min() - padding
+    y_max = data_array[:, 1].max() + padding
+
+    # Construct the boundaries dictionary
+    bounds_dict = {
+        'x_min': x_min,
+        'x_max': x_max,
+        'y_min': y_min,
+        'y_max': y_max
+    }
+
+    return bounds_dict
 
 
 

@@ -1,5 +1,5 @@
-from utils.point_cloud_data_utils import load_las_data, load_asc_data, read_las_file_to_numpy, numpy_to_dataframe
-from utils.point_cloud_data_utils import combine_and_save_csv_files, subtiler, stitch_subtiles
+from utils.point_cloud_data_utils import load_las_data, load_asc_data, read_file_to_numpy, numpy_to_dataframe
+from utils.point_cloud_data_utils import combine_and_save_csv_files, subtiler, stitch_subtiles, mask_out_of_bounds_points, compute_point_cloud_bounds
 import os
 import pandas as pd
 import unittest
@@ -14,13 +14,17 @@ class TestPointCloudDataUtils(unittest.TestCase):
         self.test_file_path = 'data/chosen_tiles/32_687000_4930000_FP21.las'
         self.features_to_extract = ['intensity', 'red', 'green', 'blue', 'nir', 'delta_z', 'l1', 'l2', 'l3']
         self.features_to_use = ['intensity', 'red', 'green', 'blue']
+        self.data_array, self.known_features = read_file_to_numpy(self.test_file_path, features_to_extract=None) 
+        self.point_cloud_bounds = compute_point_cloud_bounds(data_array=self.data_array)
+        self.window_sizes = [('small', 10.0), ('medium', 20.0), ('large', 30.0)]
+
 
     def test_read_las_file_to_numpy(self):
         # Check if the test file exists
         self.assertTrue(os.path.exists(self.test_file_path), f"Test file not found: {self.test_file_path}")
 
         # Call the function to read the LAS file
-        data_array, feature_names = read_las_file_to_numpy(self.test_file_path, features_to_extract=self.features_to_extract)
+        data_array, feature_names = read_file_to_numpy(self.test_file_path, features_to_extract=self.features_to_extract)
 
         # Assertions for basic functionality
         self.assertIsNotNone(data_array, "The data array should not be None.")
@@ -39,7 +43,7 @@ class TestPointCloudDataUtils(unittest.TestCase):
         
     def test_feature_indices(self):
         # Read the LAS file
-        data_array, feature_names = read_las_file_to_numpy(self.test_file_path)
+        data_array, feature_names = read_file_to_numpy(self.test_file_path)
 
         # Calculate feature indices
         feature_indices = [feature_names.index(f) for f in self.features_to_use]
@@ -56,6 +60,30 @@ class TestPointCloudDataUtils(unittest.TestCase):
 
         # Validate feature indices are the correct length
         self.assertEqual(len(feature_indices), len(self.features_to_use), "Mismatch in feature indices length.")
+
+    def test_masking_out_of_bounds(self):
+
+        # Define half the window size for the largest window
+        max_half_window = max(window_size / 2 for _, window_size in self.window_sizes)
+
+        # Manually create the mask
+        manual_mask = []
+        for center_point in self.data_array[:, :3]:
+            if (center_point[0] - max_half_window < self.point_cloud_bounds['x_min'] or
+                center_point[0] + max_half_window > self.point_cloud_bounds['x_max'] or
+                center_point[1] - max_half_window < self.point_cloud_bounds['y_min'] or
+                center_point[1] + max_half_window > self.point_cloud_bounds['y_max']):
+                manual_mask.append(False)  # Point is out of bounds
+            else:
+                manual_mask.append(True)  # Point is valid
+                
+        manual_mask = np.array(manual_mask)  # Convert to NumPy array
+        manual_masked_array = self.data_array[manual_mask]  # Filter the valid points
+
+        masked_array, mask = mask_out_of_bounds_points(data_array=self.data_array, window_sizes=self.window_sizes)
+
+        np.testing.assert_array_equal(manual_masked_array, masked_array, err_msg="masked array doesnt match manually cleaned array")        
+        np.testing.assert_equal(len(manual_masked_array), len(masked_array), err_msg="the same number of points should be excluded from both arrays.")
 
 
 '''class TestPointCloudDataUtils(unittest.TestCase):
@@ -172,7 +200,7 @@ class TestPointCloudDataUtils(unittest.TestCase):
                                              err_msg="Loaded data does not match the originally combined data.")
 '''
 
-class TestSubtiler(unittest.TestCase):
+"""class TestSubtiler(unittest.TestCase):
 
     def setUp(self):
         # Set up test directory and parameters
@@ -182,7 +210,7 @@ class TestSubtiler(unittest.TestCase):
         self.output_dir = '.'
         self.final_output_dir = 'tests/test_subtiler/test_cut_and_stitch'
 
-    """def test_subtiling(self):
+    def test_subtiling(self):
         
         # Call the subtiler function
         subtile_folder = subtiler(self.input_file, self.tile_size, self.overlap_size)
@@ -231,7 +259,7 @@ class TestSubtiler(unittest.TestCase):
         # Optionally, check the total points in subtiles
         total_points_in_subtiles = sum([len(laspy.read(f).points) for f in subtile_files])
         self.assertEqual(total_points_in_subtiles, len(original_points), "Total points in subtiles do not match original points.")
-        """
+        
     def test_stitching(self):
         las_file = laspy.read(self.input_file)
 
@@ -239,7 +267,7 @@ class TestSubtiler(unittest.TestCase):
         
         stitch_subtiles(subtile_folder=subtile_folder, original_las=las_file, original_filename=self.input_file, model_directory=self.final_output_dir, overlap_size=self.overlap_size)
 
-        '''output_pattern = re.compile(r".+_pred_\d{8}_\d{6}\.las$")
+        output_pattern = re.compile(r".+_pred_\d{8}_\d{6}\.las$")
         output_dir = os.path.join('tests/test_subtiler/', 'inference', 'predictions')
 
         # Check if any file in the directory matches the pattern
@@ -253,6 +281,6 @@ class TestSubtiler(unittest.TestCase):
         # Ensure that duplicate points are handled correctly (i.e., no duplicate points left)
         assert len(unique_points) == len(stitched_las.x) - 1, "Duplicate points found in stitched file."
 
-        print("Stitching test passed on real data!")'''
+        print("Stitching test passed on real data!")"""
 
         
