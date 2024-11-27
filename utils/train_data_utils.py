@@ -33,7 +33,8 @@ class PointCloudDataset(Dataset):
         self.kdtree = cKDTree(data_array[:, :3])  # Use coordinates for KDTree
         self.feature_indices = [known_features.index(feature) for feature in features_to_use]
         
-        self.selected_array, mask = mask_out_of_bounds_points(data_array=data_array, window_sizes=window_sizes)
+        point_cloud_bounds = compute_point_cloud_bounds(data_array=data_array)  # compute the bounds on the full array
+        self.selected_array, mask = mask_out_of_bounds_points(data_array=data_array, window_sizes=window_sizes, bounds=point_cloud_bounds)
     
 
     def __len__(self):
@@ -122,6 +123,7 @@ def prepare_dataloader(batch_size, data_filepath=None,
 
     # Remap labels to ensure they vary continuously (needed for CrossEntropyLoss)
     data_array, _ = remap_labels(data_array=data_array)
+    # clean data fom nan/inf values (replace them w/ 0.0)
     data_array = clean_nan_values(data_array=data_array)
 
     # Create the dataset 
