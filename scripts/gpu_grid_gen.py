@@ -5,20 +5,41 @@ from torch_kdtree import build_kd_tree
 import torch
 
 
-def build_gpu_tree(data_array, n_neighbors=1):
+def build_gpu_tree(data_array):
     data_array_gpu = torch.tensor(data_array[:, :3], dtype=torch.float32).to(device="cuda")
     gpu_kdtree = build_kd_tree(data_array_gpu)
     return gpu_kdtree
 
 
-'''def build_cuml_knn(data_array, n_neighbors=1):
-        """
-        Builds and returns a cuML KNN model on the GPU for nearest neighbor search.
-        """
-        data_gpu = cp.array(data_array, dtype=cp.float64) 
-        cuml_knn = cuKNN(n_neighbors=n_neighbors)
-        cuml_knn.fit(data_gpu)
-        return cuml_knn'''
+def mask_out_of_bounds_points_gpu(tensor_data_array, point_cloud_bounds, window_sizes):
+    """
+    Masks points that are too close to the boundaries of the dataset using GPU operations and precomputed bounds.
+
+    Args:
+    - tensor_data_array (torch.Tensor): Point cloud data on GPU (shape: [N, 3]).
+    - point_cloud_bounds (dict): Precomputed bounds of the point cloud {'x_min', 'x_max', 'y_min', 'y_max'}.
+    - window_sizes (list): List of tuples for grid window sizes (e.g., [('small', 1.0), ...]).
+
+    Returns:
+    - valid_points (torch.Tensor): Points that are not out of bounds.
+    - mask (torch.Tensor): Boolean tensor indicating valid points.
+    """
+    max_half_window = max(window_size / 2 for _, window_size in window_sizes)
+
+    # Extract bounds
+    x_min, x_max = point_cloud_bounds['x_min'], point_cloud_bounds['x_max']
+    y_min, y_max = point_cloud_bounds['y_min'], point_cloud_bounds['y_max']
+
+    # Apply mask logic on GPU
+    mask = (
+        (tensor_data_array[:, 0] - max_half_window >= x_min) &
+        (tensor_data_array[:, 0] + max_half_window <= x_max) &
+        (tensor_data_array[:, 1] - max_half_window >= y_min) &
+        (tensor_data_array[:, 1] + max_half_window <= y_max) 
+    )
+
+    valid_points = tensor_data_array[mask]  # Apply mask to get valid points
+    return valid_points, mask
 
 
 def create_feature_grid_gpu(center_point_tensor, device, window_size, grid_resolution=128, channels=3):
@@ -81,6 +102,43 @@ def assign_features_to_grid_gpu(gpu_tree, tensor_data_array, grid, x_coords, y_c
     return grid
 
 
+def generate_multiscale_grids_gpu_masked(center_point_tensor, tensor_data_array, window_sizes, grid_resolution, feature_indices_tensor, gpu_tree, device="cuda"):
+    """
+    Generate multiscale grids for a single point on GPU without redundant checks.
+
+    Args:
+    - center_point_tensor (torch.Tensor): (x, y, z) coordinates of the point.
+    - tensor_data_array (torch.Tensor): Point cloud data (on GPU).
+    - window_sizes (list): List of tuples with grid window sizes (e.g., [('small', 1.0), ...]).
+    - grid_resolution (int): Resolution of the grid.
+    - feature_indices_tensor (torch.Tensor): Indices of features to use.
+    - gpu_tree (torch_kdtree): KDTree for nearest neighbor search.
+    - device (str): CUDA device.
+
+    Returns:
+    - grids_dict (dict): Dictionary containing generated grids for each scale.
+    """
+    grids_dict = {}
+    channels = len(feature_indices_tensor)
+
+    for size_label, window_size in window_sizes:
+        # Create grid on GPU
+        grid, _, x_coords, y_coords, z_coord = create_feature_grid_gpu(
+            center_point_tensor, device, window_size, grid_resolution, channels
+        )
+
+        # Assign features using KDTree
+        grid_with_features = assign_features_to_grid_gpu(
+            gpu_tree, tensor_data_array, grid, x_coords, y_coords, z_coord, feature_indices_tensor, device
+        )
+
+        # Convert grid to PyTorch format (channels first: C, H, W)
+        grid_with_features = grid_with_features.permute(2, 0, 1)
+        grids_dict[size_label] = grid_with_features
+
+    return grids_dict
+
+
 def generate_multiscale_grids_gpu(center_point_tensor, tensor_data_array, window_sizes, grid_resolution, feature_indices_tensor, gpu_tree, point_cloud_bounds, device):
     """
     Generates multiscale grids for a single point in the data array using GPU-based operations.
@@ -136,3 +194,14 @@ def generate_multiscale_grids_gpu(center_point_tensor, tensor_data_array, window
         grids_dict[size_label] = grid_with_features
 
     return grids_dict, status
+
+
+
+'''def build_cuml_knn(data_array, n_neighbors=1):
+        """
+        Builds and returns a cuML KNN model on the GPU for nearest neighbor search.
+        """
+        data_gpu = cp.array(data_array, dtype=cp.float64) 
+        cuml_knn = cuKNN(n_neighbors=n_neighbors)
+        cuml_knn.fit(data_gpu)
+        return cuml_knn'''
