@@ -697,13 +697,11 @@ def mask_out_of_bounds_points(data_array, window_sizes):
     # Compute dataset boundaries
     x_min, x_max = data_array[:, 0].min(), data_array[:, 0].max()
     y_min, y_max = data_array[:, 1].min(), data_array[:, 1].max()
-    z_min, z_max = data_array[:, 2].min(), data_array[:, 2].max()
 
     # Apply the mask to filter out out-of-bound points
     mask = (
         (data_array[:, 0] - max_half_window >= x_min) & (data_array[:, 0] + max_half_window <= x_max) &
-        (data_array[:, 1] - max_half_window >= y_min) & (data_array[:, 1] + max_half_window <= y_max) &
-        (data_array[:, 2] - max_half_window >= z_min) & (data_array[:, 2] + max_half_window <= z_max)
+        (data_array[:, 1] - max_half_window >= y_min) & (data_array[:, 1] + max_half_window <= y_max)
     )
 
     # Return valid points and the mask

@@ -14,7 +14,7 @@ class TestPointCloudDataUtils(unittest.TestCase):
         self.test_file_path = 'data/chosen_tiles/32_687000_4930000_FP21.las'
         self.features_to_extract = ['intensity', 'red', 'green', 'blue', 'nir', 'delta_z', 'l1', 'l2', 'l3']
         self.features_to_use = ['intensity', 'red', 'green', 'blue']
-        self.data_array, self.known_features = read_file_to_numpy(self.test_file_path, features_to_extract=None) 
+        self.data_array, self.known_features = read_file_to_numpy(self.test_file_path, features_to_use=None) 
         self.point_cloud_bounds = compute_point_cloud_bounds(data_array=self.data_array)
         self.window_sizes = [('small', 10.0), ('medium', 20.0), ('large', 30.0)]
 
@@ -24,7 +24,7 @@ class TestPointCloudDataUtils(unittest.TestCase):
         self.assertTrue(os.path.exists(self.test_file_path), f"Test file not found: {self.test_file_path}")
 
         # Call the function to read the LAS file
-        data_array, feature_names = read_file_to_numpy(self.test_file_path, features_to_extract=self.features_to_extract)
+        data_array, feature_names = read_file_to_numpy(self.test_file_path, features_to_use=self.features_to_extract)
 
         # Assertions for basic functionality
         self.assertIsNotNone(data_array, "The data array should not be None.")
