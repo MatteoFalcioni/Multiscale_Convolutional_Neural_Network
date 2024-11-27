@@ -14,6 +14,79 @@ from collections import defaultdict
 import os
 import laspy
 import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from point_cloud_data_utils import las_to_csv, combine_csv_files
+
+
+def create_dataset(input_folder, fused_las_folder, max_points_per_class, output_dataset_folder=None, chosen_classes=None, train_split=0.8):
+    """
+    Creates a dataset for training and evaluation from LAS files by processing ground and off-ground data.
+
+    This function:
+    - Finds and pairs ground and off-ground LAS files.
+    - Stitches them into fused LAS files.
+    - Converts the fused LAS files into CSVs.
+    - Combines the CSV files into a single dataset.
+    - Rebalances the dataset by downsampling overrepresented classes.
+    - Splits the dataset into training and evaluation sets.
+
+    Args:
+    - input_folder (str): Path to the folder containing the input LAS files.
+    - fused_las_folder (str): Folder to save fused LAS and intermediate CSV files.
+    - max_points_per_class (int): Maximum number of points per class for rebalancing.
+    - output_dataset_folder (str): Folder to save the final dataset.
+    - chosen_classes (list, optional): List of class labels to include in the dataset.
+    - train_split (float): Proportion of data allocated to training (default: 0.8).
+    
+
+    Returns:
+    - None
+    """
+    # get ground + off ground las file pairs
+    file_pairs = pair_ground_and_offgrounds(input_folder=input_folder)
+
+    # stitch the pairs together and save them inside fused_las_folder
+    fused_files = stitch_pairs(file_pairs=file_pairs, output_folder=fused_las_folder)
+
+    # convert the las into csv files and save them in a fused_las_folder/csv/ subdirectory
+    csv_subdir = f"{fused_las_folder}/csv" 
+    os.makedirs(csv_subdir, exist_ok=True)
+    csv_filepaths = []
+    for las_filepath in fused_files:
+        csv_path = las_to_csv(las_file=las_filepath, output_folder=csv_subdir)
+        csv_filepaths.append(csv_path)
+
+    # combine the csvs together to get one big file, and save it
+    combined_csv = combine_csv_files(csv_filepaths, output_csv=f"{output_dataset_folder}/full_dataset.csv")
+
+    # finally rebalance the combined csv and create train/test datasets, saving them as csv inside output_dataset_folder
+    train_df, eval_df = create_train_eval_datasets(csv_file=combined_csv,
+                               max_points_per_class=max_points_per_class,
+                               chosen_classes=chosen_classes,
+                               train_split=train_split,
+                               output_dataset_folder=output_dataset_folder)
+    
+    # Inspection: Print dataset summary
+    print("\nDataset Summary:")
+    print(f"\n\nTotal points in training set: {len(train_df)}")
+    print("Class distribution in training set:")
+    print(train_df['label'].value_counts().sort_index())
+    print("\nColumns in training set:")
+    print(train_df.columns.tolist())
+    print('\n\n')
+
+    print(f"Total points in evaluation set: {len(eval_df)}")
+    print("\nClass distribution in evaluation set:")
+    print(eval_df['label'].value_counts().sort_index())
+    print("\nColumns in evaluation set:")
+    print(eval_df.columns.tolist())
+
+    return None
+
+
+
+
 
 
 def pair_ground_and_offgrounds(input_folder):
@@ -62,7 +135,7 @@ def pair_ground_and_offgrounds(input_folder):
     return file_pairs
 
 
-def stitch_and_fuse_multiple(file_pairs, output_folder):
+def stitch_pairs(file_pairs, output_folder):
     """
     Stitches and fuses multiple pairs of ground and off-ground LAS files.
 
@@ -204,6 +277,82 @@ def stitch_and_fuse_multiple(file_pairs, output_folder):
     return fused_files
 
 
+def create_train_eval_datasets(csv_file, max_points_per_class, chosen_classes=None, train_split=0.8, output_dataset_folder=None):
+    """
+    Analyzes the class distribution in a CSV file, filters chosen classes, rebalances by downsampling 
+    overrepresented classes, splits the dataset into training and evaluation sets, and saves
+    the splits to new CSV files inside the specified folder.
+
+    Args:
+    - csv_file (str): Path to the input CSV file.
+    - max_points_per_class (int): Maximum number of points allowed per class.
+    - chosen_classes (list, optional): List of class labels to extract and rebalance. If None, use all classes.
+    - train_split (float): Proportion of data to allocate to the training set (default: 0.8).
+    - output_dataset_folder (str): Folder where the train and eval csv will be saved.
+
+    Returns:
+    - train_df (pd.DataFrame): A Pandas DataFrame containing the training set.
+    - eval_df (pd.DataFrame): A Pandas DataFrame containing the evaluation set.
+    """
+     # Load the CSV file into a Pandas DataFrame
+    df = pd.read_csv(csv_file)
+    
+    # Check if 'label' column exists
+    if 'label' not in df.columns:
+        raise ValueError("The CSV file does not contain a 'label' column.")
+
+    # Filter dataset to include only chosen classes
+    if chosen_classes is not None:
+        df = df[df['label'].isin(chosen_classes)]
+        print(f"Filtering dataset to include only chosen classes: {chosen_classes}")
+
+    # Count the number of points for each class
+    class_counts = df['label'].value_counts().sort_index()
+
+    # Print the original class distribution
+    print("Original class distribution:")
+    for class_label, count in class_counts.items():
+        print(f"Class {class_label}: {count} points")
+
+    # Rebalance the dataset by downsampling overrepresented classes
+    rebalanced_dfs = []
+    for class_label, count in class_counts.items():
+        class_subset = df[df['label'] == class_label]
+        if count > max_points_per_class:
+            # Downsample to the specified max_points_per_class
+            class_subset = class_subset.sample(max_points_per_class, random_state=42)
+        rebalanced_dfs.append(class_subset)
+
+    # Combine the rebalanced subsets
+    rebalanced_df = pd.concat(rebalanced_dfs, ignore_index=True)
+
+    # Print the rebalanced class distribution
+    rebalanced_class_counts = rebalanced_df['label'].value_counts().sort_index()
+    print("\nRebalanced class distribution:")
+    for class_label, count in rebalanced_class_counts.items():
+        print(f"Class {class_label}: {count} points")
+
+    # Split the rebalanced dataset into training and evaluation sets
+    train_df, eval_df = train_test_split(rebalanced_df, test_size=(1 - train_split), random_state=42, stratify=rebalanced_df['label'])
+
+    print(f"\nDataset split into:")
+    print(f"- Training set: {len(train_df)} points ({train_split * 100:.0f}%)")
+    print(f"- Evaluation set: {len(eval_df)} points ({(1 - train_split) * 100:.0f}%)")
+
+    # save the csv files
+    if output_dataset_folder is None:
+        raise ValueError(f"Error: Output directory for csv files containing training and eval data was not specified.")
+    os.makedirs(output_dataset_folder, exist_ok=True)
+    train_csv = f"{output_dataset_folder}/train_dataset.csv"
+    eval_csv = f"{output_dataset_folder}/eval_dataset.csv"
+
+    train_df.to_csv(train_csv, index=False)
+    eval_df.to_csv(eval_csv, index=False)
+
+    print(f"\nTraining dataset saved to: {train_csv}")
+    print(f"Evaluation dataset saved to: {eval_csv}")
+
+    return train_df, eval_df
 
 
 
