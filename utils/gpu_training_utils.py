@@ -1,12 +1,13 @@
-from scripts.gpu_grid_gen import build_cuml_knn, generate_multiscale_grids_gpu
+from scripts.gpu_grid_gen import build_gpu_tree, generate_multiscale_grids_gpu, generate_multiscale_grids_gpu_masked, mask_out_of_bounds_points_gpu
 from torch.utils.data import Dataset, DataLoader, random_split
 from scripts.point_cloud_to_image import compute_point_cloud_bounds
 import torch
 from utils.point_cloud_data_utils import read_file_to_numpy, remap_labels
+import numpy as np
 
 
 class GPU_PointCloudDataset(Dataset):
-    def __init__(self, data_array, window_sizes, grid_resolution, features_to_use, known_features):
+    def __init__(self, data_array, window_sizes, grid_resolution, features_to_use, known_features, device):
         """
         Dataset class for streaming multiscale grid generation from point cloud data on the GPU.
 
@@ -16,75 +17,55 @@ class GPU_PointCloudDataset(Dataset):
         - grid_resolution (int): Grid resolution (e.g., 128x128).
         - features_to_use (list): List of feature names for generating grids.
         - known_features (list): All known feature names in the data array.
+        - device (torch.device): device to work on with torch tensors.
         """
-        self.data_array = data_array
+        self.device = device
+        self.tensor_data_array = torch.tensor(data_array, dtype=torch.float64).to(device=self.device)
+        
         self.window_sizes = window_sizes
         self.grid_resolution = grid_resolution
         self.features_to_use = features_to_use
         self.known_features = known_features
-        
-        # Build cuML KNN model on the GPU (use only the XYZ coordinates for KNN)
-        self.gpu_tree = build_cuml_knn(data_array[:, :3])
-        self.feature_indices = [known_features.index(feature) for feature in features_to_use]
+        feature_indices = [known_features.index(feature) for feature in features_to_use]
+        self.feature_indices_tensor = torch.Tensor(feature_indices, device=self.device)
         self.point_cloud_bounds = compute_point_cloud_bounds(data_array)
+        
+        # Build torch kdtree model on the GPU (use only the XYZ coordinates for KNN)
+        self.gpu_tree = build_gpu_tree(self.tensor_data_array[:, :3])
+        
+        # mask out of bounds points
+        self.selected_tensor, mask = mask_out_of_bounds_points_gpu(tensor_data_array=self.tensor_data_array,
+                                                                   window_sizes=window_sizes,
+                                                                   point_cloud_bounds=self.point_cloud_bounds)
 
+        # Store the original indices corresponding to the selected points. We need it to assign correctly the predicted labels during inference.
+        self.original_indices = torch.where(mask.cpu())[0].numpy()  # Map from selected array to the original array
+        
     def __len__(self):
-        return len(self.data_array)
+        return len(self.selected_tensor)
 
     def __getitem__(self, idx):
         """
         Generates multiscale grids for the point at index `idx` and returns them as PyTorch tensors, along with the index.
         """
         # Extract the single point's data using `idx`
-        center_point = self.data_array[idx, :3]  # Get the x, y, z coordinates
-        label = self.data_array[idx, -1]  # Get the label for this point
+        center_point_tensor = self.selected_tensor[idx, :3]  # Get the x, y, z coordinates
+        label = self.selected_tensor[idx, -1].long()  # Get the label for this point as long
 
         # Generate multiscale grids for this point using the GPU
-        grids_dict, skipped = generate_multiscale_grids_gpu(
-            center_point, data_array=self.data_array, window_sizes=self.window_sizes,
-            grid_resolution=self.grid_resolution, feature_indices=self.feature_indices,
-            cuml_knn=self.gpu_tree, point_cloud_bounds=self.point_cloud_bounds
+        grids_dict = generate_multiscale_grids_gpu_masked(
+            center_point_tensor=center_point_tensor, tensor_data_array=self.tensor_data_array, window_sizes=self.window_sizes,
+            grid_resolution=self.grid_resolution, feature_indices_tensor=self.feature_indices_tensor,
+            gpu_tree=self.gpu_tree, device=self.device
         )
 
-        if skipped:
-            return None  # Skip this point if grid generation fails or if out of bounds
-
-        # Convert grids to PyTorch tensors (channels first: C, H, W)
-        small_grid = torch.tensor(grids_dict['small'], dtype=torch.float32)
-        medium_grid = torch.tensor(grids_dict['medium'], dtype=torch.float32)
-        large_grid = torch.tensor(grids_dict['large'], dtype=torch.float32)
-
-        # Convert label to tensor
-        label = torch.tensor(label, dtype=torch.long)
+        # Unpack grids
+        small_grid = grids_dict['small']
+        medium_grid = grids_dict['medium']
+        large_grid = grids_dict['large']
 
         # Return the grids and label
         return small_grid, medium_grid, large_grid, label, idx
-    
-
-def gpu_custom_collate_fn(batch):
-    """
-    Custom collate function to filter out None values (skipped points) and ensure all data is on the GPU.
-    """
-    # Filter out any None values (i.e., skipped points)
-    batch = [item for item in batch if item is not None]
-    
-    # If the batch is empty (all points were skipped), return None
-    if len(batch) == 0:
-        return None
-    
-    # Unpack the batch into grids and labels
-    small_grids, medium_grids, large_grids, labels, indices = zip(*batch)
-    
-    # Stack the grids and labels to create tensors for the batch
-    # Ensure the grids are on the correct device (GPU)
-    device = small_grids[0].device  # Assuming all grids are on the same device
-    small_grids = torch.stack(small_grids).to(device)
-    medium_grids = torch.stack(medium_grids).to(device)
-    large_grids = torch.stack(large_grids).to(device)
-    labels = torch.stack(labels).to(device)
-    indices = torch.tensor(indices).to(device)
-    
-    return small_grids, medium_grids, large_grids, labels, indices
 
 
 def gpu_prepare_dataloader(batch_size, data_dir=None, 

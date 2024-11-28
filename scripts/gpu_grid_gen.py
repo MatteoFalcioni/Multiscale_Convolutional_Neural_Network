@@ -1,14 +1,7 @@
 '''import cuml
 from cuml.neighbors import NearestNeighbors as cuKNN
 import cupy as cp'''
-from torch_kdtree import build_kd_tree
 import torch
-
-
-def build_gpu_tree(data_array):
-    data_array_gpu = torch.tensor(data_array[:, :3], dtype=torch.float32).to(device="cuda")
-    gpu_kdtree = build_kd_tree(data_array_gpu)
-    return gpu_kdtree
 
 
 def mask_out_of_bounds_points_gpu(tensor_data_array, window_sizes, point_cloud_bounds):
@@ -21,7 +14,7 @@ def mask_out_of_bounds_points_gpu(tensor_data_array, window_sizes, point_cloud_b
     - window_sizes (list): List of tuples for grid window sizes (e.g., [('small', 1.0), ...]).
 
     Returns:
-    - valid_points (torch.Tensor): Points that are not out of bounds.
+    - masked_tensor (torch.Tensor): Points that are not out of bounds.
     - mask (torch.Tensor): Boolean tensor indicating valid points.
     """
     max_half_window = max(window_size / 2 for _, window_size in window_sizes)
@@ -38,8 +31,8 @@ def mask_out_of_bounds_points_gpu(tensor_data_array, window_sizes, point_cloud_b
         (tensor_data_array[:, 1] + max_half_window <= y_max) 
     )
 
-    valid_points = tensor_data_array[mask]  # Apply mask to get valid points
-    return valid_points, mask
+    masked_tensor = tensor_data_array[mask]  # Apply mask to get valid points
+    return masked_tensor, mask
 
 
 def create_feature_grid_gpu(center_point_tensor, device, window_size, grid_resolution=128, channels=3):

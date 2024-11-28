@@ -13,6 +13,7 @@ from scripts.point_cloud_to_image import generate_multiscale_grids, create_featu
 from scripts.gpu_grid_gen import mask_out_of_bounds_points_gpu, generate_multiscale_grids_gpu, generate_multiscale_grids_gpu_masked, create_feature_grid_gpu, assign_features_to_grid_gpu, mask_out_of_bounds_points_gpu
 import os
 from utils.point_cloud_data_utils import clean_nan_values
+from torch_kdtree import build_kd_tree
             
 
 class TestGridGeneration(unittest.TestCase):
