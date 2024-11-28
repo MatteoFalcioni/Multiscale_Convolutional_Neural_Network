@@ -1,7 +1,7 @@
 import torch
 from torch.utils.data import Dataset, DataLoader, random_split
 import os
-from utils.point_cloud_data_utils import read_file_to_numpy, remap_labels, clean_nan_values, mask_out_of_bounds_points, compute_point_cloud_bounds
+from utils.point_cloud_data_utils import read_file_to_numpy, remap_labels, clean_nan_values, apply_masks, compute_point_cloud_bounds
 from scripts.point_cloud_to_image import generate_multiscale_grids_masked
 from datetime import datetime
 import pandas as pd
@@ -13,32 +13,35 @@ import numpy as np
 
 
 class PointCloudDataset(Dataset):
-    def __init__(self, data_array, window_sizes, grid_resolution, features_to_use, known_features):
+    def __init__(self, full_data_array, window_sizes, grid_resolution, features_to_use, known_features, subset_file=None):
         """
         Dataset class for streaming multiscale grid generation from point cloud data.
 
         Args:
-        - data_array (numpy.ndarray): The entire point cloud data array (already remapped).
+        - full_data_array (numpy.ndarray): The entire point cloud data array (already remapped).
         - window_sizes (list): List of tuples for grid window sizes (e.g., [('small', 2.5), ('medium', 5.0), ('large', 10.0)]).
         - grid_resolution (int): Grid resolution (e.g., 128x128).
         - features_to_use (list): List of feature names for generating grids.
         - known_features (list): All known feature names in the data array.
         """
-        self.data_array = data_array
+        self.full_data_array = full_data_array
         self.window_sizes = window_sizes
         self.grid_resolution = grid_resolution
         self.features_to_use = features_to_use
         self.known_features = known_features
         
         # Build KDTree once for the entire dataset
-        self.kdtree = cKDTree(data_array[:, :3])  # Use coordinates for KDTree
+        self.kdtree = cKDTree(full_data_array[:, :3])  # Use full data coordinates for KDTree (use full point cloud for neighbors feature assignment)
         self.feature_indices = [known_features.index(feature) for feature in features_to_use]
         
-        point_cloud_bounds = compute_point_cloud_bounds(data_array=data_array)  # compute the bounds on the full array
-        self.selected_array, mask = mask_out_of_bounds_points(data_array=data_array, window_sizes=window_sizes, bounds=point_cloud_bounds)
-        
-        # Store the original indices corresponding to the selected points. We need it to assign correctly the predicted labels during inference.
-        self.original_indices = np.where(mask)[0]  # Map from selected array to the original array
+        # Apply masking and compute bounds
+        self.selected_array, mask, point_cloud_bounds = apply_masks(
+            full_data_array=full_data_array,
+            window_sizes=window_sizes,
+            subset_file=subset_file
+        )
+
+        self.original_indices = np.where(mask)[0]
     
 
     def __len__(self):
@@ -54,11 +57,6 @@ class PointCloudDataset(Dataset):
 
         # Generate multiscale grids for this point using the entire dataset for feature assignment
         grids_dict = generate_multiscale_grids_masked(center_point, data_array=self.data_array, window_sizes=self.window_sizes, grid_resolution=self.grid_resolution, feature_indices=self.feature_indices, kdtree=self.kdtree) # , point_cloud_bounds=self.point_cloud_bounds
-
-        '''if status is not None:  # i.e., point was skipped
-            if status == 'nan/inf':
-                print(f"Skipping point because of nan/inf value")
-            return None'''
         
         # Convert grids to PyTorch tensors
         small_grid = torch.tensor(grids_dict['small'], dtype=torch.float32)

@@ -273,9 +273,10 @@ def read_file_to_numpy(data_dir, features_to_use=None, features_file_path=None):
     return data_array, known_features
 
 
-def combine_csv_files(csv_files, output_csv, default_replacement=0.0):
+def clean_and_combine_csv_files(csv_files, output_csv, default_replacement=0.0):
     """
-    Combines multiple CSV files into a single CSV file efficiently, processing them in chunks,
+    First, cleans las files from eventual bugged point falling out of the point cloud range. 
+    Then combines multiple CSV files into a single CSV file efficiently, processing them in chunks,
     and cleans the final combined file of NaN/Inf values by overwriting it.
 
     Args:
@@ -313,6 +314,50 @@ def combine_csv_files(csv_files, output_csv, default_replacement=0.0):
     print(f"\nCleaned combined CSV saved to {output_csv}")
 
     return output_csv
+
+
+def clean_bugged_las(bugged_las_path):
+    """
+    Cleans a bugged LAS file by removing points outside the valid bounds inferred from its filename.
+
+    Args:
+    - bugged_las_path (str): Path to the bugged LAS file.
+
+    Returns:
+    - None
+    """
+    # Extract xmin and ymin from the filename
+    base_name = os.path.basename(bugged_las_path)
+    parts = base_name.split("_")
+    try:
+        xmin = float(parts[2]) 
+        ymin = float(parts[3].split(".")[0])
+    except ValueError:
+        raise ValueError(f"Invalid filename format for bugged LAS file: {bugged_las_path}")
+
+    # Load the LAS file
+    las_data = laspy.read(bugged_las_path)
+    
+    print(f"From tile name: xmin: {xmin}, ymin:{ymin}\n")
+    print(f"From .min() and .max() -> xmin:{las_data.x.min()}, ymin:{las_data.y.min()}")
+
+    # Apply the mask to filter points within bounds
+    mask = (las_data.x >= xmin) & (las_data.y >= ymin)
+    cleaned_points = las_data.points[mask]
+    cleaned_labels = las_data.label[mask]
+
+    # Create a new LAS object with the cleaned data
+    cleaned_las = laspy.LasData(las_data.header)
+    cleaned_las.points = cleaned_points
+    cleaned_las.label = cleaned_labels
+    
+    cleaned_las.update_header()
+    
+    cleaned_las.write(bugged_las_path)
+
+    # Print the number of points before and after cleaning
+    print(f"Cleaned LAS file: {bugged_las_path}")
+    print(f"Original points: {len(las_data.points)}, Cleaned points: {len(cleaned_points)}")
 
 
 def sample_data(input_file, sample_size, save=False, save_dir='data/sampled_data', feature_to_use=None, features_file_path=None):
@@ -687,6 +732,53 @@ def clean_nan_values(data_array, default_value=0.0):
     return cleaned_array
 
 
+def apply_masks(full_data_array, window_sizes, subset_file=None):
+    """
+    Applies masking operations on a point cloud dataset:
+    1. Selects points based on a subset file (if provided).
+    2. Computes bounds on the selected subset and masks out-of-bounds points.
+
+    Args:
+    - full_data_array (numpy.ndarray): Full point cloud dataset (shape: [N, features]).
+    - window_sizes (list): List of tuples for grid window sizes (e.g., [('small', 2.5), ...]).
+    - subset_file (str, optional): Path to a CSV file with subset points (columns: x, y, z).
+
+    Returns:
+    - selected_array (numpy.ndarray): The filtered data array after applying all masks.
+    - final_mask (numpy.ndarray): Boolean mask applied to the original data array.
+    - bounds (dict): Bounds computed from the selected subset.
+    """
+    # Step 1: Initialize mask with all True
+    final_mask = np.ones(full_data_array.shape[0], dtype=bool)
+
+    # Step 2: Apply subset file mask (if provided)
+    if subset_file is not None:
+        subset_points = pd.read_csv(subset_file)[['x', 'y', 'z']].values  # Load x, y, z columns
+        structured_data = np.core.records.fromarrays(full_data_array[:, :3].T, names="x, y, z")
+        structured_subset = np.core.records.fromarrays(subset_points.T, names="x, y, z")
+        subset_mask = np.isin(structured_data, structured_subset)
+        final_mask &= subset_mask  # Combine subset mask
+
+    # Step 3: Compute bounds on the selected points
+    selected_array = full_data_array[final_mask]
+    bounds = compute_point_cloud_bounds(selected_array)
+
+    # Step 4: Apply out-of-bounds mask based on the selected array bounds
+    max_half_window = max(window_size / 2 for _, window_size in window_sizes)
+    out_of_bounds_mask = (
+        (selected_array[:, 0] - max_half_window >= bounds['x_min']) &
+        (selected_array[:, 0] + max_half_window <= bounds['x_max']) &
+        (selected_array[:, 1] - max_half_window >= bounds['y_min']) &
+        (selected_array[:, 1] + max_half_window <= bounds['y_max'])
+    )
+    final_mask[np.where(final_mask)[0]] &= out_of_bounds_mask  # Combine out-of-bounds mask
+
+    # Update the selected array
+    selected_array = full_data_array[final_mask]
+
+    return selected_array, final_mask, bounds
+
+
 def mask_out_of_bounds_points(data_array, window_sizes, bounds):
     """
     Masks points that are too close to the boundaries of the dataset to generate grids.
@@ -746,7 +838,7 @@ def compute_point_cloud_bounds(data_array, padding=0.0):
     return bounds_dict
 
 
-def las_to_csv(las_file, output_folder):
+def las_to_csv(las_file, output_folder, selected_classes = None):
     """
     Converts a LAS file to a CSV file by extracting its data and features.
 
@@ -758,25 +850,38 @@ def las_to_csv(las_file, output_folder):
     - las_file (str): Path to the input LAS file.
     - output_folder (str): Folder to save the output CSV file. The file name is derived
                            from the LAS file name by replacing .las with .csv.
+    - selected classes (list): List of the selcted classes to keep in the csv file. The others will be discarded.
+                               If None (default) all classes will be included. 
 
     Returns:
     - output_csv_filepath (str): Path to the saved CSV file.
     """
-
-    # Derive the output CSV file path
-    las_filename = os.path.basename(las_file)  # Extract file name
-    csv_filename = os.path.splitext(las_filename)[0] + ".csv"  # Replace .las with .csv
-    output_csv_filepath = os.path.join(output_folder, csv_filename)
-
-    # Read the LAS file to numpy and get the features
+    # clean subtiles by removing points outside of the coordinates specified in file name
+    clean_bugged_las(las_file)  # necessary some of them contain bugged points outside p.c. bounds
+   
+    # Read the LAS file into a numpy array and get known features
     data_array, known_features = read_file_to_numpy(las_file)
+    
+    # Filter by selected classes, if provided
+    if selected_classes is not None:
+        # Ensure 'label' is in the known features
+        if 'label' not in known_features:
+            raise ValueError("The LAS file does not contain a 'label' column for filtering.")
+        # Get the index of the 'label' column
+        label_index = known_features.index('label')
+        # Apply the filter
+        mask = np.isin(data_array[:, label_index], selected_classes)
+        data_array = data_array[mask]
 
-    # Convert the array to a DataFrame
+    # Convert array to a Pandas DataFrame
     df = numpy_to_dataframe(data_array=data_array, feature_names=known_features)
 
     # Ensure the output folder exists
     os.makedirs(output_folder, exist_ok=True)
-
+    # Derive the output CSV file path
+    las_filename = os.path.basename(las_file)  # Extract file name
+    csv_filename = os.path.splitext(las_filename)[0] + ".csv"  # Replace .las with .csv
+    output_csv_filepath = os.path.join(output_folder, csv_filename)
     # Save the DataFrame to a CSV file
     df.to_csv(output_csv_filepath, index=False)
 

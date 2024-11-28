@@ -14,7 +14,7 @@ import laspy
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
-from utils.point_cloud_data_utils import las_to_csv, combine_csv_files, clean_nan_values
+from utils.point_cloud_data_utils import las_to_csv, clean_and_combine_csv_files, clean_nan_values, clean_bugged_las
 
 
 def create_dataset(input_folder, fused_las_folder, max_points_per_class, output_dataset_folder=None, chosen_classes=None, train_split=0.8):
@@ -46,10 +46,6 @@ def create_dataset(input_folder, fused_las_folder, max_points_per_class, output_
 
     # stitch the pairs together and save them inside fused_las_folder
     fused_files = stitch_pairs(file_pairs=file_pairs, output_folder=fused_las_folder)
-    
-    # clean subtiles by (1) removing points outside of the coordinates specified in file name
-    for file in fused_files:
-        clean_bugged_las(file)  # necessary some of them contain bugged points outside p.c. bounds
 
     # convert the las into csv files and save them in a fused_las_folder/csv/ subdirectory
     csv_subdir = f"{fused_las_folder}/csv" 
@@ -60,7 +56,7 @@ def create_dataset(input_folder, fused_las_folder, max_points_per_class, output_
         csv_filepaths.append(csv_path)
 
     # combine the csvs together to get one big file, and save it. Also cleans nan/inf values of combined file internally
-    combined_csv = combine_csv_files(csv_filepaths, output_csv=f"{output_dataset_folder}/full_dataset.csv")
+    combined_csv = clean_and_combine_csv_files(csv_filepaths, output_csv=f"{output_dataset_folder}/full_dataset.csv")
 
     # finally rebalance the combined csv and create train/test datasets, saving them as csv inside output_dataset_folder
     train_df, eval_df = create_train_eval_datasets(csv_file=combined_csv,
@@ -348,47 +344,5 @@ def create_train_eval_datasets(csv_file, max_points_per_class, chosen_classes=No
     return train_df, eval_df
 
 
-def clean_bugged_las(bugged_las_path):
-    """
-    Cleans a bugged LAS file by removing points outside the valid bounds inferred from its filename.
-
-    Args:
-    - bugged_las_path (str): Path to the bugged LAS file.
-
-    Returns:
-    - None
-    """
-    # Extract xmin and ymin from the filename
-    base_name = os.path.basename(bugged_las_path)
-    parts = base_name.split("_")
-    try:
-        xmin = float(parts[2]) 
-        ymin = float(parts[3].split(".")[0])
-    except ValueError:
-        raise ValueError(f"Invalid filename format for bugged LAS file: {bugged_las_path}")
-
-    # Load the LAS file
-    las_data = laspy.read(bugged_las_path)
-    
-    print(f"From tile name: xmin: {xmin}, ymin:{ymin}\n")
-    print(f"From .min() and .max() -> xmin:{las_data.x.min()}, ymin:{las_data.y.min()}")
-
-    # Apply the mask to filter points within bounds
-    mask = (las_data.x >= xmin) & (las_data.y >= ymin)
-    cleaned_points = las_data.points[mask]
-    cleaned_labels = las_data.label[mask]
-
-    # Create a new LAS object with the cleaned data
-    cleaned_las = laspy.LasData(las_data.header)
-    cleaned_las.points = cleaned_points
-    cleaned_las.label = cleaned_labels
-    
-    cleaned_las.update_header()
-    
-    cleaned_las.write(bugged_las_path)
-
-    # Print the number of points before and after cleaning
-    print(f"Cleaned LAS file: {bugged_las_path}")
-    print(f"Original points: {len(las_data.points)}, Cleaned points: {len(cleaned_points)}")
 
 
