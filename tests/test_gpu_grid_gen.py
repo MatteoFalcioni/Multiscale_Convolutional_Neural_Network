@@ -12,6 +12,7 @@ import torch
 from scripts.point_cloud_to_image import generate_multiscale_grids, create_feature_grid, assign_features_to_grid
 from scripts.gpu_grid_gen import mask_out_of_bounds_points_gpu, generate_multiscale_grids_gpu, generate_multiscale_grids_gpu_masked, create_feature_grid_gpu, assign_features_to_grid_gpu, mask_out_of_bounds_points_gpu
 import os
+from utils.point_cloud_data_utils import clean_nan_values
             
 
 class TestGridGeneration(unittest.TestCase):
@@ -25,6 +26,7 @@ class TestGridGeneration(unittest.TestCase):
 
         cls.las_path = 'data/chosen_tiles/32_687000_4930000_FP21.las'
         cls.data_array, cls.known_features = read_file_to_numpy(cls.las_path)
+        cls.data_array = clean_nan_values(data_array=cls.data_array)
         cls.window_sizes = [('small', 2.5), ('medium', 5.0), ('large', 10.0)]
         cls.test_window_size = 10.0
         cls.grid_resolution = 128
@@ -43,10 +45,10 @@ class TestGridGeneration(unittest.TestCase):
         # sample indices randomly for tests
         cls.num_samples = 5
         np.random.seed(42)
-        cls.random_idxs = np.random.choice(len(cls.data_array), size=cls.num_samples, replace=False)
+        cls.random_idxs = np.random.choice(len(cls.data_array[0]), size=cls.num_samples, replace=False)
 
         num_points = int(1e3)
-        random_indices = np.random.choice(cls.data_array[0], num_points, replace=False)
+        random_indices = np.random.choice(cls.data_array.shape[0], num_points, replace=False)
         cls.sliced_data = cls.data_array[random_indices, :]
         cls.sliced_tensor = torch.tensor(cls.sliced_data, dtype=torch.float64, device=cls.device)
 
@@ -134,7 +136,7 @@ class TestGridGeneration(unittest.TestCase):
 
     def test_compare_feature_assignment(self):
 
-        idx = self.random_idxs[0]
+        idx = self.random_idxs[2]
         
         tensor_center_point = self.tensor_data_array[idx, :].to(self.device, dtype=torch.float64)
         center_point = self.data_array[idx, :]  # Testing point
@@ -353,16 +355,18 @@ class TestGridGeneration(unittest.TestCase):
         out_of_bounds = 0
 
         for point in self.sliced_tensor:
-            grids_dict = generate_multiscale_grids_gpu(
+            grids_dict, status = generate_multiscale_grids_gpu(
                 center_point_tensor=point,
                 tensor_data_array=self.tensor_data_array,
                 window_sizes=self.window_sizes,
                 grid_resolution=self.grid_resolution,
-                feature_indices_tensor=torch.tensor(self.feature_indices, device="cuda"),
-                gpu_tree=self.gpu_tree,  # Pass the prebuilt GPU KDTree
+                feature_indices_tensor=torch.tensor(self.feature_indices, device=self.device),
+                gpu_tree=self.gpu_kdtree,  # Pass the prebuilt GPU KDTree
+                point_cloud_bounds=self.point_cloud_bounds,
+                device=self.device
             )
 
-            if grids_dict:
+            if status is None:
                 usual_grids.append(grids_dict)
                 usual_coords.append(tuple(point.cpu().numpy()))
             else:
@@ -380,8 +384,8 @@ class TestGridGeneration(unittest.TestCase):
                 tensor_data_array=self.tensor_data_array,
                 window_sizes=self.window_sizes,
                 grid_resolution=self.grid_resolution,
-                feature_indices_tensor=torch.tensor(self.feature_indices, device="cuda"),
-                gpu_tree=self.gpu_tree,  # Pass the prebuilt GPU KDTree
+                feature_indices_tensor=torch.tensor(self.feature_indices, device=self.device),
+                gpu_tree=self.gpu_kdtree,  # Pass the prebuilt GPU KDTree
             )
             masked_grids.append(grids_dict)
             masked_coords.append(tuple(point.cpu().numpy()))
