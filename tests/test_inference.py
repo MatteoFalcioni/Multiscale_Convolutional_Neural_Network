@@ -85,8 +85,9 @@ class TestPredictFunction(unittest.TestCase):
             num_workers=self.num_workers
         )
 
-        # predicted_subtiles = [os.path.join(prediction_folder, f) for f in os.listdir(prediction_folder) if f.endswith('_pred.las')]
-        predicted_subtiles = [os.path.join(prediction_folder, f) for f in os.listdir(prediction_folder) if f.endswith('.las')]
+        predicted_subtiles = [os.path.join(prediction_folder, f) for f in os.listdir(prediction_folder) if f.endswith('_pred.las')]
+        print(f"Subtiles to predict encountered: {len(predicted_subtiles)}")
+        # predicted_subtiles = [os.path.join(prediction_folder, f) for f in os.listdir(prediction_folder) if f.endswith('.las')]
 
         for subtile_path in predicted_subtiles:
 

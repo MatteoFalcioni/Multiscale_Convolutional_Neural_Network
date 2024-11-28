@@ -9,6 +9,7 @@ from scipy.spatial import cKDTree
 import csv
 from models.mcnn import MultiScaleCNN
 import ast
+import numpy as np
 
 
 class PointCloudDataset(Dataset):
@@ -35,6 +36,9 @@ class PointCloudDataset(Dataset):
         
         point_cloud_bounds = compute_point_cloud_bounds(data_array=data_array)  # compute the bounds on the full array
         self.selected_array, mask = mask_out_of_bounds_points(data_array=data_array, window_sizes=window_sizes, bounds=point_cloud_bounds)
+        
+        # Store the original indices corresponding to the selected points. We need it to assign correctly the predicted labels during inference.
+        self.original_indices = np.where(mask)[0]  # Map from selected array to the original array
     
 
     def __len__(self):
@@ -63,9 +67,12 @@ class PointCloudDataset(Dataset):
 
         # Convert label to tensor
         label = torch.tensor(label, dtype=torch.long)
+        
+        # Return the grids, label, and original index 
+        original_idx = self.original_indices[idx]  # Map back to the original data_array index
 
         # Return the grids and label
-        return small_grid, medium_grid, large_grid, label, idx
+        return small_grid, medium_grid, large_grid, label, original_idx
     
 '''
 def custom_collate_fn(batch):

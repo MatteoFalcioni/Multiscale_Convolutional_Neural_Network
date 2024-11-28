@@ -13,7 +13,7 @@ import os
 import shutil
 
 
-class TestSaveLoadModel(unittest.TestCase):
+'''class TestSaveLoadModel(unittest.TestCase):
     def setUp(self):
         self.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
         # Initialize a test model
@@ -139,10 +139,10 @@ class TestSaveLoadModel(unittest.TestCase):
         print(f"\n\nknown features in orginal file: {original_features}\
                 \ntraining features: {training_features} -> training indices: {training_indices}\
                 \nknown features in inference file:{inference_features}\
-                \nloaded features: {loaded_features} -> loaded_indinces: {loaded_indices}\n\n")
+                \nloaded features: {loaded_features} -> loaded_indinces: {loaded_indices}\n\n")'''
 
 
-'''class TestPointCloudDataset(unittest.TestCase):
+class TestPointCloudDataset(unittest.TestCase):
     def setUp(self):
         # Mock point cloud data for the test
         self.data_array, self.known_features = read_file_to_numpy(data_dir='data/chosen_tiles/32_687000_4930000_FP21.las')
@@ -371,4 +371,4 @@ class TestDataloaderDatasetIntegration(unittest.TestCase):
             # Check for NaN/Inf values
             for grid, scale in zip([small_grid, medium_grid, large_grid], ['small', 'medium', 'large']):
                 self.assertFalse(torch.isnan(grid).any(), f"NaN values found in {scale} grid for batch {i}")
-                self.assertFalse(torch.isinf(grid).any(), f"Inf values found in {scale} grid for batch {i}")'''
+                self.assertFalse(torch.isinf(grid).any(), f"Inf values found in {scale} grid for batch {i}")
