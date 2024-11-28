@@ -2,7 +2,7 @@ from scripts.gpu_grid_gen import build_gpu_tree, generate_multiscale_grids_gpu, 
 from torch.utils.data import Dataset, DataLoader, random_split
 from scripts.point_cloud_to_image import compute_point_cloud_bounds
 import torch
-from utils.point_cloud_data_utils import read_file_to_numpy, remap_labels
+from utils.point_cloud_data_utils import read_file_to_numpy, remap_labels, clean_nan_values
 import numpy as np
 
 
@@ -68,15 +68,15 @@ class GPU_PointCloudDataset(Dataset):
         return small_grid, medium_grid, large_grid, label, idx
 
 
-def gpu_prepare_dataloader(batch_size, data_dir=None, 
+def gpu_prepare_dataloader(batch_size, data_filepath=None, 
                        window_sizes=None, grid_resolution=128, features_to_use=None, 
-                       train_split=None, features_file_path=None, num_workers=4, shuffle_train=True, device='cuda'):
+                       train_split=None, features_file_path=None, num_workers=4, shuffle_train=True, device='cuda:0'):
     """
     Prepares the DataLoader by loading the raw data and streaming multiscale grid generation on the GPU.
     
     Args:
     - batch_size (int): The batch size to be used for training.
-    - data_dir (str): Path to the raw data (e.g., .las or .csv file). Default is None.
+    - data_filepath (str): Path to the raw data (e.g., .las or .csv file). Default is None.
     - window_sizes (list): List of window sizes to use for grid generation. Default is None.
     - grid_resolution (int): Resolution of the grid (e.g., 128x128).
     - features_to_use (list): List of feature names to use for grid generation. Default is None.
@@ -92,14 +92,16 @@ def gpu_prepare_dataloader(batch_size, data_dir=None,
     """
     
     # Check if data directory was passed as input
-    if data_dir is None:
-        raise ValueError('ERROR: Data directory was not passed as input to the dataloader.')
+    if data_filepath is None:
+        raise ValueError('ERROR: Data file path was not passed as input to the dataloader.')
 
     # Read the raw point cloud data 
-    data_array, known_features = read_file_to_numpy(data_dir=data_dir, features_to_use=None, features_file_path=features_file_path)
+    data_array, known_features = read_file_to_numpy(data_dir=data_filepath, features_to_use=None)
 
     # Remap labels to ensure they vary continuously (needed for CrossEntropyLoss)
     data_array, _ = remap_labels(data_array)
+    # clean data from nan/inf values
+    data_array = clean_nan_values(data_array)
 
     # Create the dataset 
     full_dataset = GPU_PointCloudDataset(
@@ -108,6 +110,7 @@ def gpu_prepare_dataloader(batch_size, data_dir=None,
         grid_resolution=grid_resolution,
         features_to_use=features_to_use,
         known_features=known_features,
+        device=device
     )
 
     # Split the dataset into training and evaluation sets (if train_split is provided)
@@ -117,11 +120,11 @@ def gpu_prepare_dataloader(batch_size, data_dir=None,
         train_dataset, eval_dataset = random_split(full_dataset, [train_size, eval_size])
 
         # Create DataLoaders for training and evaluation
-        train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=shuffle_train, collate_fn=gpu_custom_collate_fn, num_workers=num_workers)
-        eval_loader = DataLoader(eval_dataset, batch_size=batch_size, shuffle=False, collate_fn=gpu_custom_collate_fn, num_workers=num_workers)
+        train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=shuffle_train,  num_workers=num_workers, pin_memory=True)
+        eval_loader = DataLoader(eval_dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers, pin_memory=True)
     else:
         # If no train/test split, create one DataLoader for the full dataset
-        train_loader = DataLoader(full_dataset, batch_size=batch_size, shuffle=shuffle_train, collate_fn=gpu_custom_collate_fn, num_workers=num_workers)
+        train_loader = DataLoader(full_dataset, batch_size=batch_size, shuffle=shuffle_train, num_workers=num_workers, pin_memory=True)
         eval_loader = None
 
     return train_loader, eval_loader
