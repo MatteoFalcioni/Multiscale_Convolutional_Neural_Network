@@ -144,39 +144,55 @@ import shutil
 class TestPointCloudDataset(unittest.TestCase):
     def setUp(self):
         # Mock point cloud data for the test
-        self.data_array, self.known_features = read_file_to_numpy(data_dir='data/chosen_tiles/32_687000_4930000_FP21.las')
-        self.data_array, _ = remap_labels(self.data_array)
-        self.data_array = clean_nan_values(data_array=self.data_array)
+        self.full_data_array, self.known_features = read_file_to_numpy(data_dir='data/chosen_tiles/32_687000_4930000_FP21.las')
+        self.full_data_array, _ = remap_labels(self.full_data_array)
+        self.full_data_array = clean_nan_values(data_array=self.full_data_array)
         self.window_sizes = [('small', 10.0), ('medium', 20.0), ('large', 30.0)]
         self.grid_resolution = 128
         self.features_to_use = ['intensity', 'red', 'green', 'blue']
         self.num_channels = len(self.features_to_use)
 
-        # Build the KDTree once for the test
-        self.kdtree = cKDTree(self.data_array[:, :3])
-        self.point_cloud_bounds = compute_point_cloud_bounds(self.data_array)
+        # Create a subset file (mock subset points for testing)
+        subset_points = self.full_data_array[:1000, :3]  # Take first 1000 points as subset
+        self.subset_file = "test_subset.csv"
+        pd.DataFrame(subset_points, columns=['x', 'y', 'z']).to_csv(self.subset_file, index=False)
 
-        # Create the dataset instance
+        # Create the dataset instance with subset filtering
         self.dataset = PointCloudDataset(
-            data_array=self.data_array,
+            full_data_array=self.full_data_array,
             window_sizes=self.window_sizes,
             grid_resolution=self.grid_resolution,
             features_to_use=self.features_to_use,
-            known_features=self.known_features
+            known_features=self.known_features,
+            subset_file=self.subset_file
         )
+
+    def tearDown(self):
+        # Clean up temporary subset file
+        if os.path.exists(self.subset_file):
+            os.remove(self.subset_file)
 
     def test_len(self):
         # Test that the length of the dataset matches the number of points in the selected array
         self.assertEqual(len(self.dataset), len(self.dataset.selected_array))
-        
+
+    def test_subset_filtering(self):
+        # Verify that the subset filtering works correctly
+        subset_points = pd.read_csv(self.subset_file)[['x', 'y', 'z']].values
+        np.testing.assert_array_equal(
+            self.dataset.selected_array[:, :3],
+            subset_points,
+            err_msg="Selected array does not match the points in the subset file."
+        )
+
     def test_original_indices_mapping(self):
-        # Test that original_indices map correctly from selected_array to data_array
+        # Test that original_indices map correctly from selected_array to full_data_array
         for idx in tqdm(range(len(self.dataset)), desc="Test index mapping", unit="processed indices"):
             original_idx = self.dataset.original_indices[idx]
             np.testing.assert_array_equal(
-                self.dataset.selected_array[idx], 
-                self.dataset.data_array[original_idx],
-                err_msg=f"Mapping mismatch between selected_array and data_array at index {idx}"
+                self.dataset.selected_array[idx],
+                self.dataset.full_data_array[original_idx],
+                err_msg=f"Mapping mismatch between selected_array and full_data_array at index {idx}"
             )
 
     def test_getitem_validity(self):
@@ -206,8 +222,8 @@ class TestPointCloudDataset(unittest.TestCase):
                 # Check label validity
                 self.assertIsInstance(label, torch.Tensor, f"Label is not a tensor at index {idx}")
                 self.assertEqual(
-                    label.item(), self.dataset.data_array[original_idx, -1], 
-                    f"Label mismatch between selected_array and data_array at index {idx}"
+                    label.item(), self.dataset.full_data_array[original_idx, -1], 
+                    f"Label mismatch between selected_array and full_data_array at index {idx}"
                 )
             
         
