@@ -2,7 +2,7 @@ import unittest
 import os
 import shutil
 from collections import defaultdict
-from utils.create_dataset import pair_ground_and_offgrounds, stitch_pairs, train_test_split
+from utils.create_dataset import pair_ground_and_offgrounds, stitch_pairs, create_train_eval_datasets
 from utils.point_cloud_data_utils import las_to_csv, read_file_to_numpy, combine_csv_files
 import laspy
 import numpy as np
@@ -93,63 +93,120 @@ class TestCreateDataset(unittest.TestCase):
 
             print(f"CSV conversion verified for: {fused_file}")
         
+        
     def test_combine_csv_files(self):
         # Convert LAS files to CSV
-        csv_filepaths = []
-        for fused_file in self.fused_files:
-            csv_file = las_to_csv(las_file=fused_file, output_folder=self.csv_subdir)
-            csv_filepaths.append(csv_file)
+        if self.test_full_pipeline:
+            csv_filepaths = []
+            for fused_file in self.fused_files:
+                csv_file = las_to_csv(las_file=fused_file, output_folder=self.csv_subdir)
+                csv_filepaths.append(csv_file)
 
-        # Combine the CSV files
+            # Combine the CSV files
+            combined_csv_path = os.path.join(self.output_dataset_folder, "full_dataset.csv")
+            combined_csv = combine_csv_files(csv_filepaths, output_csv=combined_csv_path)
+
+            # Check if the combined CSV file was created
+            self.assertTrue(os.path.exists(combined_csv), f"Combined CSV file not created: {combined_csv}")
+
+            # Load the individual CSVs and the combined CSV
+            print(f"reading csv back to df to check...\n")
+            individual_dataframes = [pd.read_csv(csv) for csv in csv_filepaths]
+            # Load and process the combined CSV in chunks to avoid memory issues
+            print(f"Reading CSV back in chunks to check...\n")
+            chunk_size = 10_000
+            total_rows = 0
+            total_columns = None
+            column_names = None
+            label_counts = {}
+
+            for chunk in pd.read_csv(combined_csv, chunksize=chunk_size):
+                total_rows += len(chunk)
+
+                # Update total columns and column names based on the first chunk
+                if total_columns is None:
+                    total_columns = len(chunk.columns)
+                    column_names = list(chunk.columns)
+
+                # Update label counts if the 'label' column exists
+                if 'label' in chunk.columns:
+                    chunk_label_counts = chunk['label'].value_counts()
+                    for label, count in chunk_label_counts.items():
+                        if label in label_counts:
+                            label_counts[label] += count
+                        else:
+                            label_counts[label] = count
+
+            # Print the dimensions and column names of the combined CSV
+            print(f"Combined CSV dimensions: ({total_rows}, {total_columns})")
+            print(f"Column names: {column_names}")
+            
+            # Verify that the combined CSV contains all points from the individual CSVs
+            individual_dataframes = [pd.read_csv(csv, usecols=['label']) for csv in csv_filepaths]
+            total_points = sum(len(df) for df in individual_dataframes)
+            self.assertEqual(total_rows, total_points, "Combined CSV does not contain all points.")
+            
+            # Print label distribution
+            if label_counts:
+                print("Label distribution in the combined CSV:")
+                for label, count in label_counts.items():
+                    print(f"Label {label}: {count}")
+            else:
+                print("No 'label' column found in the combined CSV.")
+
+            print(f"CSV combination verified. Combined file saved at: {combined_csv_path}")
+            
+    def test_create_train_eval_datasets(self):
+        # Path to the combined CSV
         combined_csv_path = os.path.join(self.output_dataset_folder, "full_dataset.csv")
-        combined_csv = combine_csv_files(csv_filepaths, output_csv=combined_csv_path)
 
-        # Check if the combined CSV file was created
-        self.assertTrue(os.path.exists(combined_csv), f"Combined CSV file not created: {combined_csv}")
+        # Parameters for the function
+        max_points_per_class = 100_000
+        chosen_classes = [0.0, 1.0, 11.0]  # Test with a subset of classes
+        train_split = 0.8
 
-        # Load the individual CSVs and the combined CSV
-        print(f"reading csv back to df to check...\n")
-        individual_dataframes = [pd.read_csv(csv) for csv in csv_filepaths]
-        # Load and process the combined CSV in chunks to avoid memory issues
-        print(f"Reading CSV back in chunks to check...\n")
-        chunk_size = 10_000
-        total_rows = 0
-        total_columns = None
-        column_names = None
-        label_counts = {}
+        # Call the function to create train and eval datasets
+        print("\nRunning create_train_eval_datasets with chunked processing...\n")
+        train_df, eval_df = create_train_eval_datasets(
+            csv_file=combined_csv_path,
+            max_points_per_class=max_points_per_class,
+            chosen_classes=chosen_classes,
+            train_split=train_split,
+            output_dataset_folder=self.output_dataset_folder
+        )
 
-        for chunk in pd.read_csv(combined_csv, chunksize=chunk_size):
-            total_rows += len(chunk)
+        # Check if train and eval datasets are created
+        train_csv = os.path.join(self.output_dataset_folder, "train_dataset.csv")
+        eval_csv = os.path.join(self.output_dataset_folder, "eval_dataset.csv")
+        self.assertTrue(os.path.exists(train_csv), "Training dataset CSV was not created.")
+        self.assertTrue(os.path.exists(eval_csv), "Evaluation dataset CSV was not created.")
 
-            # Update total columns and column names based on the first chunk
-            if total_columns is None:
-                total_columns = len(chunk.columns)
-                column_names = list(chunk.columns)
+        # Load the train and eval datasets
+        train_data = pd.read_csv(train_csv)
+        eval_data = pd.read_csv(eval_csv)
 
-            # Update label counts if the 'label' column exists
-            if 'label' in chunk.columns:
-                chunk_label_counts = chunk['label'].value_counts()
-                for label, count in chunk_label_counts.items():
-                    if label in label_counts:
-                        label_counts[label] += count
-                    else:
-                        label_counts[label] = count
+        # Validate the splits
+        total_points = len(train_data) + len(eval_data)
+        self.assertEqual(len(train_df), len(train_data), "Mismatch in training dataset length.")
+        self.assertEqual(len(eval_df), len(eval_data), "Mismatch in evaluation dataset length.")
+        self.assertAlmostEqual(len(train_data) / total_points, train_split, delta=0.01, msg="Training split ratio mismatch.")
+        self.assertAlmostEqual(len(eval_data) / total_points, 1 - train_split, delta=0.01, msg="Evaluation split ratio mismatch.")
 
-        # Print the dimensions and column names of the combined CSV
-        print(f"Combined CSV dimensions: ({total_rows}, {total_columns})")
-        print(f"Column names: {column_names}")
-        
-        # Verify that the combined CSV contains all points from the individual CSVs
-        individual_dataframes = [pd.read_csv(csv, usecols=['label']) for csv in csv_filepaths]
-        total_points = sum(len(df) for df in individual_dataframes)
-        self.assertEqual(total_rows, total_points, "Combined CSV does not contain all points.")
-        
-        # Print label distribution
-        if label_counts:
-            print("Label distribution in the combined CSV:")
-            for label, count in label_counts.items():
-                print(f"Label {label}: {count}")
-        else:
-            print("No 'label' column found in the combined CSV.")
+        # Check class distribution
+        print("\nChecking class distributions in train and eval datasets...\n")
+        train_class_counts = train_data['label'].value_counts().sort_index()
+        eval_class_counts = eval_data['label'].value_counts().sort_index()
+        print("Training set class distribution:")
+        print(train_class_counts)
+        print("\nEvaluation set class distribution:")
+        print(eval_class_counts)
 
-        print(f"CSV combination verified. Combined file saved at: {combined_csv_path}")
+        # Validate that all chosen classes are present
+        self.assertTrue(set(chosen_classes).issubset(train_class_counts.index), "Not all chosen classes are present in the training set.")
+        self.assertTrue(set(chosen_classes).issubset(eval_class_counts.index), "Not all chosen classes are present in the evaluation set.")
+
+        # Validate no class exceeds max_points_per_class
+        self.assertTrue((train_class_counts <= max_points_per_class).all(), "Some classes in training set exceed max_points_per_class.")
+        self.assertTrue((eval_class_counts <= max_points_per_class).all(), "Some classes in evaluation set exceed max_points_per_class.")
+
+        print("\nTrain/Eval dataset creation test passed successfully!")

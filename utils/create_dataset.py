@@ -275,23 +275,34 @@ def create_train_eval_datasets(csv_file, max_points_per_class, chosen_classes=No
     - train_df (pd.DataFrame): A Pandas DataFrame containing the training set.
     - eval_df (pd.DataFrame): A Pandas DataFrame containing the evaluation set.
     """
-     # Load the CSV file into a Pandas DataFrame
-    df = pd.read_csv(csv_file)
+    # Check directory to save the datasets
+    if output_dataset_folder is None:
+        raise ValueError("Output dataset folder not specified.")
+    os.makedirs(output_dataset_folder, exist_ok=True)
     
-    # Check if 'label' column exists
-    if 'label' not in df.columns:
-        raise ValueError("The CSV file does not contain a 'label' column.")
+    # Initialize variables for processing the dataset in chunks
+    chunksize = 10_000
+    filtered_dfs = []  # For storing filtered chunks
+    
+    # Read and process the CSV in chunks
+    print(f"Reading and processing the dataset in chunks...")
+    for chunk in pd.read_csv(csv_file, chunksize=chunksize):
+        # Filter chosen classes
+        if chosen_classes is not None:
+            chunk = chunk[chunk['label'].isin(chosen_classes)]
 
-    # Filter dataset to include only chosen classes
-    if chosen_classes is not None:
-        df = df[df['label'].isin(chosen_classes)]
-        print(f"Filtering dataset to include only chosen classes: {chosen_classes}")
+        # Append filtered chunk to list
+        filtered_dfs.append(chunk)
 
-    # Count the number of points for each class
+    # Combine all filtered chunks into a single DataFrame
+    if filtered_dfs:
+        df = pd.concat(filtered_dfs, ignore_index=True)
+    else:
+        raise ValueError("No data found after filtering for chosen classes.")
+
+    # Print class distribution before rebalancing
+    print("\nOriginal class distribution:")
     class_counts = df['label'].value_counts().sort_index()
-
-    # Print the original class distribution
-    print("Original class distribution:")
     for class_label, count in class_counts.items():
         print(f"Class {class_label}: {count} points")
 
@@ -307,26 +318,27 @@ def create_train_eval_datasets(csv_file, max_points_per_class, chosen_classes=No
     # Combine the rebalanced subsets
     rebalanced_df = pd.concat(rebalanced_dfs, ignore_index=True)
 
-    # Print the rebalanced class distribution
-    rebalanced_class_counts = rebalanced_df['label'].value_counts().sort_index()
+    # Print class distribution after rebalancing
     print("\nRebalanced class distribution:")
+    rebalanced_class_counts = rebalanced_df['label'].value_counts().sort_index()
     for class_label, count in rebalanced_class_counts.items():
         print(f"Class {class_label}: {count} points")
 
     # Split the rebalanced dataset into training and evaluation sets
-    train_df, eval_df = train_test_split(rebalanced_df, test_size=(1 - train_split), random_state=42, stratify=rebalanced_df['label'])
+    train_df, eval_df = train_test_split(
+        rebalanced_df, 
+        test_size=(1 - train_split), 
+        random_state=42, 
+        stratify=rebalanced_df['label']
+    )
 
+    # Print dataset split summary
     print(f"\nDataset split into:")
     print(f"- Training set: {len(train_df)} points ({train_split * 100:.0f}%)")
     print(f"- Evaluation set: {len(eval_df)} points ({(1 - train_split) * 100:.0f}%)")
-
-    # save the csv files
-    if output_dataset_folder is None:
-        raise ValueError(f"Error: Output directory for csv files containing training and eval data was not specified.")
-    os.makedirs(output_dataset_folder, exist_ok=True)
+  
     train_csv = f"{output_dataset_folder}/train_dataset.csv"
     eval_csv = f"{output_dataset_folder}/eval_dataset.csv"
-
     train_df.to_csv(train_csv, index=False)
     eval_df.to_csv(eval_csv, index=False)
 
