@@ -1,28 +1,17 @@
 import unittest
 import numpy as np
-from utils.point_cloud_data_utils import read_file_to_numpy
-from scripts.point_cloud_to_image import compute_point_cloud_bounds
-import cupy as cp
+from utils.point_cloud_data_utils import read_file_to_numpy, compute_point_cloud_bounds
+'''import cupy as cp
+from cuml.neighbors import NearestNeighbors as cuKNN'''
 from scipy.spatial import cKDTree 
-from cuml.neighbors import NearestNeighbors as cuKNN
 # from cupyx.scipy.spatial import 
 import laspy
 from utils.plot_utils import visualize_grid
 from torch_kdtree import build_kd_tree
 import torch
 from scripts.point_cloud_to_image import generate_multiscale_grids, create_feature_grid, assign_features_to_grid
-from scripts.gpu_grid_gen import generate_multiscale_grids_gpu, create_feature_grid_gpu, assign_features_to_grid_gpu
+from scripts.gpu_grid_gen import mask_out_of_bounds_points_gpu, generate_multiscale_grids_gpu, generate_multiscale_grids_gpu_masked, create_feature_grid_gpu, assign_features_to_grid_gpu, mask_out_of_bounds_points_gpu
 import os
-
-
-def build_cuml_knn(data_array, n_neighbors=1):
-        """
-        Builds and returns a cuML KNN model on the GPU for nearest neighbor search.
-        """
-        data_gpu = cp.array(data_array, dtype=cp.float64) 
-        cuml_knn = cuKNN(n_neighbors=n_neighbors, metric='euclidean')
-        cuml_knn.fit(data_gpu)
-        return cuml_knn
             
 
 class TestGridGeneration(unittest.TestCase):
@@ -49,12 +38,17 @@ class TestGridGeneration(unittest.TestCase):
         # Initialize CPU and GPU KNN models 
         cls.cpu_kdtree = cKDTree(cls.data_array[:, :3])  # Build KDTREE for CPU
         cls.gpu_kdtree = build_kd_tree(cls.tensor_data_array[:, :3])  # Build KDTree for GPU
-        cls.gpu_knn = build_cuml_knn(data_array=cls.data_array[:, :3])  # Build cuML KNN model for GPU
+        # cls.gpu_knn = build_cuml_knn(data_array=cls.data_array[:, :3])  # Build cuML KNN model for GPU
         
         # sample indices randomly for tests
         cls.num_samples = 5
         np.random.seed(42)
         cls.random_idxs = np.random.choice(len(cls.data_array), size=cls.num_samples, replace=False)
+
+        num_points = int(1e3)
+        random_indices = np.random.choice(cls.data_array[0], num_points, replace=False)
+        cls.sliced_data = cls.data_array[random_indices, :]
+        cls.sliced_tensor = torch.tensor(cls.sliced_data, dtype=torch.float64, device=cls.device)
 
 
     def test_torch_tree(self):
@@ -344,6 +338,85 @@ class TestGridGeneration(unittest.TestCase):
                         print(e)  # If grids don't match, print the error message and continue
         
         
+
+    def test_masked_vs_unmasked_grid_gen_gpu(self):
+        """
+        Test the grid generation for masked vs unmasked points on GPU.
+        """
+
+        # Apply GPU-based masking
+        masked_sliced_data_gpu, mask_gpu = mask_out_of_bounds_points_gpu(self.sliced_tensor, self.window_sizes, self.point_cloud_bounds)
+
+        # Collect grids and coordinates for unmasked approach
+        usual_grids = []
+        usual_coords = []
+        out_of_bounds = 0
+
+        for point in self.sliced_tensor:
+            grids_dict = generate_multiscale_grids_gpu(
+                center_point_tensor=point,
+                tensor_data_array=self.tensor_data_array,
+                window_sizes=self.window_sizes,
+                grid_resolution=self.grid_resolution,
+                feature_indices_tensor=torch.tensor(self.feature_indices, device="cuda"),
+                gpu_tree=self.gpu_tree,  # Pass the prebuilt GPU KDTree
+            )
+
+            if grids_dict:
+                usual_grids.append(grids_dict)
+                usual_coords.append(tuple(point.cpu().numpy()))
+            else:
+                out_of_bounds += 1
+
+        print(f"Out-of-bounds points excluded in grid generation: {out_of_bounds}")
+
+        # Collect grids and coordinates for masked approach
+        masked_grids = []
+        masked_coords = []
+
+        for point in masked_sliced_data_gpu:
+            grids_dict = generate_multiscale_grids_gpu_masked(
+                center_point_tensor=point,
+                tensor_data_array=self.tensor_data_array,
+                window_sizes=self.window_sizes,
+                grid_resolution=self.grid_resolution,
+                feature_indices_tensor=torch.tensor(self.feature_indices, device="cuda"),
+                gpu_tree=self.gpu_tree,  # Pass the prebuilt GPU KDTree
+            )
+            masked_grids.append(grids_dict)
+            masked_coords.append(tuple(point.cpu().numpy()))
+
+        # Assert the number of grids matches
+        self.assertEqual(len(masked_grids), len(usual_grids),
+                        f"Number of grids doesn't match between masked ({len(masked_grids)}) and usual ({len(usual_grids)}).")
+
+        # Assert coordinates match
+        self.assertEqual(sorted(masked_coords), sorted(usual_coords),
+                        "Coordinates do not match between masked and unmasked approaches.")
+
+        # Compare the grids for matching coordinates
+        for coord in masked_coords:
+            # Find the index of the matching coordinate in the usual approach
+            usual_index = usual_coords.index(coord)
+            masked_index = masked_coords.index(coord)
+
+            usual_grids_dict = usual_grids[usual_index]
+            masked_grids_dict = masked_grids[masked_index]
+
+            # Compare grids at all scales
+            for scale_label in self.window_sizes:
+                scale = scale_label[0]
+                np.testing.assert_array_equal(
+                    masked_grids_dict[scale].cpu().numpy(),
+                    usual_grids_dict[scale].cpu().numpy(),
+                    err_msg=f"Grid values differ for point {coord} at scale {scale}."
+                )
+
+
+
+
+
+
 
     '''def test_compare_cpu_gpu_knn(self):
         """

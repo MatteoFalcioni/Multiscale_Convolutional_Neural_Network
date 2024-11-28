@@ -273,38 +273,34 @@ def read_file_to_numpy(data_dir, features_to_use=None, features_file_path=None):
     return data_array, known_features
 
 
-def combine_and_save_csv_files(csv_files, save=False, save_dir='data/combined_data'):
+def combine_csv_files(csv_files, output_csv):
     """
-    Combines multiple CSV files into a single NumPy array and optionally saves the combined data to a file.
+    Combines multiple CSV files into a single CSV file efficiently, processing them in chunks.
 
     Args:
-    - csv_files (list of str): List of paths to CSV files.
-    - save (bool): Whether to save the combined data to a file. Default is False.
-    - save_dir (str): Directory where the combined NumPy array will be saved. Default is 'combined_data'.
+    - csv_files (list of str): List of paths to CSV files to combine.
+    - output_csv (str): Path to save the combined CSV file.
 
     Returns:
-    - np.ndarray: Combined data from all CSV files as a NumPy array.
+    - output_csv (str) : path to the saved combined CSV file
     """
-    combined_data = []
+    # Ensure the output folder exists
+    os.makedirs(os.path.dirname(output_csv), exist_ok=True)
 
-    # Loop through each CSV file and read its contents
-    print("Reading CSV files:")
-    for file in tqdm(csv_files, desc="Reading", unit="file"):
-        # Read the CSV file into a NumPy array
-        data = pd.read_csv(file).values
-        combined_data.append(data)
+    with open(output_csv, 'w') as outfile:
+        # Initialize the progress bar
+        with tqdm(total=len(csv_files), desc="Combining CSV files", unit="file") as pbar:
+            for i, file in enumerate(csv_files):
+                # Read the CSV file in chunks
+                for chunk in pd.read_csv(file, chunksize=10_000):
+                    # Write the header only for the first file
+                    chunk.to_csv(outfile, index=False, header=(i == 0), mode='a')
+                # Update the progress bar
+                pbar.update(1)
 
-    # Combine all data into a single NumPy array
-    combined_array = np.vstack(combined_data)
+    print(f"Combined CSV saved to {output_csv}")
 
-    # Optionally save the combined data
-    if save:
-        os.makedirs(save_dir, exist_ok=True)
-        output_file_path = os.path.join(save_dir, 'combined_data.npy')
-        np.save(output_file_path, combined_array)
-        print(f"Combined data saved to {output_file_path}")
-
-    return combined_array
+    return output_csv
 
 
 def sample_data(input_file, sample_size, save=False, save_dir='data/sampled_data', feature_to_use=None, features_file_path=None):
@@ -738,6 +734,42 @@ def compute_point_cloud_bounds(data_array, padding=0.0):
     return bounds_dict
 
 
+def las_to_csv(las_file, output_folder):
+    """
+    Converts a LAS file to a CSV file by extracting its data and features.
+
+    This function reads a LAS file, converts its contents into a NumPy array, 
+    and transforms the array into a Pandas DataFrame. The DataFrame is then saved 
+    as a CSV file at the specified output location.
+
+    Args:
+    - las_file (str): Path to the input LAS file.
+    - output_folder (str): Folder to save the output CSV file. The file name is derived
+                           from the LAS file name by replacing .las with .csv.
+
+    Returns:
+    - output_csv_filepath (str): Path to the saved CSV file.
+    """
+
+    # Derive the output CSV file path
+    las_filename = os.path.basename(las_file)  # Extract file name
+    csv_filename = os.path.splitext(las_filename)[0] + ".csv"  # Replace .las with .csv
+    output_csv_filepath = os.path.join(output_folder, csv_filename)
+
+    # Read the LAS file to numpy and get the features
+    data_array, known_features = read_file_to_numpy(las_file)
+
+    # Convert the array to a DataFrame
+    df = numpy_to_dataframe(data_array=data_array, feature_names=known_features)
+
+    # Ensure the output folder exists
+    os.makedirs(output_folder, exist_ok=True)
+
+    # Save the DataFrame to a CSV file
+    df.to_csv(output_csv_filepath, index=False)
+
+    print(f"Converted {las_file} to {output_csv_filepath}")
+    return output_csv_filepath
 
 
 
