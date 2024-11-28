@@ -273,32 +273,44 @@ def read_file_to_numpy(data_dir, features_to_use=None, features_file_path=None):
     return data_array, known_features
 
 
-def combine_csv_files(csv_files, output_csv):
+def combine_csv_files(csv_files, output_csv, default_replacement=0.0):
     """
-    Combines multiple CSV files into a single CSV file efficiently, processing them in chunks.
+    Combines multiple CSV files into a single CSV file efficiently, processing them in chunks,
+    and cleans the final combined file of NaN/Inf values by overwriting it.
 
     Args:
     - csv_files (list of str): List of paths to CSV files to combine.
     - output_csv (str): Path to save the combined CSV file.
 
     Returns:
-    - output_csv (str) : path to the saved combined CSV file
+    - output_csv (str): Path to the saved combined CSV file.
     """
     # Ensure the output folder exists
     os.makedirs(os.path.dirname(output_csv), exist_ok=True)
 
-    with open(output_csv, 'w') as outfile:
-        # Initialize the progress bar
-        with tqdm(total=len(csv_files), desc="Combining CSV files", unit="file") as pbar:
-            for i, file in enumerate(csv_files):
-                # Read the CSV file in chunks
-                for chunk in pd.read_csv(file, chunksize=10_000):
-                    # Write the header only for the first file
-                    chunk.to_csv(outfile, index=False, header=(i == 0), mode='a')
-                # Update the progress bar
-                pbar.update(1)
+    # Combine CSV files
+    with tqdm(total=len(csv_files), desc="Combining CSV files", unit="file") as pbar:
+        for i, file in enumerate(csv_files):
+            for chunk in pd.read_csv(file, chunksize=10_000):
+                # Append to the output CSV, writing the header only for the first chunk
+                chunk.to_csv(output_csv, index=False, header=(i == 0 and chunk.index.start == 0), mode='a')
+            pbar.update(1)
 
     print(f"Combined CSV saved to {output_csv}")
+
+    # Clean the combined file in chunks and overwrite it
+    print("\nCleaning csv file from nan/inf values...")
+    temp_file = f"{output_csv}.tmp"  # Temporary file to write cleaned data
+    with open(temp_file, 'w') as outfile:
+        for chunk in pd.read_csv(output_csv, chunksize=10_000):
+            chunk.replace([np.inf, -np.inf], default_replacement, inplace=True)
+            chunk.fillna(default_replacement, inplace=True)
+            chunk.to_csv(outfile, index=False, header=(outfile.tell() == 0), mode='a')
+
+    # Overwrite the original file
+    os.replace(temp_file, output_csv)  # Replace the original CSV with the cleaned version
+
+    print(f"\nCleaned combined CSV saved to {output_csv}")
 
     return output_csv
 

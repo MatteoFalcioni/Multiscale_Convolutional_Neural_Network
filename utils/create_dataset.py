@@ -14,7 +14,7 @@ import laspy
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
-from utils.point_cloud_data_utils import las_to_csv, combine_csv_files
+from utils.point_cloud_data_utils import las_to_csv, combine_csv_files, clean_nan_values
 
 
 def create_dataset(input_folder, fused_las_folder, max_points_per_class, output_dataset_folder=None, chosen_classes=None, train_split=0.8):
@@ -47,9 +47,9 @@ def create_dataset(input_folder, fused_las_folder, max_points_per_class, output_
     # stitch the pairs together and save them inside fused_las_folder
     fused_files = stitch_pairs(file_pairs=file_pairs, output_folder=fused_las_folder)
     
-    # clean subtiles removing points out of the coordinates specified in file name (some of them contain bugged points outside)
+    # clean subtiles by (1) removing points outside of the coordinates specified in file name
     for file in fused_files:
-        clean_bugged_subtile(file)
+        clean_bugged_las(file)  # necessary some of them contain bugged points outside p.c. bounds
 
     # convert the las into csv files and save them in a fused_las_folder/csv/ subdirectory
     csv_subdir = f"{fused_las_folder}/csv" 
@@ -59,7 +59,7 @@ def create_dataset(input_folder, fused_las_folder, max_points_per_class, output_
         csv_path = las_to_csv(las_file=las_filepath, output_folder=csv_subdir)
         csv_filepaths.append(csv_path)
 
-    # combine the csvs together to get one big file, and save it
+    # combine the csvs together to get one big file, and save it. Also cleans nan/inf values of combined file internally
     combined_csv = combine_csv_files(csv_filepaths, output_csv=f"{output_dataset_folder}/full_dataset.csv")
 
     # finally rebalance the combined csv and create train/test datasets, saving them as csv inside output_dataset_folder
@@ -336,7 +336,7 @@ def create_train_eval_datasets(csv_file, max_points_per_class, chosen_classes=No
     return train_df, eval_df
 
 
-def clean_bugged_subtile(bugged_las_path):
+def clean_bugged_las(bugged_las_path):
     """
     Cleans a bugged LAS file by removing points outside the valid bounds inferred from its filename.
 
@@ -378,6 +378,5 @@ def clean_bugged_subtile(bugged_las_path):
     # Print the number of points before and after cleaning
     print(f"Cleaned LAS file: {bugged_las_path}")
     print(f"Original points: {len(las_data.points)}, Cleaned points: {len(cleaned_points)}")
-
 
 

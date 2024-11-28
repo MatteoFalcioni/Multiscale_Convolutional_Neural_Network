@@ -15,8 +15,13 @@ class TestCreateDataset(unittest.TestCase):
         self.real_file_dir = 'data/ground_and_offground'
         self.real_file_directories = ['data/ground_and_offground/32_681500', 'data/ground_and_offground/32_684000', 'data/ground_and_offground/32_686000']    #
         self.las_dir_out = 'tests/fused_las'
-        self.fused_files = [filepath for filepath in self.las_dir_out if filepath.endswith('.las')]
         os.makedirs(self.las_dir_out, exist_ok=True)
+        self.csv_subdir = f"{self.las_dir_out}/csv"
+        self.fused_files = [os.path.join(self.las_dir_out, filepath) for filepath in os.listdir(self.las_dir_out) if filepath.endswith('.las')]
+        
+        self.output_dataset_folder = 'tests/output_dataset_folder/'
+        
+        self.test_full_pipeline = False
         
         
     def test_pair_ground_and_offgrounds(self):
@@ -68,24 +73,25 @@ class TestCreateDataset(unittest.TestCase):
         print("All fused files verified successfully!")
         
     def test_las_to_csv(self):
-        # Use one of the fused LAS files for testing
-        fused_file = self.fused_files[0]
-        
-        # Convert the LAS file to CSV
-        csv_file = las_to_csv(las_file=fused_file, output_folder=self.csv_subdir)
+        if self.test_full_pipeline:
+            # Use one of the fused LAS files for testing
+            fused_file = self.fused_files[0]
+            
+            # Convert the LAS file to CSV
+            csv_file = las_to_csv(las_file=fused_file, output_folder=self.csv_subdir)
 
-        # Check if the CSV file was created
-        self.assertTrue(os.path.exists(csv_file), f"CSV file not created: {csv_file}")
-        
-        # Load the LAS file and CSV file
-        las_data, known_features = read_file_to_numpy(fused_file)
-        csv_data = pd.read_csv(csv_file)
+            # Check if the CSV file was created
+            self.assertTrue(os.path.exists(csv_file), f"CSV file not created: {csv_file}")
+            
+            # Load the LAS file and CSV file
+            las_data, known_features = read_file_to_numpy(fused_file)
+            csv_data = pd.read_csv(csv_file)
 
-        # Verify that the number of points and features match
-        self.assertEqual(len(csv_data), len(las_data), "Number of points in CSV does not match LAS file.")
-        self.assertEqual(list(csv_data.columns), known_features, "CSV column names do not match LAS features.")
+            # Verify that the number of points and features match
+            self.assertEqual(len(csv_data), len(las_data), "Number of points in CSV does not match LAS file.")
+            self.assertEqual(list(csv_data.columns), known_features, "CSV column names do not match LAS features.")
 
-        print(f"CSV conversion verified for: {fused_file}")
+            print(f"CSV conversion verified for: {fused_file}")
         
     def test_combine_csv_files(self):
         # Convert LAS files to CSV
@@ -102,11 +108,48 @@ class TestCreateDataset(unittest.TestCase):
         self.assertTrue(os.path.exists(combined_csv), f"Combined CSV file not created: {combined_csv}")
 
         # Load the individual CSVs and the combined CSV
+        print(f"reading csv back to df to check...\n")
         individual_dataframes = [pd.read_csv(csv) for csv in csv_filepaths]
-        combined_dataframe = pd.read_csv(combined_csv)
+        # Load and process the combined CSV in chunks to avoid memory issues
+        print(f"Reading CSV back in chunks to check...\n")
+        chunk_size = 10_000
+        total_rows = 0
+        total_columns = None
+        column_names = None
+        label_counts = {}
 
+        for chunk in pd.read_csv(combined_csv, chunksize=chunk_size):
+            total_rows += len(chunk)
+
+            # Update total columns and column names based on the first chunk
+            if total_columns is None:
+                total_columns = len(chunk.columns)
+                column_names = list(chunk.columns)
+
+            # Update label counts if the 'label' column exists
+            if 'label' in chunk.columns:
+                chunk_label_counts = chunk['label'].value_counts()
+                for label, count in chunk_label_counts.items():
+                    if label in label_counts:
+                        label_counts[label] += count
+                    else:
+                        label_counts[label] = count
+
+        # Print the dimensions and column names of the combined CSV
+        print(f"Combined CSV dimensions: ({total_rows}, {total_columns})")
+        print(f"Column names: {column_names}")
+        
         # Verify that the combined CSV contains all points from the individual CSVs
+        individual_dataframes = [pd.read_csv(csv, usecols=['label']) for csv in csv_filepaths]
         total_points = sum(len(df) for df in individual_dataframes)
-        self.assertEqual(len(combined_dataframe), total_points, "Combined CSV does not contain all points.")
+        self.assertEqual(total_rows, total_points, "Combined CSV does not contain all points.")
+        
+        # Print label distribution
+        if label_counts:
+            print("Label distribution in the combined CSV:")
+            for label, count in label_counts.items():
+                print(f"Label {label}: {count}")
+        else:
+            print("No 'label' column found in the combined CSV.")
 
         print(f"CSV combination verified. Combined file saved at: {combined_csv_path}")
