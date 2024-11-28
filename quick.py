@@ -1,10 +1,11 @@
-from utils.point_cloud_data_utils import sample_data, combine_and_save_csv_files, read_file_to_numpy
+from utils.point_cloud_data_utils import sample_data, read_file_to_numpy
 import pandas as pd
 from utils.point_cloud_data_utils import subtiler
 import laspy
 import numpy as np
 import os
 from datetime import datetime
+from utils.create_dataset import clean_bugged_subtile
 
 '''
 input_file = 'data/training_data/21/train_21.csv'
@@ -79,7 +80,7 @@ compare_dimensions(original_file, subtile_files)'''
 
 '''window_sizes = [('small', 2.5), ('medium', 5.0), ('large', 10.0)]
 large_value = int([value for label, value in window_sizes if label == 'large'][0])
-print(large_value)'''
+print(large_value)
 
 
 def sample_points_from_las(input_las_path, output_las_path, num_samples=1000):
@@ -168,9 +169,9 @@ Returns:
     # Load the subtile LAS file
     subtile_las = laspy.read(subtile_filepath)
 
-    '''# Define the bounds of the subtile
+    # Define the bounds of the subtile
     upper_right_x = lower_left_x + tile_size
-    upper_right_y = lower_left_y + tile_size'''
+    upper_right_y = lower_left_y + tile_size
 
     min_x = subtile_las.x.min()
     max_x = subtile_las.x.max()
@@ -241,4 +242,7 @@ Returns:
     return output_filename, new_las
 
 output_filename, new_las = apply_mask_to_subtile(subtile_filepath='tests/test_subtiler/32_687000_4930000_FP21_sampled_10k_250_subtiles/subtile_687220_4930220.las', 
-                                                 tile_size=250, overlap_size=30, is_northernmost=True, is_rightmost=True, output_dir='tests/test_subtiler/cut_tests')"""
+                                                 tile_size=250, overlap_size=30, is_northernmost=True, is_rightmost=True, output_dir='tests/test_subtiler/cut_tests')'''''
+                                                 
+
+cleaned_las = clean_bugged_subtile(bugged_las_path='tests/fused_las/fused_32_686000_4930500_FGLn.las')

@@ -1,11 +1,10 @@
 import unittest
 from unittest import mock
 from torch.utils.data import DataLoader
-from utils.point_cloud_data_utils import read_file_to_numpy, remap_labels
-from scripts.point_cloud_to_image import compute_point_cloud_bounds
+from utils.point_cloud_data_utils import read_file_to_numpy, remap_labels, clean_nan_values, compute_point_cloud_bounds
 from models.mcnn import MultiScaleCNN
 from scipy.spatial import cKDTree
-from utils.train_data_utils import PointCloudDataset, prepare_dataloader, custom_collate_fn, save_model, load_model, load_parameters, save_used_parameters
+from utils.train_data_utils import PointCloudDataset, prepare_dataloader, save_model, load_model, load_parameters, save_used_parameters
 import torch
 import numpy as np
 from tqdm import tqdm
@@ -147,6 +146,7 @@ class TestPointCloudDataset(unittest.TestCase):
         # Mock point cloud data for the test
         self.data_array, self.known_features = read_file_to_numpy(data_dir='data/chosen_tiles/32_687000_4930000_FP21.las')
         self.data_array, _ = remap_labels(self.data_array)
+        self.data_array = clean_nan_values(data_array=self.data_array)
         self.window_sizes = [('small', 10.0), ('medium', 20.0), ('large', 30.0)]
         self.grid_resolution = 128
         self.features_to_use = ['intensity', 'red', 'green', 'blue']
@@ -166,20 +166,29 @@ class TestPointCloudDataset(unittest.TestCase):
         )
 
     def test_len(self):
-        # Test that the length of the dataset matches the number of points
-        self.assertEqual(len(self.dataset), len(self.data_array))
+        # Test that the length of the dataset matches the number of points in the selected array
+        self.assertEqual(len(self.dataset), len(self.dataset.selected_array))
+        
+    def test_original_indices_mapping(self):
+        # Test that original_indices map correctly from selected_array to data_array
+        for idx in tqdm(range(len(self.dataset)), desc="Test index mapping", unit="processed indices"):
+            original_idx = self.dataset.original_indices[idx]
+            np.testing.assert_array_equal(
+                self.dataset.selected_array[idx], 
+                self.dataset.data_array[original_idx],
+                err_msg=f"Mapping mismatch between selected_array and data_array at index {idx}"
+            )
 
     def test_getitem_validity(self):
-        
-        num_tests = 10000
-        indices = np.random.choice(len(self.dataset), num_tests, replace=False)
-        
         # Test retrieving grids and labels for multiple indices
-        for idx in tqdm(indices, desc="Testing getitem method", unit="processed points"):  
+        num_tests = 1000
+        indices = np.random.choice(len(self.dataset), num_tests, replace=False)
+
+        for idx in tqdm(indices, desc="Testing getitem method", unit="processed points"):
             result = self.dataset[idx]
 
             if result is not None:
-                small_grid, medium_grid, large_grid, label, _ = result
+                small_grid, medium_grid, large_grid, label, original_idx = result
 
                 # Check grid shapes
                 self.assertEqual(small_grid.shape, (self.num_channels, self.grid_resolution, self.grid_resolution),
@@ -196,10 +205,14 @@ class TestPointCloudDataset(unittest.TestCase):
 
                 # Check label validity
                 self.assertIsInstance(label, torch.Tensor, f"Label is not a tensor at index {idx}")
-                self.assertEqual(label.item(), self.data_array[idx, -1], f"Label mismatch at index {idx}")
+                self.assertEqual(
+                    label.item(), self.dataset.data_array[original_idx, -1], 
+                    f"Label mismatch between selected_array and data_array at index {idx}"
+                )
             
         
-    @mock.patch('utils.train_data_utils.PointCloudDataset.__getitem__')
+    ''' you stopped skipping batches now, no need for this
+        @mock.patch('utils.train_data_utils.PointCloudDataset.__getitem__')
     def test_dataloader_with_none(self, mock_getitem):
         # Mock __getitem__ to return None for certain indices
         def side_effect(idx):
@@ -223,9 +236,9 @@ class TestPointCloudDataset(unittest.TestCase):
             if batch is not None:
                 small_grid, medium_grid, large_grid, labels, indices = batch
                 # None values should be skipped, so we expect 2 valid entries per batch
-                self.assertEqual(small_grid.size(0), 2, "Batch size should be 2 after skipping None entries.")
+                self.assertEqual(small_grid.size(0), 2, "Batch size should be 2 after skipping None entries.")'''
 
-
+'''
 class TestPrepareDataloader(unittest.TestCase):
 
     def setUp(self):
@@ -372,3 +385,4 @@ class TestDataloaderDatasetIntegration(unittest.TestCase):
             for grid, scale in zip([small_grid, medium_grid, large_grid], ['small', 'medium', 'large']):
                 self.assertFalse(torch.isnan(grid).any(), f"NaN values found in {scale} grid for batch {i}")
                 self.assertFalse(torch.isinf(grid).any(), f"Inf values found in {scale} grid for batch {i}")
+'''

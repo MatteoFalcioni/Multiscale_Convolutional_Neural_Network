@@ -22,7 +22,7 @@ class TestPredictFunction(unittest.TestCase):
         self.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
         
         # Set some parameters for the test
-        self.batch_size = 32 
+        self.batch_size = 16 
         self.grid_resolution = 128  
         self.num_workers = 16 
         self.load = True

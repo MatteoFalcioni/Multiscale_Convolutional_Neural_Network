@@ -14,7 +14,7 @@ import laspy
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
-from point_cloud_data_utils import las_to_csv, combine_csv_files
+from utils.point_cloud_data_utils import las_to_csv, combine_csv_files
 
 
 def create_dataset(input_folder, fused_las_folder, max_points_per_class, output_dataset_folder=None, chosen_classes=None, train_split=0.8):
@@ -46,6 +46,10 @@ def create_dataset(input_folder, fused_las_folder, max_points_per_class, output_
 
     # stitch the pairs together and save them inside fused_las_folder
     fused_files = stitch_pairs(file_pairs=file_pairs, output_folder=fused_las_folder)
+    
+    # clean subtiles removing points out of the coordinates specified in file name (some of them contain bugged points outside)
+    for file in fused_files:
+        clean_bugged_subtile(file)
 
     # convert the las into csv files and save them in a fused_las_folder/csv/ subdirectory
     csv_subdir = f"{fused_las_folder}/csv" 
@@ -83,54 +87,35 @@ def create_dataset(input_folder, fused_las_folder, max_points_per_class, output_
     return None
 
 
-
-
-
-
-def pair_ground_and_offgrounds(input_folder):
+def pair_ground_and_offgrounds(input_folders):
     """
     Identifies and pairs FGL and FSL LAS files in the given folder based on their shared prefix (e.g., "32_681500").
 
     Args:
-    - input_folder (str): Path to the folder containing LAS files.
+    - input_folders (list): List of path to the folders containing LAS files (each folder should have ground + off ground).
 
     Returns:
     - file_pairs (list): A list of tuples (ground_file, off_ground_files) where:
         - ground_file (str): Path to the ground LAS file (FGL).
         - off_ground_files (list): List of paths to the off-ground LAS files (FSL) sharing the same prefix.
     """
-    # Initialize a dictionary to group ground and off-ground files by their prefix
-    file_groups = defaultdict(lambda: {"FGL": None, "FSL": []})
-    
-    # Iterate through all files in the folder
-    for file in os.listdir(input_folder):
-        if file.endswith(".las"):
-            # Split filename into parts to extract prefix and suffix
-            parts = file.split("_")
-            if len(parts) < 4:
-                continue  # Skip files that don't match the expected format
-            
-            # Extract the first two parts of the prefix (e.g., "32_681500")
-            major_prefix = "_".join(parts[:2])
-            suffix = parts[-1].split(".")[0]  # Extract the suffix (e.g., "FGL", "FSL")
-
-            # Categorize files based on their suffix
-            if suffix == "FGL":
-                file_groups[major_prefix]["FGL"] = os.path.join(input_folder, file)
-            elif suffix == "FSL":
-                file_groups[major_prefix]["FSL"].append(os.path.join(input_folder, file))
-    
-    # Create the list of paired files
     file_pairs = []
-    for prefix, files in file_groups.items():
-        ground_file = files["FGL"]
-        off_ground_files = files["FSL"]
-        
-        # Only include pairs where both ground and off-ground files exist
-        if ground_file and off_ground_files:
-            file_pairs.append((ground_file, off_ground_files))
+
+    # Process each directory separately
+    for input_folder in input_folders:
+        # Find all ground and off-ground files based on suffix
+        ground_files = [os.path.join(input_folder, file) for file in os.listdir(input_folder) if file.endswith("FGLn.las")]
+        off_ground_files = [os.path.join(input_folder, file) for file in os.listdir(input_folder) if file.endswith("FSLn.las")]
+
+        # Pair each ground file with all off-ground files in the same directory
+        for ground_file in ground_files:
+            if off_ground_files:
+                file_pairs.append((ground_file, off_ground_files))
+            else:
+                print(f"Warning: No off-ground files found for ground file: {ground_file}")
     
     return file_pairs
+
 
 
 def stitch_pairs(file_pairs, output_folder):
@@ -168,14 +153,14 @@ def stitch_pairs(file_pairs, output_folder):
         all_labels = [ground_las.label]
 
         # Collect other attributes if they exist
-        all_intensities = [ground_las.intensity] if "intensity" in ground_dimensions else None
-        all_red = [ground_las.red] if "red" in ground_dimensions else None
-        all_green = [ground_las.green] if "green" in ground_dimensions else None
-        all_blue = [ground_las.blue] if "blue" in ground_dimensions else None
-        all_nir = [ground_las.nir] if "nir" in ground_dimensions else None
-        all_return_number = [ground_las.return_number] if "return_number" in ground_dimensions else None
-        all_number_of_returns = [ground_las.number_of_returns] if "number_of_returns" in ground_dimensions else None
-        all_classification = [ground_las.classification] if "classification" in ground_dimensions else None
+        all_intensities = [ground_las.intensity] 
+        all_red = [ground_las.red]
+        all_green = [ground_las.green] 
+        all_blue = [ground_las.blue] 
+        all_nir = [ground_las.nir] 
+        all_return_number = [ground_las.return_number] 
+        all_number_of_returns = [ground_las.number_of_returns] 
+        all_classification = [ground_las.classification] 
 
         # Loop through off-ground files and collect their data
         for file in off_ground_files:
@@ -194,43 +179,42 @@ def stitch_pairs(file_pairs, output_folder):
             all_points.append(np.vstack((off_ground_las.x, off_ground_las.y, off_ground_las.z)).T)
             all_labels.append(off_ground_las.label)
 
-            if all_intensities is not None:
-                all_intensities.append(off_ground_las.intensity)
-            if all_red is not None:
-                all_red.append(off_ground_las.red)
-            if all_green is not None:
-                all_green.append(off_ground_las.green)
-            if all_blue is not None:
-                all_blue.append(off_ground_las.blue)
-            if all_nir is not None:
-                all_nir.append(off_ground_las.nir)
-            if all_return_number is not None:
-                all_return_number.append(off_ground_las.return_number)
-            if all_number_of_returns is not None:
-                all_number_of_returns.append(off_ground_las.number_of_returns)
-            if all_classification is not None:
-                all_classification.append(off_ground_las.classification)
+            
+            all_intensities.append(off_ground_las.intensity)
+
+            all_red.append(off_ground_las.red)
+
+            all_green.append(off_ground_las.green)
+
+            all_blue.append(off_ground_las.blue)
+
+            all_nir.append(off_ground_las.nir)
+
+            all_return_number.append(off_ground_las.return_number)
+
+            all_number_of_returns.append(off_ground_las.number_of_returns)
+
+            all_classification.append(off_ground_las.classification)
 
         # Concatenate all points and attributes
         all_points = np.concatenate(all_points)
         all_labels = np.concatenate(all_labels)
 
-        if all_intensities is not None:
-            all_intensities = np.concatenate(all_intensities)
-        if all_red is not None:
-            all_red = np.concatenate(all_red)
-        if all_green is not None:
-            all_green = np.concatenate(all_green)
-        if all_blue is not None:
-            all_blue = np.concatenate(all_blue)
-        if all_nir is not None:
-            all_nir = np.concatenate(all_nir)
-        if all_return_number is not None:
-            all_return_number = np.concatenate(all_return_number)
-        if all_number_of_returns is not None:
-            all_number_of_returns = np.concatenate(all_number_of_returns)
-        if all_classification is not None:
-            all_classification = np.concatenate(all_classification)
+        all_intensities = np.concatenate(all_intensities)
+
+        all_red = np.concatenate(all_red)
+
+        all_green = np.concatenate(all_green)
+
+        all_blue = np.concatenate(all_blue)
+
+        all_nir = np.concatenate(all_nir)
+
+        all_return_number = np.concatenate(all_return_number)
+
+        all_number_of_returns = np.concatenate(all_number_of_returns)
+
+        all_classification = np.concatenate(all_classification)
 
         # Create a new LAS file for the fused data
         # Create a new header with the correct point format, scales, and offsets 
@@ -244,22 +228,21 @@ def stitch_pairs(file_pairs, output_folder):
         fused_las.z = all_points[:, 2]
         fused_las.label = all_labels
 
-        if all_intensities is not None:
-            fused_las.intensity = all_intensities
-        if all_red is not None:
-            fused_las.red = all_red
-        if all_green is not None:
-            fused_las.green = all_green
-        if all_blue is not None:
-            fused_las.blue = all_blue
-        if all_nir is not None:
-            fused_las.nir = all_nir
-        if all_return_number is not None:
-            fused_las.return_number = all_return_number
-        if all_number_of_returns is not None:
-            fused_las.number_of_returns = all_number_of_returns
-        if all_classification is not None:
-            fused_las.classification = all_classification
+        fused_las.intensity = all_intensities
+
+        fused_las.red = all_red
+
+        fused_las.green = all_green
+
+        fused_las.blue = all_blue
+
+        fused_las.nir = all_nir
+
+        fused_las.return_number = all_return_number
+
+        fused_las.number_of_returns = all_number_of_returns
+
+        fused_las.classification = all_classification
 
         # Update header
         fused_las.update_header()
@@ -352,6 +335,49 @@ def create_train_eval_datasets(csv_file, max_points_per_class, chosen_classes=No
 
     return train_df, eval_df
 
+
+def clean_bugged_subtile(bugged_las_path):
+    """
+    Cleans a bugged LAS file by removing points outside the valid bounds inferred from its filename.
+
+    Args:
+    - bugged_las_path (str): Path to the bugged LAS file.
+
+    Returns:
+    - None
+    """
+    # Extract xmin and ymin from the filename
+    base_name = os.path.basename(bugged_las_path)
+    parts = base_name.split("_")
+    try:
+        xmin = float(parts[2]) 
+        ymin = float(parts[3].split(".")[0])
+    except ValueError:
+        raise ValueError(f"Invalid filename format for bugged LAS file: {bugged_las_path}")
+
+    # Load the LAS file
+    las_data = laspy.read(bugged_las_path)
+    
+    print(f"From tile name: xmin: {xmin}, ymin:{ymin}\n")
+    print(f"From .min() and .max() -> xmin:{las_data.x.min()}, ymin:{las_data.y.min()}")
+
+    # Apply the mask to filter points within bounds
+    mask = (las_data.x >= xmin) & (las_data.y >= ymin)
+    cleaned_points = las_data.points[mask]
+    cleaned_labels = las_data.label[mask]
+
+    # Create a new LAS object with the cleaned data
+    cleaned_las = laspy.LasData(las_data.header)
+    cleaned_las.points = cleaned_points
+    cleaned_las.label = cleaned_labels
+    
+    cleaned_las.update_header()
+    
+    cleaned_las.write(bugged_las_path)
+
+    # Print the number of points before and after cleaning
+    print(f"Cleaned LAS file: {bugged_las_path}")
+    print(f"Original points: {len(las_data.points)}, Cleaned points: {len(cleaned_points)}")
 
 
 

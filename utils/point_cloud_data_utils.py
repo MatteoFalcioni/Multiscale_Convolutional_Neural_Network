@@ -529,13 +529,13 @@ def stitch_subtiles(subtile_folder, original_las, original_filename, model_direc
     all_number_of_returns = []
     all_classification = []
 
-    # Get the lower-left coordinates of all subtiles from their filenames
-    lower_left_coords = []
+    '''# Get the lower-left coordinates of all subtiles from their filenames
+    lower_left_coords = []'''
 
     # Get all subtile files from the subtile folder
     subtile_files = [os.path.join(subtile_folder, f) for f in os.listdir(subtile_folder) if f.endswith('_pred.las')]
 
-    for subtile_file in subtile_files:
+    '''for subtile_file in subtile_files:
         # Extract coordinates from filename
         filename = os.path.basename(subtile_file)
 
@@ -543,7 +543,7 @@ def stitch_subtiles(subtile_folder, original_las, original_filename, model_direc
         parts = filename.split('_')
         lower_left_x = int(parts[1])
         lower_left_y = int(parts[2].split('.')[0])  # Extract y (before the file extension)
-        lower_left_coords.append((lower_left_x, lower_left_y))
+        lower_left_coords.append((lower_left_x, lower_left_y))'''
     
     # define size of strip to cut off
     cut_off = overlap_size/2
@@ -558,10 +558,10 @@ def stitch_subtiles(subtile_folder, original_las, original_filename, model_direc
             subtile_las.points = subtile_las.points.convert_to(original_las.point_format)
         
         filename = os.path.basename(subtile_file)
-        # Split filename to get coordinates (x, y)
+        '''# Split filename to get coordinates (x, y)
         parts = filename.split('_')
         lower_left_x = int(parts[1])
-        lower_left_y = int(parts[2].split('.')[0])  
+        lower_left_y = int(parts[2].split('.')[0]) ''' 
 
         # Define upper bounds based on tile size (to cut off strips of unlabeled points)
         min_x = subtile_las.x.min()
