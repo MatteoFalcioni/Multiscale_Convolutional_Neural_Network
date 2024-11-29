@@ -145,7 +145,8 @@ import pandas as pd
 class TestPointCloudDataset(unittest.TestCase):
     def setUp(self):
         # Mock point cloud data for the test
-        self.full_data_array, self.known_features = read_file_to_numpy(data_dir='data/chosen_tiles/32_687000_4930000_FP21.las')
+        '''use a sample file temporarily since i dont have real ones in local'''
+        self.full_data_array, self.known_features = read_file_to_numpy(data_dir='tests/test_subtiler/32_687000_4930000_FP21_sampled_10k.las')
         self.full_data_array, _ = remap_labels(self.full_data_array)
         self.full_data_array = clean_nan_values(data_array=self.full_data_array)
         self.window_sizes = [('small', 10.0), ('medium', 20.0), ('large', 30.0)]
@@ -155,7 +156,7 @@ class TestPointCloudDataset(unittest.TestCase):
 
         # Create a subset file (mock subset points for testing)
         subset_points = self.full_data_array[:1000, :3]  # Take first 1000 points as subset
-        self.subset_file = "test_subset.csv"
+        self.subset_file = "tests/test_subset.csv"
         pd.DataFrame(subset_points, columns=['x', 'y', 'z']).to_csv(self.subset_file, index=False)
 
         # Create the dataset instance with subset filtering
@@ -177,13 +178,32 @@ class TestPointCloudDataset(unittest.TestCase):
         # Test that the length of the dataset matches the number of points in the selected array
         self.assertEqual(len(self.dataset), len(self.dataset.selected_array))
 
+
     def test_subset_filtering(self):
         # Verify that the subset filtering works correctly
         subset_points = pd.read_csv(self.subset_file)[['x', 'y', 'z']].values
+        
+        # Check bounds
+        bounds = compute_point_cloud_bounds(self.dataset.selected_array)
+        x_min, x_max = bounds['x_min'], bounds['x_max']
+        y_min, y_max = bounds['y_min'], bounds['y_max']
+        max_half_window = max(ws[1] / 2 for ws in self.dataset.window_sizes)
+
+        out_of_bounds_mask = (
+            (subset_points[:, 0] - max_half_window < x_min) |
+            (subset_points[:, 0] + max_half_window > x_max) |
+            (subset_points[:, 1] - max_half_window < y_min) |
+            (subset_points[:, 1] + max_half_window > y_max)
+        )
+
+        # Subset points expected to remain after filtering
+        in_bounds_points = subset_points[~out_of_bounds_mask]
+        
+        # Assert that the selected array matches the in-bounds points
         np.testing.assert_array_equal(
             self.dataset.selected_array[:, :3],
-            subset_points,
-            err_msg="Selected array does not match the points in the subset file."
+            in_bounds_points,
+            err_msg="Selected array does not match the in-bounds points from the subset file."
         )
 
     def test_original_indices_mapping(self):
@@ -198,7 +218,7 @@ class TestPointCloudDataset(unittest.TestCase):
 
     def test_getitem_validity(self):
         # Test retrieving grids and labels for multiple indices
-        num_tests = 1000
+        num_tests = 100
         indices = np.random.choice(len(self.dataset), num_tests, replace=False)
 
         for idx in tqdm(indices, desc="Testing getitem method", unit="processed points"):

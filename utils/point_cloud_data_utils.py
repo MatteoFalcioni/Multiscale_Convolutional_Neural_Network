@@ -762,7 +762,7 @@ def apply_masks(full_data_array, window_sizes, subset_file=None):
 
     # Step 3: Compute bounds on the selected points
     selected_array = full_data_array[final_mask]
-    bounds = compute_point_cloud_bounds(selected_array)
+    bounds = compute_point_cloud_bounds(full_data_array)
 
     # Step 4: Apply out-of-bounds mask based on the selected array bounds
     max_half_window = max(window_size / 2 for _, window_size in window_sizes)
