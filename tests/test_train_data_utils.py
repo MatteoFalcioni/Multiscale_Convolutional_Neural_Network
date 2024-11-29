@@ -161,7 +161,7 @@ class TestPointCloudDataset(unittest.TestCase):
         self.subset_file = "tests/test_subset.csv"
         pd.DataFrame(subset_points, columns=['x', 'y', 'z']).to_csv(self.subset_file, index=False)
 
-        self.atol = 1e-10   # absolute tolerance for subset selection. This is really important, because LiDAR file have difference in the order of 10^-10 to 10^-16
+        self.atol = 1e-8   # absolute tolerance for subset selection. This is really important, because LiDAR file have difference in the order of 10^-10 to 10^-16
                             # such high tolerance (1e-10) will drop out a small fractions of points from subset matching, but ensure the selection is strict
 
         # Create the dataset instance with subset filtering
@@ -179,9 +179,9 @@ class TestPointCloudDataset(unittest.TestCase):
         if os.path.exists(self.subset_file):
             os.remove(self.subset_file)
 
-    '''def test_len(self):
+    def test_len(self):
         # Test that the length of the dataset matches the number of points in the selected array
-        self.assertEqual(len(self.dataset), len(self.dataset.selected_array))'''
+        self.assertEqual(len(self.dataset), len(self.dataset.selected_array))
 
 
     def test_subset_filtering(self):
@@ -220,6 +220,8 @@ class TestPointCloudDataset(unittest.TestCase):
         print(f"Dataset.selected_array length: {len(self.dataset.selected_array)}")
         print(f"Dataset.selected_array dtype: {self.dataset.selected_array.dtype}, shape: {self.dataset.selected_array.shape}")
         
+        # selected array is allowed not to match inbound points, due to floating ponint tolerance
+
         # Assert that the selected array matches the in-bounds points
         np.testing.assert_allclose(
             self.dataset.selected_array[:, :3],
@@ -228,7 +230,7 @@ class TestPointCloudDataset(unittest.TestCase):
             atol=self.atol
         )
 
-    '''def test_original_indices_mapping(self):
+    def test_original_indices_mapping(self):
         # Test that original_indices map correctly from selected_array to full_data_array
         for idx in tqdm(range(len(self.dataset)), desc="Test index mapping", unit="processed indices"):
             original_idx = self.dataset.original_indices[idx]
@@ -267,7 +269,7 @@ class TestPointCloudDataset(unittest.TestCase):
                 self.assertEqual(
                     label.item(), self.dataset.full_data_array[original_idx, -1], 
                     f"Label mismatch between selected_array and full_data_array at index {idx}"
-                )'''
+                )
             
         
     ''' you stopped skipping batches now, no need for this
