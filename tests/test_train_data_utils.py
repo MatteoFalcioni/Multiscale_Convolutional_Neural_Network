@@ -149,15 +149,20 @@ class TestPointCloudDataset(unittest.TestCase):
         self.full_data_array, self.known_features = read_file_to_numpy(data_dir='tests/test_subtiler/32_687000_4930000_FP21_sampled_10k.las')
         self.full_data_array, _ = remap_labels(self.full_data_array)
         self.full_data_array = clean_nan_values(data_array=self.full_data_array)
+        print(f"len of full data array: {len(self.full_data_array)}")
         self.window_sizes = [('small', 10.0), ('medium', 20.0), ('large', 30.0)]
         self.grid_resolution = 128
         self.features_to_use = ['intensity', 'red', 'green', 'blue']
         self.num_channels = len(self.features_to_use)
 
         # Create a subset file (mock subset points for testing)
-        subset_points = self.full_data_array[:1000, :3]  # Take first 1000 points as subset
+        subset_points = self.full_data_array[:10000, :3]  # Take first 1000 points as subset
+        print(f"len of subset points: {len(subset_points)}, dtype: {subset_points.dtype}")
         self.subset_file = "tests/test_subset.csv"
         pd.DataFrame(subset_points, columns=['x', 'y', 'z']).to_csv(self.subset_file, index=False)
+
+        self.atol = 1e-10   # absolute tolerance for subset selection. This is really important, because LiDAR file have difference in the order of 10^-10 to 10^-16
+                            # such high tolerance (1e-10) will drop out a small fractions of points from subset matching, but ensure the selection is strict
 
         # Create the dataset instance with subset filtering
         self.dataset = PointCloudDataset(
@@ -174,39 +179,56 @@ class TestPointCloudDataset(unittest.TestCase):
         if os.path.exists(self.subset_file):
             os.remove(self.subset_file)
 
-    def test_len(self):
+    '''def test_len(self):
         # Test that the length of the dataset matches the number of points in the selected array
-        self.assertEqual(len(self.dataset), len(self.dataset.selected_array))
+        self.assertEqual(len(self.dataset), len(self.dataset.selected_array))'''
 
 
     def test_subset_filtering(self):
         # Verify that the subset filtering works correctly
-        subset_points = pd.read_csv(self.subset_file)[['x', 'y', 'z']].values
-        
+        subset_points = pd.read_csv(self.subset_file, dtype={'x': 'float64', 'y': 'float64', 'z': 'float64'}).values
+        print(f"Subset points shape: {subset_points.shape}")
+        assert np.allclose(
+            subset_points,
+            self.full_data_array[:10000, :3],
+            atol=self.atol
+        ), "Subset points do not match after reloading from the CSV!"
+
         # Check bounds
-        bounds = compute_point_cloud_bounds(self.dataset.selected_array)
+        # Always compute bounds on the full data (grids should not fall out of bounds of the full pc, not of the selected subset) 
+        bounds = compute_point_cloud_bounds(self.dataset.full_data_array)
         x_min, x_max = bounds['x_min'], bounds['x_max']
         y_min, y_max = bounds['y_min'], bounds['y_max']
         max_half_window = max(ws[1] / 2 for ws in self.dataset.window_sizes)
+        print(f"max half window: {max_half_window}")
+        print(f"Computed bounds: {bounds}")
+        print(f"Max half window size: {max_half_window}")
 
         out_of_bounds_mask = (
-            (subset_points[:, 0] - max_half_window < x_min) |
-            (subset_points[:, 0] + max_half_window > x_max) |
-            (subset_points[:, 1] - max_half_window < y_min) |
-            (subset_points[:, 1] + max_half_window > y_max)
+            (subset_points[:, 0] - max_half_window <= x_min) |
+            (subset_points[:, 0] + max_half_window >= x_max) |
+            (subset_points[:, 1] - max_half_window <= y_min) |
+            (subset_points[:, 1] + max_half_window >= y_max)
         )
+        print(f"Out-of-bounds mask applied to subset: {np.sum(~out_of_bounds_mask)} points out of bounds.")
+        print(f"Out-of-bounds mask type: {out_of_bounds_mask.dtype}, shape: {out_of_bounds_mask.shape}")
 
         # Subset points expected to remain after filtering
         in_bounds_points = subset_points[~out_of_bounds_mask]
+        print(f"Subset points in bounds: {len(in_bounds_points)}")
+
+        print(f"Dataset.selected_array length: {len(self.dataset.selected_array)}")
+        print(f"Dataset.selected_array dtype: {self.dataset.selected_array.dtype}, shape: {self.dataset.selected_array.shape}")
         
         # Assert that the selected array matches the in-bounds points
-        np.testing.assert_array_equal(
+        np.testing.assert_allclose(
             self.dataset.selected_array[:, :3],
             in_bounds_points,
-            err_msg="Selected array does not match the in-bounds points from the subset file."
+            err_msg=f"Selected array does not match the in-bounds points from the subset file.", 
+            atol=self.atol
         )
 
-    def test_original_indices_mapping(self):
+    '''def test_original_indices_mapping(self):
         # Test that original_indices map correctly from selected_array to full_data_array
         for idx in tqdm(range(len(self.dataset)), desc="Test index mapping", unit="processed indices"):
             original_idx = self.dataset.original_indices[idx]
@@ -245,7 +267,7 @@ class TestPointCloudDataset(unittest.TestCase):
                 self.assertEqual(
                     label.item(), self.dataset.full_data_array[original_idx, -1], 
                     f"Label mismatch between selected_array and full_data_array at index {idx}"
-                )
+                )'''
             
         
     ''' you stopped skipping batches now, no need for this

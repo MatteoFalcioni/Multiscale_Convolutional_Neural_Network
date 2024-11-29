@@ -733,21 +733,58 @@ def clean_nan_values(data_array, default_value=0.0):
     return cleaned_array
 
 
-def apply_masks(full_data_array, window_sizes, subset_file=None):
+def isin_tolerance(A, B, tol):
+    """
+    Checks if elements of array A are approximately in array B within a specified tolerance.
+
+    Args:
+    - A (numpy.ndarray): Array to check (e.g., full data points).
+    - B (numpy.ndarray): Array to match against (e.g., subset points).
+    - tol (float): Tolerance for approximate matching.
+
+    Returns:
+    - mask (numpy.ndarray): Boolean mask indicating matches within tolerance.
+    """
+    A = np.asarray(A)
+    B = np.asarray(B)
+
+    # Sort B (skip if already sorted)
+    Bs = np.sort(B)
+
+    # Perform searchsorted to find indices in B that could match elements in A
+    idx = np.searchsorted(Bs, A)
+
+    # Compute distances to closest neighbors in B
+    linvalid_mask = idx == len(B)
+    idx[linvalid_mask] = len(B) - 1
+    lval = Bs[idx] - A
+    lval[linvalid_mask] *= -1
+
+    rinvalid_mask = idx == 0
+    idx1 = idx - 1
+    idx1[rinvalid_mask] = 0
+    rval = A - Bs[idx1]
+    rval[rinvalid_mask] *= -1
+
+    return np.minimum(lval, rval) <= tol
+
+# Updated apply_masks function using isin_tolerance
+def apply_masks(full_data_array, window_sizes, subset_file=None, tol=1e-10):
     """
     Applies masking operations on a point cloud dataset:
-    1. Selects points based on a subset file (if provided).
+    1. Selects points based on a subset file (if provided) using tolerance-based matching.
     2. Computes bounds on the selected subset and masks out-of-bounds points.
 
     Args:
     - full_data_array (numpy.ndarray): Full point cloud dataset (shape: [N, features]).
     - window_sizes (list): List of tuples for grid window sizes (e.g., [('small', 2.5), ...]).
     - subset_file (str, optional): Path to a CSV file with subset points (columns: x, y, z).
+    - tol (float): Tolerance for approximate matching.
 
     Returns:
     - selected_array (numpy.ndarray): The filtered data array after applying all masks.
     - final_mask (numpy.ndarray): Boolean mask applied to the original data array.
-    - bounds (dict): Bounds computed from the selected subset.
+    - bounds (dict): Bounds computed from the full dataset.
     """
     # Step 1: Initialize mask with all True
     final_mask = np.ones(full_data_array.shape[0], dtype=bool)
@@ -755,16 +792,20 @@ def apply_masks(full_data_array, window_sizes, subset_file=None):
     # Step 2: Apply subset file mask (if provided)
     if subset_file is not None:
         subset_points = pd.read_csv(subset_file)[['x', 'y', 'z']].values  # Load x, y, z columns
-        structured_data = np.core.records.fromarrays(full_data_array[:, :3].T, names="x, y, z")
-        structured_subset = np.core.records.fromarrays(subset_points.T, names="x, y, z")
-        subset_mask = np.isin(structured_data, structured_subset)
-        final_mask &= subset_mask  # Combine subset mask
+        for i in range(3):  # Apply isin_tolerance for each coordinate
+            subset_mask = isin_tolerance(full_data_array[:, i], subset_points[:, i], tol)
+            final_mask &= subset_mask
 
-    # Step 3: Compute bounds on the selected points
+        print(f"Subset mask: {np.sum(final_mask)} points match subset within tolerance {tol}.")
+
+    # Filter the full data array based on the combined mask
     selected_array = full_data_array[final_mask]
+    print(f"Selected array length after masking with subset: {len(selected_array)}")
+
+    # Step 3: Compute bounds on the full data array
     bounds = compute_point_cloud_bounds(full_data_array)
 
-    # Step 4: Apply out-of-bounds mask based on the selected array bounds
+    # Step 4: Apply out-of-bounds mask
     max_half_window = max(window_size / 2 for _, window_size in window_sizes)
     out_of_bounds_mask = (
         (selected_array[:, 0] - max_half_window >= bounds['x_min']) &
@@ -772,10 +813,9 @@ def apply_masks(full_data_array, window_sizes, subset_file=None):
         (selected_array[:, 1] - max_half_window >= bounds['y_min']) &
         (selected_array[:, 1] + max_half_window <= bounds['y_max'])
     )
-    final_mask[np.where(final_mask)[0]] &= out_of_bounds_mask  # Combine out-of-bounds mask
-
-    # Update the selected array
+    final_mask[np.where(final_mask)[0]] &= out_of_bounds_mask
     selected_array = full_data_array[final_mask]
+    print(f"Selected array length after masking out of bounds: {len(selected_array)}")
 
     return selected_array, final_mask, bounds
 
