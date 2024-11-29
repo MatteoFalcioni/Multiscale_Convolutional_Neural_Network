@@ -16,7 +16,7 @@ from sklearn.model_selection import train_test_split
 from utils.point_cloud_data_utils import las_to_csv, clean_and_combine_csv_files, clean_nan_values, clean_bugged_las
 
 
-def create_dataset(input_folder, fused_las_folder, max_points_per_class, output_dataset_folder=None, chosen_classes=None, train_split=0.8):
+def create_dataset(input_folders, fused_las_folder, max_points_per_class, output_dataset_folder=None, chosen_classes=[3,5,6,10,11,64], train_split=0.8):
     """
     Creates a dataset for training and evaluation from LAS files by processing ground and off-ground data.
 
@@ -29,7 +29,7 @@ def create_dataset(input_folder, fused_las_folder, max_points_per_class, output_
     - Splits the dataset into training and evaluation sets.
 
     Args:
-    - input_folder (str): Path to the folder containing the input LAS files.
+    - input_folders (List): List of paths to the folders containing the input LAS files.
     - fused_las_folder (str): Folder to save fused LAS and intermediate CSV files.
     - max_points_per_class (int): Maximum number of points per class for rebalancing.
     - output_dataset_folder (str): Folder to save the final dataset.
@@ -41,7 +41,7 @@ def create_dataset(input_folder, fused_las_folder, max_points_per_class, output_
     - None
     """
     # get ground + off ground las file pairs
-    file_pairs = pair_ground_and_offgrounds(input_folder=input_folder)
+    file_pairs = pair_ground_and_offgrounds(input_folders=input_folders)
 
     # stitch the pairs together and save them inside fused_las_folder
     fused_files = stitch_pairs(file_pairs=file_pairs, output_folder=fused_las_folder)

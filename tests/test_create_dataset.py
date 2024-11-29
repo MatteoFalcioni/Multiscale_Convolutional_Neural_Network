@@ -13,14 +13,14 @@ class TestCreateDataset(unittest.TestCase):
     def setUp(self):
         
         self.real_file_dir = 'data/ground_and_offground'
-        self.real_file_directories = ['data/ground_and_offground/32_681500', 'data/ground_and_offground/32_684000', 'data/ground_and_offground/32_686000_4930500', 'data/ground_and_offground/32_686000_4933000']    #
+        self.real_file_directories = ['data/ground_and_offground/32_690500_4930000', 'data/ground_and_offground/32_681500', 'data/ground_and_offground/32_684000', 'data/ground_and_offground/32_686000_4930500', 'data/ground_and_offground/32_686000_4933000']    #
         self.las_dir_out = 'tests/fused_las'
         os.makedirs(self.las_dir_out, exist_ok=True)
         self.csv_subdir = f"{self.las_dir_out}/csv"
         # be careful to update this when changing files to fuse
         self.fused_files = [os.path.join(self.las_dir_out, filepath) for filepath in os.listdir(self.las_dir_out) if filepath.endswith('.las')]
         
-        if len(self.fused_files) == len(self.real_file_directories):
+        if len(self.fused_files) != len(self.real_file_directories):
             print(f"\nNumber of fused files doesn't match that of the directories;\
                     if you need to test only las fusion this is alright,\
                     otherwise you first need to generate fused las file, than test the rest\n")
@@ -31,12 +31,12 @@ class TestCreateDataset(unittest.TestCase):
         
         
     '''def test_pair_ground_and_offgrounds(self):
-        if self.test_full_pipeline:
-            # Call the function to test
-            directories = self.real_file_directories
-            file_pairs = pair_ground_and_offgrounds(input_folders=directories)
-            
-            print(f"number of files in pairs: {len(file_pairs)}")
+            if self.test_full_pipeline:
+                # Call the function to test
+                directories = self.real_file_directories
+                file_pairs = pair_ground_and_offgrounds(input_folders=directories)
+                
+                print(f"number of files in pairs: {len(file_pairs)}")
 
         
     def test_stitch_pairs(self):
@@ -88,7 +88,7 @@ class TestCreateDataset(unittest.TestCase):
             fused_file = self.fused_files[0]
             
             # Convert the LAS file to CSV
-            csv_file = las_to_csv(las_file=fused_file, output_folder=self.csv_subdir, selected_classes=[3,5,6,11,64])
+            csv_file = las_to_csv(las_file=fused_file, output_folder=self.csv_subdir, selected_classes=[3,5,6,10,11,64])
 
             # Check if the CSV file was created
             self.assertTrue(os.path.exists(csv_file), f"CSV file not created: {csv_file}")
@@ -107,7 +107,7 @@ class TestCreateDataset(unittest.TestCase):
         if self.test_full_pipeline:
             csv_filepaths = []
             for fused_file in self.fused_files:
-                csv_file = las_to_csv(las_file=fused_file, output_folder=self.csv_subdir, selected_classes=[3,5,6,11,64])
+                csv_file = las_to_csv(las_file=fused_file, output_folder=self.csv_subdir, selected_classes=[3,5,6,10,11,64])
                 csv_filepaths.append(csv_file)
 
             # Combine the CSV files
@@ -150,10 +150,6 @@ class TestCreateDataset(unittest.TestCase):
             print(f"Column names: {column_names}")
             
             total_points = sum(len(df) for df in individual_dataframes)
-            '''error here! but probably due to something you got wrong in the checks, review pipeline. basically you combine the dataset tgtr, dont know if they were cleaned or not before/after combining...check that
-            maybe erase all files because they could fall back to old version, and retry.'''
-            '''actually the clean bug and class choice is in las to csv. so the individual csv should sum up to the final number of points.
-            there is no selection in clean and combine csv, only nan/inf replacement'''
             self.assertLessEqual(total_rows, total_points, "Combined CSV should contain same points as the original ones.")
             
             # Print label distribution
@@ -212,10 +208,6 @@ class TestCreateDataset(unittest.TestCase):
             print(train_class_counts)
             print("\nEvaluation set class distribution:")
             print(eval_class_counts)
-
-            '''# Validate that all chosen classes are present
-            self.assertTrue(set(chosen_classes).issubset(train_class_counts.index), "Not all chosen classes are present in the training set.")
-            self.assertTrue(set(chosen_classes).issubset(eval_class_counts.index), "Not all chosen classes are present in the evaluation set.")'''
 
             # Validate no class exceeds max_points_per_class
             self.assertTrue((train_class_counts <= max_points_per_class).all(), "Some classes in training set exceed max_points_per_class.")

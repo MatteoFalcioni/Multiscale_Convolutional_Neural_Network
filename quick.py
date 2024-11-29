@@ -5,7 +5,9 @@ import laspy
 import numpy as np
 import os
 from datetime import datetime
-from utils.create_dataset import clean_bugged_subtile
+from utils.create_dataset import create_dataset
+
+create_dataset()
 
 '''
 input_file = 'data/training_data/21/train_21.csv'
@@ -245,4 +247,4 @@ output_filename, new_las = apply_mask_to_subtile(subtile_filepath='tests/test_su
                                                  tile_size=250, overlap_size=30, is_northernmost=True, is_rightmost=True, output_dir='tests/test_subtiler/cut_tests')'''''
                                                  
 
-cleaned_las = clean_bugged_subtile(bugged_las_path='tests/fused_las/fused_32_686000_4930500_FGLn.las')
+'''cleaned_las = clean_bugged_subtile(bugged_las_path='tests/fused_las/fused_32_686000_4930500_FGLn.las')'''
