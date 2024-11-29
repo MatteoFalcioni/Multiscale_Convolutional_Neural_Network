@@ -174,7 +174,7 @@ def stitch_pairs(file_pairs, output_folder):
             all_points.append(np.vstack((off_ground_las.x, off_ground_las.y, off_ground_las.z)).T)
             all_labels.append(off_ground_las.label)
 
-            
+
             all_intensities.append(off_ground_las.intensity)
 
             all_red.append(off_ground_las.red)

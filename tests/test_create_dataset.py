@@ -118,7 +118,7 @@ class TestCreateDataset(unittest.TestCase):
             self.assertTrue(os.path.exists(combined_csv), f"Combined CSV file not created: {combined_csv}")
 
             # Load the individual CSVs and the combined CSV
-            print(f"reading csv back to df to check...\n")
+            print(f"reading csvs back to df to check...\n")
             individual_dataframes = [pd.read_csv(csv) for csv in csv_filepaths]
             # Load and process the combined CSV in chunks to avoid memory issues
             print(f"Reading CSV back in chunks to check...\n")
@@ -149,12 +149,10 @@ class TestCreateDataset(unittest.TestCase):
             print(f"Combined CSV dimensions: ({total_rows}, {total_columns})")
             print(f"Column names: {column_names}")
             
-            # Verify that the combined CSV contains all points from the individual CSVs
-            individual_dataframes = [pd.read_csv(csv, usecols=['label']) for csv in csv_filepaths]
             total_points = sum(len(df) for df in individual_dataframes)
             '''error here! but probably due to something you got wrong in the checks, review pipeline. basically you combine the dataset tgtr, dont know if they were cleaned or not before/after combining...check that
             maybe erase all files because they could fall back to old version, and retry.'''
-            self.assertLessEqual(total_rows, total_points, "Combined CSV should contain less points than the original ones (class selection + cleaning).")
+            self.assertLessEqual(total_rows, total_points, "Combined CSV should contain same points as the original ones.")
             
             # Print label distribution
             if label_counts:

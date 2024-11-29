@@ -275,13 +275,13 @@ def read_file_to_numpy(data_dir, features_to_use=None, features_file_path=None):
 
 def clean_and_combine_csv_files(csv_files, output_csv, default_replacement=0.0):
     """
-    First, cleans las files from eventual bugged point falling out of the point cloud range. 
-    Then combines multiple CSV files into a single CSV file efficiently, processing them in chunks,
-    and cleans the final combined file of NaN/Inf values by overwriting it.
+    Combines multiple CSV files into a single CSV file efficiently, processing them in chunks,
+    and cleans the final combined file of NaN/Inf values by overwriting it with a default value.
 
     Args:
     - csv_files (list of str): List of paths to CSV files to combine.
     - output_csv (str): Path to save the combined CSV file.
+    - default_replacement (numeric): Value to replace nan/inf with. Default is 0.0
 
     Returns:
     - output_csv (str): Path to the saved combined CSV file.
@@ -844,8 +844,8 @@ def las_to_csv(las_file, output_folder, selected_classes = None):
     Converts a LAS file to a CSV file by extracting its data and features.
 
     This function reads a LAS file, cleans it from out of bound points, converts its contents into a NumPy array, 
-    and transforms the array into a Pandas DataFrame. The DataFrame is then saved 
-    as a CSV file at the specified output location.
+    drops out rows corresponding to labels not specified in input, and finally
+    transforms the array into a Pandas DataFrame. The DataFrame is then saved as a CSV file at the specified output location.
 
     Args:
     - las_file (str): Path to the input LAS file.
