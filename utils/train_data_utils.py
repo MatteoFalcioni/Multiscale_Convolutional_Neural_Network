@@ -23,6 +23,7 @@ class PointCloudDataset(Dataset):
         - grid_resolution (int): Grid resolution (e.g., 128x128).
         - features_to_use (list): List of feature names for generating grids.
         - known_features (list): All known feature names in the data array.
+        - subset_file (str, optional): Path to a csv file containing coordinates of points to be selected from the full data. If None, all are selected.
         """
         self.full_data_array = full_data_array
         self.window_sizes = window_sizes
@@ -75,7 +76,7 @@ class PointCloudDataset(Dataset):
 
 def prepare_dataloader(batch_size, data_filepath=None, 
                        window_sizes=None, grid_resolution=128, features_to_use=None, 
-                       train_split=None, features_file_path=None, num_workers=4, shuffle_train=True):
+                       train_split=None, features_file_path=None, num_workers=4, shuffle_train=True, subset_file=None):
     """
     Prepares the DataLoader by loading the raw data and streaming multiscale grid generation.
     
@@ -89,6 +90,7 @@ def prepare_dataloader(batch_size, data_filepath=None,
     - features_file_path: File path to feature metadata, needed if using raw data in .npy format. Default is None.
     - num_workers (int): number of workers for parallelized process. Default is 4.
     - shuffle_train (bool): Whether to shuffle the data for training. Default is True.
+    - subset_file (str, optional): Path to a csv file containing coordinates of points to be selected from the full data. If None, all are selected.
 
     Returns:
     - train_loader (DataLoader): DataLoader for training.
@@ -114,6 +116,7 @@ def prepare_dataloader(batch_size, data_filepath=None,
         grid_resolution=grid_resolution,
         features_to_use=features_to_use,
         known_features=known_features,
+        subset_file=subset_file
     )
 
     # Split the dataset into training and evaluation sets (if train_split is provided)
