@@ -304,6 +304,7 @@ def clean_and_combine_csv_files(csv_files, output_csv, default_replacement=0.0):
     temp_file = f"{output_csv}.tmp"  # Temporary file to write cleaned data
     with open(temp_file, 'w') as outfile:
         for chunk in pd.read_csv(output_csv, chunksize=10_000):
+            # clean file from nan/inf values
             chunk.replace([np.inf, -np.inf], default_replacement, inplace=True)
             chunk.fillna(default_replacement, inplace=True)
             chunk.to_csv(outfile, index=False, header=(outfile.tell() == 0), mode='a')
@@ -842,7 +843,7 @@ def las_to_csv(las_file, output_folder, selected_classes = None):
     """
     Converts a LAS file to a CSV file by extracting its data and features.
 
-    This function reads a LAS file, converts its contents into a NumPy array, 
+    This function reads a LAS file, cleans it from out of bound points, converts its contents into a NumPy array, 
     and transforms the array into a Pandas DataFrame. The DataFrame is then saved 
     as a CSV file at the specified output location.
 

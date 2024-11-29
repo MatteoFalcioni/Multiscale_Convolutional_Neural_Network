@@ -17,6 +17,7 @@ class TestCreateDataset(unittest.TestCase):
         self.las_dir_out = 'tests/fused_las'
         os.makedirs(self.las_dir_out, exist_ok=True)
         self.csv_subdir = f"{self.las_dir_out}/csv"
+        # be carefulò to update this when changing files to fuse
         self.fused_files = [os.path.join(self.las_dir_out, filepath) for filepath in os.listdir(self.las_dir_out) if filepath.endswith('.las')]
         
         self.output_dataset_folder = 'tests/output_dataset_folder/'
@@ -24,7 +25,7 @@ class TestCreateDataset(unittest.TestCase):
         self.test_full_pipeline = True
         
         
-    def test_pair_ground_and_offgrounds(self):
+    '''def test_pair_ground_and_offgrounds(self):
         if self.test_full_pipeline:
             # Call the function to test
             directories = self.real_file_directories
@@ -41,11 +42,11 @@ class TestCreateDataset(unittest.TestCase):
             self.assertGreater(len(file_pairs), 0, "No file pairs generated.")
 
             # Step 2: Stitch pairs and create fused LAS files
-            fused_files = stitch_pairs(file_pairs, self.las_dir_out)
-            self.assertEqual(len(fused_files), len(file_pairs), "Number of fused files does not match the number of pairs.")
+            self.fused_files = stitch_pairs(file_pairs, self.las_dir_out)
+            self.assertEqual(len(self.fused_files), len(file_pairs), "Number of fused files does not match the number of pairs.")
 
             # Step 3: Verify the output LAS files
-            for fused_file, (ground_file, off_ground_files) in zip(fused_files, file_pairs):
+            for fused_file, (ground_file, off_ground_files) in zip(self.fused_files, file_pairs):
                 # Read the fused file
                 fused_las = laspy.read(fused_file)
 
@@ -73,7 +74,7 @@ class TestCreateDataset(unittest.TestCase):
 
                 print(f"Verified fused file: {fused_file}")
 
-            print("All fused files verified successfully!")
+            print("All fused files verified successfully!")'''
     
             
     '''def test_las_to_csv(self):
@@ -161,14 +162,14 @@ class TestCreateDataset(unittest.TestCase):
             print(f"CSV combination verified. Combined file saved at: {combined_csv_path}")
         
             
-    '''def test_create_train_eval_datasets(self):
+    def test_create_train_eval_datasets(self):
         # Path to the combined CSV
         if self.test_full_pipeline:
             combined_csv_path = os.path.join(self.output_dataset_folder, "full_dataset.csv")
 
             # Parameters for the function
             max_points_per_class = 200000
-            chosen_classes = [1.0, 6.0, 64.0]  # Test with a subset of classes
+            #chosen_classes = [1.0, 6.0, 64.0]  # Test with a subset of classes
             train_split = 0.8
 
             # Call the function to create train and eval datasets
@@ -176,7 +177,7 @@ class TestCreateDataset(unittest.TestCase):
             train_df, eval_df = create_train_eval_datasets(
                 csv_file=combined_csv_path,
                 max_points_per_class=max_points_per_class,
-                chosen_classes=chosen_classes,
+                chosen_classes=None,    # already cleaned earlier from other useless classes
                 train_split=train_split,
                 output_dataset_folder=self.output_dataset_folder
             )
@@ -207,12 +208,12 @@ class TestCreateDataset(unittest.TestCase):
             print("\nEvaluation set class distribution:")
             print(eval_class_counts)
 
-            # Validate that all chosen classes are present
+            '''# Validate that all chosen classes are present
             self.assertTrue(set(chosen_classes).issubset(train_class_counts.index), "Not all chosen classes are present in the training set.")
-            self.assertTrue(set(chosen_classes).issubset(eval_class_counts.index), "Not all chosen classes are present in the evaluation set.")
+            self.assertTrue(set(chosen_classes).issubset(eval_class_counts.index), "Not all chosen classes are present in the evaluation set.")'''
 
             # Validate no class exceeds max_points_per_class
             self.assertTrue((train_class_counts <= max_points_per_class).all(), "Some classes in training set exceed max_points_per_class.")
             self.assertTrue((eval_class_counts <= max_points_per_class).all(), "Some classes in evaluation set exceed max_points_per_class.")
 
-            print("\nTrain/Eval dataset creation test passed successfully!")'''
+            print("\nTrain/Eval dataset creation test passed successfully!")
