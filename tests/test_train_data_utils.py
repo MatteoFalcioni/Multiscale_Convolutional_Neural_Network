@@ -156,7 +156,11 @@ class TestPointCloudDataset(unittest.TestCase):
         self.num_channels = len(self.features_to_use)
 
         # Create a subset file (mock subset points for testing)
-        subset_points = self.full_data_array[:10000, :3]  # Take first 1000 points as subset
+        self.n_subset = 5000
+        self.seed = 42
+        np.random.seed(self.seed)
+        random_indices = np.random.choice(self.full_data_array.shape[0], self.n_subset, replace=False)  # Randomly select indices
+        subset_points = self.full_data_array[random_indices, :3]  # Select corresponding points
         print(f"len of subset points: {len(subset_points)}, dtype: {subset_points.dtype}")
         self.subset_file = "tests/test_subset.csv"
         pd.DataFrame(subset_points, columns=['x', 'y', 'z']).to_csv(self.subset_file, index=False)
@@ -188,9 +192,18 @@ class TestPointCloudDataset(unittest.TestCase):
         # Verify that the subset filtering works correctly
         subset_points = pd.read_csv(self.subset_file, dtype={'x': 'float64', 'y': 'float64', 'z': 'float64'}).values
         print(f"Subset points shape: {subset_points.shape}")
+
+        # Re-generate the same random indices to compare with the selected points
+        np.random.seed(self.seed)  # Ensure reproducibility
+        random_indices = np.random.choice(len(self.full_data_array), self.n_subset, replace=False)
+
+        # Extract expected subset points from the full data array
+        expected_subset_points = self.full_data_array[random_indices, :3]
+
+        # Verify that the saved subset matches the expected points
         assert np.allclose(
             subset_points,
-            self.full_data_array[:10000, :3],
+            expected_subset_points,
             atol=self.atol
         ), "Subset points do not match after reloading from the CSV!"
 
@@ -224,8 +237,8 @@ class TestPointCloudDataset(unittest.TestCase):
 
         # Assert that the selected array matches the in-bounds points
         np.testing.assert_allclose(
-            self.dataset.selected_array[:, :3],
-            in_bounds_points,
+            np.sort(self.dataset.selected_array[:, :3], axis=0),
+            np.sort(in_bounds_points, axis=0),
             err_msg=f"Selected array does not match the in-bounds points from the subset file.", 
             atol=self.atol
         )

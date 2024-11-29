@@ -72,30 +72,6 @@ class PointCloudDataset(Dataset):
         # Return the grids and label
         return small_grid, medium_grid, large_grid, label, original_idx
     
-'''
-def custom_collate_fn(batch):
-    """
-    Custom collate function to filter out None values (skipped points).
-    """
-    # Filter out any None values (i.e., skipped points)
-    batch = [item for item in batch if item is not None]
-    
-    # If the batch is empty (all points were skipped), return None
-    if len(batch) == 0:
-        return None
-    
-    # Unpack the batch into grids and labels
-    small_grids, medium_grids, large_grids, labels, indices = zip(*batch)
-    
-    # Stack the grids and labels to create tensors for the batch
-    small_grids = torch.stack(small_grids)
-    medium_grids = torch.stack(medium_grids)
-    large_grids = torch.stack(large_grids)
-    labels = torch.stack(labels)
-    indices = torch.tensor(indices)
-    
-    return small_grids, medium_grids, large_grids, labels, indices'''
-    
 
 def prepare_dataloader(batch_size, data_filepath=None, 
                        window_sizes=None, grid_resolution=128, features_to_use=None, 
@@ -348,3 +324,27 @@ def load_parameters(model_folder):
 
 
 
+ 
+'''
+def custom_collate_fn(batch):
+    """
+    Custom collate function to filter out None values (skipped points).
+    """
+    # Filter out any None values (i.e., skipped points)
+    batch = [item for item in batch if item is not None]
+    
+    # If the batch is empty (all points were skipped), return None
+    if len(batch) == 0:
+        return None
+    
+    # Unpack the batch into grids and labels
+    small_grids, medium_grids, large_grids, labels, indices = zip(*batch)
+    
+    # Stack the grids and labels to create tensors for the batch
+    small_grids = torch.stack(small_grids)
+    medium_grids = torch.stack(medium_grids)
+    large_grids = torch.stack(large_grids)
+    labels = torch.stack(labels)
+    indices = torch.tensor(indices)
+    
+    return small_grids, medium_grids, large_grids, labels, indices'''
