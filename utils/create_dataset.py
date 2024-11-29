@@ -8,7 +8,6 @@
 # the most represented classes. Then you split. *All this is probably better to do on csv instead of las
 
 
-from collections import defaultdict
 import os
 import laspy
 import numpy as np

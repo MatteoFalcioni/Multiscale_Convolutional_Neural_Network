@@ -858,7 +858,7 @@ def las_to_csv(las_file, output_folder, selected_classes = None):
     - output_csv_filepath (str): Path to the saved CSV file.
     """
     # clean subtiles by removing points outside of the coordinates specified in file name
-    clean_bugged_las(las_file)  # necessary some of them contain bugged points outside p.c. bounds
+    clean_bugged_las(las_file)  # necessary because some of the files contain bugged points outside p.c. bounds
    
     # Read the LAS file into a numpy array and get known features
     data_array, known_features = read_file_to_numpy(las_file)

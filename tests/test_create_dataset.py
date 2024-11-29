@@ -17,9 +17,14 @@ class TestCreateDataset(unittest.TestCase):
         self.las_dir_out = 'tests/fused_las'
         os.makedirs(self.las_dir_out, exist_ok=True)
         self.csv_subdir = f"{self.las_dir_out}/csv"
-        # be carefulò to update this when changing files to fuse
+        # be careful to update this when changing files to fuse
         self.fused_files = [os.path.join(self.las_dir_out, filepath) for filepath in os.listdir(self.las_dir_out) if filepath.endswith('.las')]
         
+        if len(self.fused_files) == len(self.real_file_directories):
+            print(f"\nNumber of fused files doesn't match that of the directories;\
+                    if you need to test only las fusion this is alright,\
+                    otherwise you first need to generate fused las file, than test the rest\n")
+            
         self.output_dataset_folder = 'tests/output_dataset_folder/'
         
         self.test_full_pipeline = True
