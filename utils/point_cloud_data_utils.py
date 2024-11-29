@@ -769,7 +769,7 @@ def isin_tolerance(A, B, tol):
     return np.minimum(lval, rval) <= tol
 
 # Updated apply_masks function using isin_tolerance
-def apply_masks(full_data_array, window_sizes, subset_file=None, tol=1e-10):
+def apply_masks(full_data_array, window_sizes, subset_file=None, tol=1e-8):
     """
     Applies masking operations on a point cloud dataset:
     1. Selects points based on a subset file (if provided) using tolerance-based matching.
