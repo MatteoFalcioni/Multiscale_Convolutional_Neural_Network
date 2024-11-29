@@ -54,8 +54,6 @@ def train_model(training_data_filepath, features_to_use, batch_size, epochs, pat
         shuffle_train=True,
         subset_file=subset_file
     )
-    '''num classes should be taken from subset if present but they will for sure match since i constructed the data.
-    Also features to use should be indexed in subset array? no they should match since i construced the data'''
     
     data_array, known_features = read_file_to_numpy(data_dir=training_data_filepath, features_to_use=None)   # get the known features from the raw file path.
     num_points = data_array.shape[0]
@@ -77,7 +75,7 @@ def train_model(training_data_filepath, features_to_use, batch_size, epochs, pat
         assert known_features == subset_features, f"Full training data features do not match the features from the subset."
         assert num_subset_classes == num_classes, f"Number of unique classes (labels) doesn't match between full data file and subset file."
     else: 
-        subset_file = "No subset selected" 
+        subset_file = "No subset selected"  # write this in hyperparams
 
 
     hyperparameters = {     # store hyperparameters and metadata in dictionary in order to save them together with the model
