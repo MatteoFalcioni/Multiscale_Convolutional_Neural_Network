@@ -61,7 +61,8 @@ def main():
                                                                 save_dir = save_dir,
                                                                 device = device,
                                                                 window_sizes=window_sizes,
-                                                                grid_resolution=grid_resolution)
+                                                                grid_resolution=grid_resolution,
+                                                                subset_file=)
         
         if evaluate_model_after_training:
             # perform evaluation after training 

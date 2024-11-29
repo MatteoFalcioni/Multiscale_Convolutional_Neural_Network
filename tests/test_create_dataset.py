@@ -13,7 +13,7 @@ class TestCreateDataset(unittest.TestCase):
     def setUp(self):
         
         self.real_file_dir = 'data/ground_and_offground'
-        self.real_file_directories = ['data/ground_and_offground/32_690500_4930000', 'data/ground_and_offground/32_681500', 'data/ground_and_offground/32_684000', 'data/ground_and_offground/32_686000_4930500', 'data/ground_and_offground/32_686000_4933000']    #
+        self.real_file_directories = ['data/ground_and_offground/32_681000_4933500','data/ground_and_offground/32_690500_4930000', 'data/ground_and_offground/32_681500', 'data/ground_and_offground/32_684000', 'data/ground_and_offground/32_686000_4930500', 'data/ground_and_offground/32_686000_4933000']    #
         self.las_dir_out = 'tests/fused_las'
         os.makedirs(self.las_dir_out, exist_ok=True)
         self.csv_subdir = f"{self.las_dir_out}/csv"
@@ -22,7 +22,7 @@ class TestCreateDataset(unittest.TestCase):
         
         if len(self.fused_files) != len(self.real_file_directories):
             print(f"\nNumber of fused files doesn't match that of the directories;\
-                    if you need to test only las fusion this is alright,\
+                    \nif you need to test only las fusion this is alright,\
                     otherwise you first need to generate fused las file, than test the rest\n")
             
         self.output_dataset_folder = 'tests/output_dataset_folder/'
