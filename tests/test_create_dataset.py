@@ -152,6 +152,8 @@ class TestCreateDataset(unittest.TestCase):
             total_points = sum(len(df) for df in individual_dataframes)
             '''error here! but probably due to something you got wrong in the checks, review pipeline. basically you combine the dataset tgtr, dont know if they were cleaned or not before/after combining...check that
             maybe erase all files because they could fall back to old version, and retry.'''
+            '''actually the clean bug and class choice is in las to csv. so the individual csv should sum up to the final number of points.
+            there is no selection in clean and combine csv, only nan/inf replacement'''
             self.assertLessEqual(total_rows, total_points, "Combined CSV should contain same points as the original ones.")
             
             # Print label distribution
