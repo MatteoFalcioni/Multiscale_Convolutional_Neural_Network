@@ -165,8 +165,8 @@ class TestPointCloudDataset(unittest.TestCase):
         self.subset_file = "tests/test_subset.csv"
         pd.DataFrame(subset_points, columns=['x', 'y', 'z']).to_csv(self.subset_file, index=False)
 
-        self.atol = 1e-8   # absolute tolerance for subset selection. This is really important, because LiDAR file have difference in the order of 10^-10 to 10^-16
-                            # such high tolerance (1e-10) will drop out a small fractions of points from subset matching, but ensure the selection is strict
+        self.atol = 1e-8    # absolute tolerance for subset selection. This is really important, because LiDAR file have difference in the order of 10^-10 to 10^-16
+                            # a tolerance of 1e^-8 is sufficient to avoid selection errors
 
         # Create the dataset instance with subset filtering
         self.dataset = PointCloudDataset(
@@ -178,10 +178,12 @@ class TestPointCloudDataset(unittest.TestCase):
             subset_file=self.subset_file
         )
 
+
     def tearDown(self):
         # Clean up temporary subset file
         if os.path.exists(self.subset_file):
             os.remove(self.subset_file)
+
 
     def test_len(self):
         # Test that the length of the dataset matches the number of points in the selected array
@@ -232,8 +234,6 @@ class TestPointCloudDataset(unittest.TestCase):
 
         print(f"Dataset.selected_array length: {len(self.dataset.selected_array)}")
         print(f"Dataset.selected_array dtype: {self.dataset.selected_array.dtype}, shape: {self.dataset.selected_array.shape}")
-        
-        # selected array is allowed not to match inbound points, due to floating ponint tolerance
 
         # Assert that the selected array matches the in-bounds points
         np.testing.assert_allclose(
@@ -242,6 +242,7 @@ class TestPointCloudDataset(unittest.TestCase):
             err_msg=f"Selected array does not match the in-bounds points from the subset file.", 
             atol=self.atol
         )
+
 
     def test_original_indices_mapping(self):
         # Test that original_indices map correctly from selected_array to full_data_array
@@ -252,6 +253,7 @@ class TestPointCloudDataset(unittest.TestCase):
                 self.dataset.full_data_array[original_idx],
                 err_msg=f"Mapping mismatch between selected_array and full_data_array at index {idx}"
             )
+
 
     def test_getitem_validity(self):
         # Test retrieving grids and labels for multiple indices
@@ -284,6 +286,45 @@ class TestPointCloudDataset(unittest.TestCase):
                     f"Label mismatch between selected_array and full_data_array at index {idx}"
                 )
             
+
+    def test_no_subset_file_fall_back(self):
+
+        fall_back_dataset = PointCloudDataset(
+            full_data_array=self.full_data_array,
+            window_sizes=self.window_sizes,
+            grid_resolution=self.grid_resolution,
+            features_to_use=self.features_to_use,
+            known_features=self.known_features,
+            subset_file=None
+        )
+        fall_back_array = fall_back_dataset.selected_array
+        full_data_array = self.full_data_array
+
+        print(f"full data array shape: {full_data_array.shape}, dtype: {full_data_array.dtype}")
+        print(f"Selected array shape without subset file selection: {fall_back_array.shape}, dtype: {fall_back_array.dtype}\n")
+        print(f"Checking if this matches with manually computed in bound points...\n")
+
+        bounds = compute_point_cloud_bounds(full_data_array)
+        x_min, x_max = bounds['x_min'], bounds['x_max']
+        y_min, y_max = bounds['y_min'], bounds['y_max']
+        max_half_window = max(ws[1] / 2 for ws in self.dataset.window_sizes)
+        print(f"Computed bounds: {bounds}")
+
+        out_of_bounds_mask = (
+            (full_data_array[:, 0] - max_half_window <= x_min) |
+            (full_data_array[:, 0] + max_half_window >= x_max) |
+            (full_data_array[:, 1] - max_half_window <= y_min) |
+            (full_data_array[:, 1] + max_half_window >= y_max)
+        )
+
+        # Subset points expected to remain after filtering
+        in_bound_array = full_data_array[~out_of_bounds_mask]
+        print(f"Fulla data array in bound points: {len(in_bound_array)}")
+
+        np.testing.assert_array_equal(in_bound_array, fall_back_array, err_msg=f"The selected array without subset selection doesn't match full data array \
+                                      without out of bounds points.")
+
+        
         
     ''' you stopped skipping batches now, no need for this
         @mock.patch('utils.train_data_utils.PointCloudDataset.__getitem__')

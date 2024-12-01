@@ -7,7 +7,16 @@ import os
 from datetime import datetime
 from utils.create_dataset import create_dataset
 
-create_dataset()
+
+main_folder = 'data/ground_and_offground'
+input_folders = [folder for folder in os.listdir(main_folder) if os.path.isdir(os.path.join(main_folder, folder))]
+create_dataset(input_folders=input_folders, 
+               fused_las_folder = 'data/fused_ground_off_ground', 
+               max_points_per_class=500000, 
+               output_dataset_folder='data/datasets')
+
+
+
 
 '''
 input_file = 'data/training_data/21/train_21.csv'
