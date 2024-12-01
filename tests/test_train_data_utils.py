@@ -149,11 +149,13 @@ class TestPointCloudDataset(unittest.TestCase):
         self.real_array, self.real_known_features = read_file_to_numpy(data_dir=real_data_filepath)
         self.real_subset_file = ''   # A real subset file for testing
 
+        print(f"\nReal data array shape {self.real_array.shape}")
+
         # use a sample file for pipeline tests
         self.full_data_array, self.known_features = read_file_to_numpy(data_dir='tests/test_subtiler/32_687000_4930000_FP21_sampled_10k.las')
         self.full_data_array, _ = remap_labels(self.full_data_array)
         self.full_data_array = clean_nan_values(data_array=self.full_data_array)
-        print(f"len of full data array: {len(self.full_data_array)}")
+        print(f"\nlen of full data array: {len(self.full_data_array)}")
         self.window_sizes = [('small', 10.0), ('medium', 20.0), ('large', 30.0)]
         self.grid_resolution = 128
         self.features_to_use = ['intensity', 'red', 'green', 'blue']
@@ -165,7 +167,7 @@ class TestPointCloudDataset(unittest.TestCase):
         np.random.seed(self.seed)
         random_indices = np.random.choice(self.full_data_array.shape[0], self.n_subset, replace=False)  # Randomly select indices
         subset_points = self.full_data_array[random_indices, :3]  # Select corresponding points
-        print(f"len of subset points: {len(subset_points)}, dtype: {subset_points.dtype}")
+        print(f"\nlen of subset points: {len(subset_points)}, dtype: {subset_points.dtype}")
         self.subset_file = "tests/test_subset.csv"
         pd.DataFrame(subset_points, columns=['x', 'y', 'z']).to_csv(self.subset_file, index=False)
 
@@ -343,6 +345,8 @@ class TestPointCloudDataset(unittest.TestCase):
         dataset_end = time.time()
         print(f"Huge dataset created in {dataset_end-dataset_start}")
 
+        print(f"\nFull real data array selection produced: {huge_dataset.full_data_array.shape[0]} --> {huge_dataset.selected_array.shape[0]}")
+
         # retrieve n_test grids for testing
         n_test = int(1e5)
         np.random.seed(self.seed)  # Ensure reproducibility
@@ -353,7 +357,7 @@ class TestPointCloudDataset(unittest.TestCase):
             result = huge_dataset[idx]
             small_grid, medium_grid, large_grid, label, original_idx = result
         hugefile_end = time.time()
-        print(f"Huge file input: Retrieved {n_test} dataset elements in {(hugefile_end-hugefile_start)/60} minutes")
+        print(f"\nHuge file input: Retrieved {n_test} dataset elements in {(hugefile_end-hugefile_start)/60} minutes")
 
         # Now compare with a smaller file input. You can use the subset file for this.
         # what we were doing earlier than this selection implementation was to input about 2.5 million pc points and remove out of bounds 
@@ -369,7 +373,7 @@ class TestPointCloudDataset(unittest.TestCase):
             subset_file=None
         )
         small_dataset_end = time.time()
-        print(f"Small dataset created in {small_dataset_end-small_dataset_start}")
+        print(f"\nSmall dataset created in {small_dataset_end-small_dataset_start}")
 
         # retrieve n_test grids for testing
         n_test = int(1e5)
@@ -381,7 +385,7 @@ class TestPointCloudDataset(unittest.TestCase):
             result = small_dataset[idx]
             small_grid, medium_grid, large_grid, label, original_idx = result
         smallfile_end = time.time()
-        print(f"Small file input: Retrieved {n_test} dataset elements in {(smallfile_end-smallfile_start)/60} minutes")
+        print(f"\nSmall file input: Retrieved {n_test} dataset elements in {(smallfile_end-smallfile_start)/60} minutes")
 
         
         
