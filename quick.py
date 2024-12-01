@@ -21,7 +21,6 @@ create_dataset(input_folders=input_folders,
 
 
 
-
 '''
 input_file = 'data/training_data/21/train_21.csv'
 
