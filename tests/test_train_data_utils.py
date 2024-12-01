@@ -11,6 +11,7 @@ from tqdm import tqdm
 import os
 import shutil
 import pandas as pd
+import time
 
 
 '''class TestSaveLoadModel(unittest.TestCase):
@@ -144,8 +145,11 @@ import pandas as pd
 
 class TestPointCloudDataset(unittest.TestCase):
     def setUp(self):
-        # Mock point cloud data for the test
-        '''use a sample file temporarily since i dont have real ones in local'''
+        real_data_filepath = ''  # read a real las file to test thoroughly 
+        self.real_array, self.real_known_features = read_file_to_numpy(data_dir=real_data_filepath)
+        self.real_subset_file = ''   # A real subset file for testing
+
+        # use a sample file for pipeline tests
         self.full_data_array, self.known_features = read_file_to_numpy(data_dir='tests/test_subtiler/32_687000_4930000_FP21_sampled_10k.las')
         self.full_data_array, _ = remap_labels(self.full_data_array)
         self.full_data_array = clean_nan_values(data_array=self.full_data_array)
@@ -323,6 +327,62 @@ class TestPointCloudDataset(unittest.TestCase):
 
         np.testing.assert_array_equal(in_bound_array, fall_back_array, err_msg=f"The selected array without subset selection doesn't match full data array \
                                       without out of bounds points.")
+        
+    def test_with_real_data(self):
+
+        # input a real huge file (about 10 million points) and a subset of usual dimensions (about 2.5 million points)
+        dataset_start = time.time()
+        huge_dataset = PointCloudDataset(
+            full_data_array=self.real_data_array,
+            window_sizes=self.window_sizes,
+            grid_resolution=self.grid_resolution,
+            features_to_use=self.features_to_use,
+            known_features=self.real_known_features,
+            subset_file=self.real_subset_file
+        )
+        dataset_end = time.time()
+        print(f"Huge dataset created in {dataset_end-dataset_start}")
+
+        # retrieve n_test grids for testing
+        n_test = int(1e5)
+        np.random.seed(self.seed)  # Ensure reproducibility
+        random_indices = np.random.choice(len(self.real_data_array), n_test, replace=False)
+
+        hugefile_start = time.time()
+        for idx in tqdm(random_indices, desc="retrieving grids from real data", unit="processed points"):
+            result = huge_dataset[idx]
+            small_grid, medium_grid, large_grid, label, original_idx = result
+        hugefile_end = time.time()
+        print(f"Huge file input: Retrieved {n_test} dataset elements in {(hugefile_end-hugefile_start)/60} minutes")
+
+        # Now compare with a smaller file input. You can use the subset file for this.
+        # what we were doing earlier than this selection implementation was to input about 2.5 million pc points and remove out of bounds 
+        small_data_array, small_known_features = read_file_to_numpy(self.real_subset_file)
+
+        small_dataset_start = time.time()
+        small_dataset = PointCloudDataset(
+            full_data_array=small_data_array,
+            window_sizes=self.window_sizes,
+            grid_resolution=self.grid_resolution,
+            features_to_use=self.features_to_use,
+            known_features=small_known_features,
+            subset_file=None
+        )
+        small_dataset_end = time.time()
+        print(f"Small dataset created in {small_dataset_end-small_dataset_start}")
+
+        # retrieve n_test grids for testing
+        n_test = int(1e5)
+        np.random.seed(self.seed)  # Ensure reproducibility
+        random_indices = np.random.choice(len(small_data_array), n_test, replace=False)
+
+        smallfile_start = time.time()
+        for idx in tqdm(random_indices, desc="retrieving grids from real data", unit="processed points"):
+            result = small_dataset[idx]
+            small_grid, medium_grid, large_grid, label, original_idx = result
+        smallfile_end = time.time()
+        print(f"Huge file input: Retrieved {n_test} dataset elements in {(smallfile_end-smallfile_start)/60} minutes")
+
 
         
         

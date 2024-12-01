@@ -7,6 +7,10 @@ import os
 from datetime import datetime
 from utils.create_dataset import create_dataset
 
+# - creare nuovo dataset 
+# - finire di testare train_data_utils con dati reali, e vedere se è molto più lento
+# - testare che il training funzioni come al solito con sta nuova selection
+
 
 main_folder = 'data/ground_and_offground'
 input_folders = [folder for folder in os.listdir(main_folder) if os.path.isdir(os.path.join(main_folder, folder))]
