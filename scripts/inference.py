@@ -118,7 +118,8 @@ def predict_subtiles(subtile_folder, model, device, batch_size, window_sizes, gr
             features_to_use=features_to_use,
             train_split=None,  # no train/eval split
             num_workers=num_workers,
-            shuffle_train=False  # don't shuffle data for inference
+            shuffle_train=False,  # don't shuffle data for inference
+            subset_file=None    # no subset selection, we want to predict the full subtile
         )
 
         # Open the subtile file to copy header information
