@@ -39,7 +39,7 @@ def evaluate_model(batch_size, full_data_filepath, window_sizes, grid_resolution
             train_split=None,   # prepare the dataloader with the full data for inference (no train/eval split)
             num_workers=num_workers,
             shuffle_train=False,  # we dont want to shuffle data for inference
-            subset_file=evaluation_data_filepath    # select points specified by evaluation file to perform evalaution
+            subset_file=evaluation_data_filepath    # select points specified by evaluation file to perform evaluation
         )
     
     conf_matrix, class_report = evaluate_model(
