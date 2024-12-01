@@ -7,7 +7,7 @@ import os
 from datetime import datetime
 from utils.create_dataset import create_dataset
 
-# - creare nuovo dataset 
+# - creare nuovo dataset, i.e. file enorme con tanti punti + train/eval con train sui 2 milioni/2.5 di punti
 # - finire di testare train_data_utils con dati reali, e vedere se è molto più lento
 # - testare che il training funzioni come al solito con sta nuova selection
 

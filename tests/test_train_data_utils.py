@@ -381,8 +381,7 @@ class TestPointCloudDataset(unittest.TestCase):
             result = small_dataset[idx]
             small_grid, medium_grid, large_grid, label, original_idx = result
         smallfile_end = time.time()
-        print(f"Huge file input: Retrieved {n_test} dataset elements in {(smallfile_end-smallfile_start)/60} minutes")
-
+        print(f"Small file input: Retrieved {n_test} dataset elements in {(smallfile_end-smallfile_start)/60} minutes")
 
         
         
