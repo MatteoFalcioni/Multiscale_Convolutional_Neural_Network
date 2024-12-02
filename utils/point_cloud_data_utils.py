@@ -769,6 +769,7 @@ def isin_tolerance(A, B, tol):
 
     return np.minimum(lval, rval) <= tol
 
+
 # Updated apply_masks function using isin_tolerance
 def apply_masks(full_data_array, window_sizes, subset_file=None, tol=1e-8):
     """
@@ -929,6 +930,30 @@ def las_to_csv(las_file, output_folder, selected_classes = None):
 
     print(f"Converted {las_file} to {output_csv_filepath}")
     return output_csv_filepath
+
+
+def remove_duplicates_with_tolerance(data_array, tolerance=1e-10):
+    """
+    Removes duplicates from the point cloud dataset based on a specified tolerance.
+
+    Args:
+    - data_array (numpy.ndarray): The input point cloud data (N, D) where D includes coordinates and features.
+    - tolerance (float): The tolerance for considering points as duplicates.
+
+    Returns:
+    - filtered_array (numpy.ndarray): The filtered array with duplicates removed.
+    """
+    # Round the coordinates to the specified tolerance
+    rounded_coords = np.round(data_array[:, :3], decimals=int(abs(np.log10(tolerance))))
+    
+    # Identify unique rows based on the rounded coordinates
+    _, unique_indices = np.unique(rounded_coords, axis=0, return_index=True)
+    
+    # Filter the data array to keep only unique points
+    filtered_array = data_array[np.sort(unique_indices)]
+    
+    return filtered_array
+
 
 
 

@@ -111,7 +111,7 @@ def prepare_dataloader(batch_size, data_filepath=None,
 
     # Create the dataset 
     full_dataset = PointCloudDataset(
-        data_array=data_array,
+        full_data_array=data_array,
         window_sizes=window_sizes,
         grid_resolution=grid_resolution,
         features_to_use=features_to_use,

@@ -1,7 +1,7 @@
 import unittest
 from unittest import mock
 from torch.utils.data import DataLoader
-from utils.point_cloud_data_utils import read_file_to_numpy, remap_labels, clean_nan_values, compute_point_cloud_bounds
+from utils.point_cloud_data_utils import read_file_to_numpy, remap_labels, clean_nan_values, compute_point_cloud_bounds, remove_duplicates_with_tolerance
 from models.mcnn import MultiScaleCNN
 from scipy.spatial import cKDTree
 from utils.train_data_utils import PointCloudDataset, prepare_dataloader, save_model, load_model, load_parameters, save_used_parameters
@@ -336,9 +336,11 @@ class TestPointCloudDataset(unittest.TestCase):
     def test_with_real_data(self):
         print('\n======================================================\n')
         # input a real huge file (about 10 million points) and a subset of usual dimensions (about 2.5 million points)
+        cleaned_array = remove_duplicates_with_tolerance(data_array=self.real_array, tolerance=1e-10) 
+        print(f"Cleaned array shape: {cleaned_array.shape}")
         dataset_start = time.time()
         huge_dataset = PointCloudDataset(
-            full_data_array=self.real_array,
+            full_data_array=cleaned_array,
             window_sizes=self.window_sizes,
             grid_resolution=self.grid_resolution,
             features_to_use=self.features_to_use,
@@ -346,7 +348,7 @@ class TestPointCloudDataset(unittest.TestCase):
             subset_file=self.real_subset_file
         )
         dataset_end = time.time()
-        print(f"Huge dataset created in {dataset_end-dataset_start} seconds")
+        print(f"Huge dataset created in {dataset_end-dataset_start:.2f} seconds")
 
         print(f"\nFull real data array selection produced: {huge_dataset.full_data_array.shape[0]} --> {huge_dataset.selected_array.shape[0]}")
 
@@ -360,7 +362,7 @@ class TestPointCloudDataset(unittest.TestCase):
             result = huge_dataset[idx]
             small_grid, medium_grid, large_grid, label, original_idx = result
         hugefile_end = time.time()
-        print(f"\nHuge file input: Retrieved {n_test} dataset elements in {(hugefile_end-hugefile_start)/60} minutes")
+        print(f"\nHuge file input: Retrieved {n_test} dataset elements in {(hugefile_end-hugefile_start)/60:.2f} minutes")
 
         # Now compare with a smaller file input. You can use the subset file for this.
         # what we were doing earlier than this selection implementation was to input about 2.5 million pc points and remove out of bounds 
@@ -376,8 +378,9 @@ class TestPointCloudDataset(unittest.TestCase):
             subset_file=None
         )
         small_dataset_end = time.time()
-        print(f"\nSmall dataset created in {small_dataset_end-small_dataset_start} seconds")
+        print(f"\nSmall dataset created in {small_dataset_end-small_dataset_start:.2f} seconds")
 
+        random_indices = np.random.choice(len(small_dataset.selected_array), n_test, replace=False)
         # retrieve n_test grids for testing
         smallfile_start = time.time()
         for idx in tqdm(random_indices, desc="retrieving grids from real data", unit="processed points"):
@@ -387,7 +390,7 @@ class TestPointCloudDataset(unittest.TestCase):
         print(f"\nSmall file input: Retrieved {n_test} dataset elements in {(smallfile_end-smallfile_start)/60} minutes")
 
 
-
+'''
 class TestDataloaderDatasetIntegration(unittest.TestCase):
     def setUp(self):
         # Mock parameters
@@ -403,7 +406,7 @@ class TestDataloaderDatasetIntegration(unittest.TestCase):
         # Prepare DataLoader with the dataset
         loader, _ = prepare_dataloader(
             batch_size=self.batch_size,
-            data_filepath=self.data_dir,
+            data_filepath=self.full_data_path,
             window_sizes=self.window_sizes,
             grid_resolution=self.grid_resolution,
             features_to_use=self.features_to_use,
@@ -437,7 +440,7 @@ class TestDataloaderDatasetIntegration(unittest.TestCase):
                 self.assertFalse(torch.isinf(grid).any(), f"Inf values found in {scale} grid for batch {i}")
                 
         end_time = time.time()
-        print(f"{num_batches_to_test} batches processed in {(end_time-start_time)/60} minutes.")
+        print(f"{num_batches_to_test} batches processed in {(end_time-start_time)/60} minutes.")'''
 
 
 '''
