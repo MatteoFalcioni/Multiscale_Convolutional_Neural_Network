@@ -145,8 +145,8 @@ def train_epochs(model, train_loader, val_loader, criterion, optimizer, schedule
     Returns:
     - model_save_foder (str): Name of the folder where the model has been saved. Needed later for inference.
     """
-    print("--------------------------------Starting training process----------------------------------")
-    start_time = time.time()
+    # print("--------------------------------Starting training process----------------------------------")
+    # start_time = time.time()
 
     train_losses = []  # To store training losses
     val_losses = []  # To store validation losses
@@ -190,9 +190,9 @@ def train_epochs(model, train_loader, val_loader, criterion, optimizer, schedule
     # Plot the losses at the end of training
     plot_loss(train_losses, val_losses, save_dir=model_save_folder)
 
-    end_time = time.time()
-    elapsed_time = (end_time - start_time) /3600   # in hours
-    print(f"-------------------------Training completed in {elapsed_time:.2f} hours-------------------------\n")
+    # end_time = time.time()
+    # elapsed_time = (end_time - start_time) /3600   # in hours
+    # print(f"-------------------------Training completed in {elapsed_time:.2f} hours-------------------------\n")
 
     return model_save_folder
 
