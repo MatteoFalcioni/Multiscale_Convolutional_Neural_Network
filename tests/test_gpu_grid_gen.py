@@ -9,8 +9,8 @@ import laspy
 from utils.plot_utils import visualize_grid
 from torch_kdtree import build_kd_tree
 import torch
-from scripts.point_cloud_to_image import generate_multiscale_grids, create_feature_grid, assign_features_to_grid
-from scripts.gpu_grid_gen import mask_out_of_bounds_points_gpu, generate_multiscale_grids_gpu, generate_multiscale_grids_gpu_masked, create_feature_grid_gpu, assign_features_to_grid_gpu, mask_out_of_bounds_points_gpu
+from scripts.point_cloud_to_image import old_generate_multiscale_grids, create_feature_grid, assign_features_to_grid
+from scripts.gpu_grid_gen import mask_out_of_bounds_points_gpu, old_generate_multiscale_grids_gpu, generate_multiscale_grids_gpu_masked, create_feature_grid_gpu, assign_features_to_grid_gpu, mask_out_of_bounds_points_gpu
 import os
 from utils.point_cloud_data_utils import clean_nan_values
 from torch_kdtree import build_kd_tree
@@ -267,7 +267,7 @@ class TestGridGeneration(unittest.TestCase):
         for idx in idxs:
             center_point_tensor = self.tensor_data_array[idx, :]
             # Generate grids using the GPU pipeline
-            gpu_grids, gpu_status = generate_multiscale_grids_gpu(
+            gpu_grids, gpu_status = old_generate_multiscale_grids_gpu(
                 center_point_tensor=center_point_tensor, tensor_data_array=self.tensor_data_array, window_sizes=self.window_sizes,
                 grid_resolution=self.grid_resolution, feature_indices_tensor=feature_indices_tensor,
                 gpu_tree=self.gpu_kdtree, point_cloud_bounds=self.point_cloud_bounds, device=self.device
@@ -304,14 +304,14 @@ class TestGridGeneration(unittest.TestCase):
             center_point_tensor = self.tensor_data_array[idx, :]
             center_point = self.data_array[idx, :]
             # Generate grids using the CPU pipeline
-            cpu_grids, cpu_status = generate_multiscale_grids(
+            cpu_grids, cpu_status = old_generate_multiscale_grids(
                 center_point, data_array=self.data_array, window_sizes=self.window_sizes,
                 grid_resolution=self.grid_resolution, feature_indices=self.feature_indices,
                 kdtree=self.cpu_kdtree, point_cloud_bounds=self.point_cloud_bounds
             )
 
             # Generate grids using the GPU pipeline
-            gpu_grids, gpu_status = generate_multiscale_grids_gpu(
+            gpu_grids, gpu_status = old_generate_multiscale_grids_gpu(
                 center_point_tensor=center_point_tensor, tensor_data_array=self.tensor_data_array, window_sizes=self.window_sizes,
                 grid_resolution=self.grid_resolution, feature_indices_tensor=feature_indices_tensor,
                 gpu_tree=self.gpu_kdtree, point_cloud_bounds=self.point_cloud_bounds, device=self.device
@@ -356,7 +356,7 @@ class TestGridGeneration(unittest.TestCase):
         out_of_bounds = 0
 
         for point in self.sliced_tensor:
-            grids_dict, status = generate_multiscale_grids_gpu(
+            grids_dict, status = old_generate_multiscale_grids_gpu(
                 center_point_tensor=point,
                 tensor_data_array=self.tensor_data_array,
                 window_sizes=self.window_sizes,
@@ -422,6 +422,13 @@ class TestGridGeneration(unittest.TestCase):
 
 
 
+
+
+
+
+
+
+# -----------------------------------------------old tests--------------------------------------------
 
     '''def test_compare_cpu_gpu_knn(self):
         """

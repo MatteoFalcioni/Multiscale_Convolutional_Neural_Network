@@ -73,7 +73,7 @@ def assign_features_to_grid(tree, data_array, grid, x_coords, y_coords, constant
     return grid
 
 
-def generate_multiscale_grids(center_point, data_array, window_sizes, grid_resolution, feature_indices, kdtree, point_cloud_bounds):
+def old_generate_multiscale_grids(center_point, data_array, window_sizes, grid_resolution, feature_indices, kdtree, point_cloud_bounds):
     """
     Generates multiscale grids for a single point in the data array. 
     

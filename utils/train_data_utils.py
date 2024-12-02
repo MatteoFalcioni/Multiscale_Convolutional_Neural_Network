@@ -1,7 +1,7 @@
 import torch
 from torch.utils.data import Dataset, DataLoader, random_split
 import os
-from utils.point_cloud_data_utils import read_file_to_numpy, remap_labels, clean_nan_values, apply_masks, compute_point_cloud_bounds
+from utils.point_cloud_data_utils import read_file_to_numpy, remap_labels, clean_nan_values, apply_masks
 from scripts.point_cloud_to_image import generate_multiscale_grids_masked
 from datetime import datetime
 import pandas as pd

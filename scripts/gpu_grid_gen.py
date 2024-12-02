@@ -1,38 +1,5 @@
-'''import cuml
-from cuml.neighbors import NearestNeighbors as cuKNN
-import cupy as cp'''
 import torch
-
-
-def mask_out_of_bounds_points_gpu(tensor_data_array, window_sizes, point_cloud_bounds):
-    """
-    Masks points that are too close to the boundaries of the dataset using GPU operations and precomputed bounds.
-
-    Args:
-    - tensor_data_array (torch.Tensor): Point cloud data on GPU (shape: [N, 3]).
-    - point_cloud_bounds (dict): Precomputed bounds of the point cloud {'x_min', 'x_max', 'y_min', 'y_max'}.
-    - window_sizes (list): List of tuples for grid window sizes (e.g., [('small', 1.0), ...]).
-
-    Returns:
-    - masked_tensor (torch.Tensor): Points that are not out of bounds.
-    - mask (torch.Tensor): Boolean tensor indicating valid points.
-    """
-    max_half_window = max(window_size / 2 for _, window_size in window_sizes)
-
-    # Extract bounds
-    x_min, x_max = point_cloud_bounds['x_min'], point_cloud_bounds['x_max']
-    y_min, y_max = point_cloud_bounds['y_min'], point_cloud_bounds['y_max']
-
-    # Apply mask logic on GPU
-    mask = (
-        (tensor_data_array[:, 0] - max_half_window >= x_min) &
-        (tensor_data_array[:, 0] + max_half_window <= x_max) &
-        (tensor_data_array[:, 1] - max_half_window >= y_min) &
-        (tensor_data_array[:, 1] + max_half_window <= y_max) 
-    )
-
-    masked_tensor = tensor_data_array[mask]  # Apply mask to get valid points
-    return masked_tensor, mask
+import pandas as pd
 
 
 def create_feature_grid_gpu(center_point_tensor, device, window_size, grid_resolution=128, channels=3):
@@ -72,7 +39,7 @@ def create_feature_grid_gpu(center_point_tensor, device, window_size, grid_resol
 
 def assign_features_to_grid_gpu(gpu_tree, tensor_data_array, grid, x_coords, y_coords, constant_z, feature_indices_tensor, device):
     """
-    Assigns features from the nearest point in the dataset to each cell in the grid using torch_kdtree's GPU-accelerated KNN,
+    Assigns features from the nearest point in the dataset to each cell in the grid using torch_kdtree's GPU-accelerated KDTree,
     and directly assigns them to the grid on GPU.
     """
     # Generate the grid coordinates on the GPU
@@ -95,7 +62,7 @@ def assign_features_to_grid_gpu(gpu_tree, tensor_data_array, grid, x_coords, y_c
     return grid
 
 
-def generate_multiscale_grids_gpu_masked(center_point_tensor, tensor_data_array, window_sizes, grid_resolution, feature_indices_tensor, gpu_tree, device="cuda"):
+def generate_multiscale_grids_gpu_masked(center_point_tensor, tensor_data_array, window_sizes, grid_resolution, feature_indices_tensor, gpu_tree, device="cuda:0"):
     """
     Generate multiscale grids for a single point on GPU without redundant checks.
 
@@ -132,7 +99,95 @@ def generate_multiscale_grids_gpu_masked(center_point_tensor, tensor_data_array,
     return grids_dict
 
 
-def generate_multiscale_grids_gpu(center_point_tensor, tensor_data_array, window_sizes, grid_resolution, feature_indices_tensor, gpu_tree, point_cloud_bounds, device):
+def isin_tolerance_gpu(A, B, tol):
+    """
+    Checks if elements of tensor A are approximately in tensor B within a specified tolerance using GPU operations.
+
+    Args:
+    - A (torch.Tensor): Tensor to check (shape: [N], e.g., full data points).
+    - B (torch.Tensor): Tensor to match against (shape: [M], e.g., subset points).
+    - tol (float): Tolerance for approximate matching.
+
+    Returns:
+    - mask (torch.Tensor): Boolean tensor indicating matches within tolerance (shape: [N]).
+    """
+    # Sort B (assumes 1D tensors)
+    B_sorted, _ = torch.sort(B)
+
+    # Use searchsorted-like behavior
+    idx = torch.searchsorted(B_sorted, A)
+
+    # Compute distances to closest neighbors
+    lval = torch.abs(A - B_sorted.clamp(max=len(B_sorted) - 1).gather(0, idx))
+    rval = torch.abs(A - B_sorted.clamp(min=0).gather(0, torch.clamp(idx - 1, min=0)))
+
+    # Return mask for elements within tolerance
+    return (torch.min(lval, rval) <= tol)
+
+
+def apply_masks_gpu(tensor_data_array, window_sizes, subset_file=None, tol=1e-8):
+    """
+    Applies masking operations on a point cloud dataset:
+    1. Selects points based on a subset file (if provided) using tolerance-based matching.
+    2. Masks out-of-bounds points based on grid window sizes and dataset bounds.
+
+    Args:
+    - tensor_data_array (torch.Tensor): Full point cloud dataset on GPU (shape: [N, features]).
+    - window_sizes (list): List of tuples for grid window sizes (e.g., [('small', 2.5), ...]).
+    - subset_file (str, optional): Path to a CSV file with subset points (columns: x, y, z).
+    - tol (float): Tolerance for approximate matching.
+
+    Returns:
+    - selected_tensor (torch.Tensor): The filtered data tensor after applying all masks.
+    - final_mask (torch.Tensor): Boolean tensor applied to the original data tensor.
+    - bounds (dict): Bounds computed from the full dataset.
+    """
+    # Initialize mask with all True
+    final_mask = torch.ones(tensor_data_array.shape[0], dtype=torch.bool, device=tensor_data_array.device)
+
+    # Apply subset file mask (if provided)
+    if subset_file is not None:
+        subset_points = torch.tensor(
+            pd.read_csv(subset_file)[['x', 'y', 'z']].values,
+            dtype=torch.float32,
+            device=tensor_data_array.device
+        )
+        for i in range(3):  # Apply isin_tolerance_gpu for each coordinate
+            subset_mask = isin_tolerance_gpu(tensor_data_array[:, i], subset_points[:, i], tol)
+            final_mask &= subset_mask
+
+        print(f"Subset mask: {torch.sum(final_mask).item()} points match subset within tolerance {tol}.")
+
+    # Filter the tensor data array based on the combined mask
+    selected_tensor = tensor_data_array[final_mask]
+    print(f"Selected array length after masking with subset: {len(selected_tensor)}")
+
+    # Compute bounds on the full data tensor
+    bounds = {
+        'x_min': tensor_data_array[:, 0].min().item(),
+        'x_max': tensor_data_array[:, 0].max().item(),
+        'y_min': tensor_data_array[:, 1].min().item(),
+        'y_max': tensor_data_array[:, 1].max().item(),
+    }
+
+    # Apply out-of-bounds mask
+    max_half_window = max(window_size / 2 for _, window_size in window_sizes)
+    out_of_bounds_mask = (
+        (selected_tensor[:, 0] - max_half_window >= bounds['x_min']) &
+        (selected_tensor[:, 0] + max_half_window <= bounds['x_max']) &
+        (selected_tensor[:, 1] - max_half_window >= bounds['y_min']) &
+        (selected_tensor[:, 1] + max_half_window <= bounds['y_max'])
+    )
+
+    final_mask[torch.where(final_mask)[0]] &= out_of_bounds_mask
+    selected_tensor = tensor_data_array[final_mask]
+    print(f"Selected array length after masking out of bounds: {len(selected_tensor)}")
+
+    return selected_tensor, final_mask, bounds
+
+
+
+def old_generate_multiscale_grids_gpu(center_point_tensor, tensor_data_array, window_sizes, grid_resolution, feature_indices_tensor, gpu_tree, point_cloud_bounds, device):
     """
     Generates multiscale grids for a single point in the data array using GPU-based operations.
     
@@ -189,6 +244,35 @@ def generate_multiscale_grids_gpu(center_point_tensor, tensor_data_array, window
     return grids_dict, status
 
 
+def mask_out_of_bounds_points_gpu(tensor_data_array, window_sizes, point_cloud_bounds):
+    """
+    Masks points that are too close to the boundaries of the dataset using GPU operations and precomputed bounds.
+
+    Args:
+    - tensor_data_array (torch.Tensor): Point cloud data on GPU (shape: [N, 3]).
+    - point_cloud_bounds (dict): Precomputed bounds of the point cloud {'x_min', 'x_max', 'y_min', 'y_max'}.
+    - window_sizes (list): List of tuples for grid window sizes (e.g., [('small', 1.0), ...]).
+
+    Returns:
+    - masked_tensor (torch.Tensor): Points that are not out of bounds.
+    - mask (torch.Tensor): Boolean tensor indicating valid points.
+    """
+    max_half_window = max(window_size / 2 for _, window_size in window_sizes)
+
+    # Extract bounds
+    x_min, x_max = point_cloud_bounds['x_min'], point_cloud_bounds['x_max']
+    y_min, y_max = point_cloud_bounds['y_min'], point_cloud_bounds['y_max']
+
+    # Apply mask logic on GPU
+    mask = (
+        (tensor_data_array[:, 0] - max_half_window >= x_min) &
+        (tensor_data_array[:, 0] + max_half_window <= x_max) &
+        (tensor_data_array[:, 1] - max_half_window >= y_min) &
+        (tensor_data_array[:, 1] + max_half_window <= y_max) 
+    )
+
+    masked_tensor = tensor_data_array[mask]  # Apply mask to get valid points
+    return masked_tensor, mask
 
 '''def build_cuml_knn(data_array, n_neighbors=1):
         """
