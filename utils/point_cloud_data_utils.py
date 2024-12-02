@@ -339,7 +339,7 @@ def clean_bugged_las(bugged_las_path):
     # Load the LAS file
     las_data = laspy.read(bugged_las_path)
     
-    print(f"From tile name: xmin: {xmin}, ymin:{ymin}\n")
+    print(f"\nFrom tile name: xmin: {xmin}, ymin:{ymin}")
     print(f"From .min() and .max() -> xmin:{las_data.x.min()}, ymin:{las_data.y.min()}")
 
     # Apply the mask to filter points within bounds

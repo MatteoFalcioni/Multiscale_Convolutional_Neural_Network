@@ -13,7 +13,7 @@ import laspy
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
-from utils.point_cloud_data_utils import las_to_csv, clean_and_combine_csv_files, clean_nan_values, clean_bugged_las
+from utils.point_cloud_data_utils import las_to_csv, clean_and_combine_csv_files
 
 
 def create_dataset(input_folders, fused_las_folder, max_points_per_class, output_dataset_folder=None, chosen_classes=[3,5,6,10,11,64], train_split=0.8):

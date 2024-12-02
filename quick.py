@@ -12,8 +12,8 @@ from utils.create_dataset import create_dataset
 # - testare che il training funzioni come al solito con sta nuova selection
 
 
-main_folder = 'data/ground_and_offground'
-input_folders = [folder for folder in os.listdir(main_folder) if os.path.isdir(os.path.join(main_folder, folder))]
+input_folders = ['data/ground_and_offground/32_681000_4933500','data/ground_and_offground/32_690500_4930000', 'data/ground_and_offground/32_681500', 'data/ground_and_offground/32_684000', 'data/ground_and_offground/32_686000_4930500', 'data/ground_and_offground/32_686000_4933000']
+
 create_dataset(input_folders=input_folders, 
                fused_las_folder = 'data/fused_ground_off_ground', 
                max_points_per_class=500000, 
