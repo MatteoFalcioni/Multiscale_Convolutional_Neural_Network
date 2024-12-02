@@ -12,8 +12,11 @@ from utils.create_dataset import create_dataset, create_train_eval_datasets
 # - finire di testare train_data_utils con dati reali, e vedere se è molto più lento    *DONE
 # - testare che il training funzioni come al solito con sta nuova selection, con test_training  *DONE
 
+
 # ISSUE: quella in verde sopra. L'idea per fare il subsample del full dataset sarebbe: prendi i punti del file train_&_eval, e aggiungi a random punti che non sono già 
-# presenti in train_&_eval dal full dataset. MA: la maschera non funziona bene
+# presenti in train_&_eval dal full dataset. MA: la maschera non funziona bene. Al momento non prende altri punti oltre a quelli già presenti nel subset file.
+# come se non distinguesse tra i punti del subset e quelli del file grande. Al variare della tolleranza il risultato non sembra cambiare...
+
 
 df = pd.read_csv('data/datasets/train_&_eval_dataset.csv')
 print(f"len of eval dataset: {len(df)}")
