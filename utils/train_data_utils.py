@@ -57,7 +57,12 @@ class PointCloudDataset(Dataset):
         label = self.selected_array[idx, -1]  # Get the label for this point
 
         # Generate multiscale grids for this point using the entire dataset for feature assignment
-        grids_dict = generate_multiscale_grids_masked(center_point, data_array=self.full_data_array, window_sizes=self.window_sizes, grid_resolution=self.grid_resolution, feature_indices=self.feature_indices, kdtree=self.kdtree) # , point_cloud_bounds=self.point_cloud_bounds
+        grids_dict = generate_multiscale_grids_masked(center_point, 
+                                                      data_array=self.full_data_array, 
+                                                      window_sizes=self.window_sizes, 
+                                                      grid_resolution=self.grid_resolution, 
+                                                      feature_indices=self.feature_indices, 
+                                                      kdtree=self.kdtree) 
         
         # Convert grids to PyTorch tensors
         small_grid = torch.tensor(grids_dict['small'], dtype=torch.float32)
