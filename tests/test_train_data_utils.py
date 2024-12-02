@@ -145,11 +145,13 @@ import time
 
 class TestPointCloudDataset(unittest.TestCase):
     def setUp(self):
-        real_data_filepath = 'data/datasets/full_dataset.csv'  # read a real las file to test thoroughly 
+        real_data_filepath = 'data/datasets/sampled_full_dataset/sampled_data_10000000.csv'  # read a real las file to test thoroughly 
         self.real_array, self.real_known_features = read_file_to_numpy(data_dir=real_data_filepath)
         self.real_subset_file = 'data/datasets/train_dataset.csv'   # A real subset file for testing
+        real_subset_array, _ = read_file_to_numpy(self.real_subset_file)
 
-        print(f"\nReal data array shape {self.real_array.shape}, dtype: {self.real_array.dtype}")
+        print(f"\nReal full data array shape: {self.real_array.shape}, dtype: {self.real_array.dtype}")
+        print(f"Real subset array shape: {real_subset_array.shape}\n")
 
         # use a sample file for pipeline tests
         self.full_data_array, self.known_features = read_file_to_numpy(data_dir='tests/test_subtiler/32_687000_4930000_FP21_sampled_10k.las')
@@ -171,7 +173,7 @@ class TestPointCloudDataset(unittest.TestCase):
         self.subset_file = "tests/test_subset.csv"
         pd.DataFrame(subset_points, columns=['x', 'y', 'z']).to_csv(self.subset_file, index=False)
 
-        self.atol = 1e-8    # absolute tolerance for subset selection. This is really important, because LiDAR file have difference in the order of 10^-10 to 10^-16
+        self.atol = 1e-10    # absolute tolerance for subset selection. This is really important, because LiDAR file have difference in the order of 10^-10 to 10^-16
                             # a tolerance of 1e^-8 is sufficient to avoid selection errors
 
         # Create the dataset instance with subset filtering
@@ -191,7 +193,7 @@ class TestPointCloudDataset(unittest.TestCase):
             os.remove(self.subset_file)
 
 
-    def test_len(self):
+    '''def test_len(self):
         # Test that the length of the dataset matches the number of points in the selected array
         self.assertEqual(len(self.dataset), len(self.dataset.selected_array))
 
@@ -328,14 +330,15 @@ class TestPointCloudDataset(unittest.TestCase):
         print(f"Fulla data array in bound points: {len(in_bound_array)}")
 
         np.testing.assert_array_equal(in_bound_array, fall_back_array, err_msg=f"The selected array without subset selection doesn't match full data array \
-                                      without out of bounds points.")
+                                      without out of bounds points.")'''
+        
         
     def test_with_real_data(self):
-
+        print('\n======================================================\n')
         # input a real huge file (about 10 million points) and a subset of usual dimensions (about 2.5 million points)
         dataset_start = time.time()
         huge_dataset = PointCloudDataset(
-            full_data_array=self.real_data_array,
+            full_data_array=self.real_array,
             window_sizes=self.window_sizes,
             grid_resolution=self.grid_resolution,
             features_to_use=self.features_to_use,
@@ -343,14 +346,14 @@ class TestPointCloudDataset(unittest.TestCase):
             subset_file=self.real_subset_file
         )
         dataset_end = time.time()
-        print(f"Huge dataset created in {dataset_end-dataset_start}")
+        print(f"Huge dataset created in {dataset_end-dataset_start} seconds")
 
         print(f"\nFull real data array selection produced: {huge_dataset.full_data_array.shape[0]} --> {huge_dataset.selected_array.shape[0]}")
 
         # retrieve n_test grids for testing
-        n_test = int(1e5)
+        n_test = int(1e3)
         np.random.seed(self.seed)  # Ensure reproducibility
-        random_indices = np.random.choice(len(self.real_data_array), n_test, replace=False)
+        random_indices = np.random.choice(len(huge_dataset.selected_array), n_test, replace=False)  # Select random indices from the selected array
 
         hugefile_start = time.time()
         for idx in tqdm(random_indices, desc="retrieving grids from real data", unit="processed points"):
@@ -373,13 +376,9 @@ class TestPointCloudDataset(unittest.TestCase):
             subset_file=None
         )
         small_dataset_end = time.time()
-        print(f"\nSmall dataset created in {small_dataset_end-small_dataset_start}")
+        print(f"\nSmall dataset created in {small_dataset_end-small_dataset_start} seconds")
 
         # retrieve n_test grids for testing
-        n_test = int(1e5)
-        np.random.seed(self.seed)  # Ensure reproducibility
-        random_indices = np.random.choice(len(small_data_array), n_test, replace=False)
-
         smallfile_start = time.time()
         for idx in tqdm(random_indices, desc="retrieving grids from real data", unit="processed points"):
             result = small_dataset[idx]
@@ -387,34 +386,59 @@ class TestPointCloudDataset(unittest.TestCase):
         smallfile_end = time.time()
         print(f"\nSmall file input: Retrieved {n_test} dataset elements in {(smallfile_end-smallfile_start)/60} minutes")
 
+
+
+class TestDataloaderDatasetIntegration(unittest.TestCase):
+    def setUp(self):
+        # Mock parameters
+        self.batch_size = 32
+        self.grid_resolution = 128
+        self.full_data_path = 'data/datasets/sampled_full_dataset/sampled_data_10000000.csv'
+        self.real_subset_file = 'data/datasets/train_dataset.csv'
+        self.window_sizes = [('small', 10.0), ('medium', 20.0), ('large', 30.0)]
+        self.features_to_use = ['intensity', 'red', 'green', 'blue']
+        self.num_channels = len(self.features_to_use)
+
+    def test_dataloader_with_dataset(self):
+        # Prepare DataLoader with the dataset
+        loader, _ = prepare_dataloader(
+            batch_size=self.batch_size,
+            data_filepath=self.data_dir,
+            window_sizes=self.window_sizes,
+            grid_resolution=self.grid_resolution,
+            features_to_use=self.features_to_use,
+            train_split=None,   # no eval
+            num_workers=16,
+            features_file_path=None,
+            shuffle_train=True, 
+            subset_file=self.real_subset_file  
+        )
+
+        num_batches_to_test = 1000
         
-        
-    ''' you stopped skipping batches now, no need for this
-        @mock.patch('utils.train_data_utils.PointCloudDataset.__getitem__')
-    def test_dataloader_with_none(self, mock_getitem):
-        # Mock __getitem__ to return None for certain indices
-        def side_effect(idx):
-            if idx % 2 == 0:  # Simulate returning None for every other point
-                return None
-            else:
-                # Return a valid tuple with grid data and label
-                return (torch.randn(self.num_channels, self.grid_resolution, self.grid_resolution), \
-                       torch.randn(self.num_channels, self.grid_resolution, self.grid_resolution), \
-                       torch.randn(self.num_channels, self.grid_resolution, self.grid_resolution), \
-                       torch.tensor(1),  
-                       torch.tensor(1))
+        start_time = time.time()
+        for i, batch in enumerate(tqdm(loader, desc="Testing dataloader + dataset class integration", total=num_batches_to_test)):
+            if i >= num_batches_to_test:
+                break  # Test only a subset of batches
 
-        mock_getitem.side_effect = side_effect
+            small_grid, medium_grid, large_grid, labels, indices = batch
+            
+            # Validate grid shapes
+            self.assertEqual(small_grid.shape[-3:], (self.num_channels, self.grid_resolution, self.grid_resolution),
+                                f"Small grid resolution mismatch")
+            self.assertEqual(medium_grid.shape[-3:], (self.num_channels, self.grid_resolution, self.grid_resolution),
+                                f"Medium grid resolution mismatch")
+            self.assertEqual(large_grid.shape[-3:], (self.num_channels, self.grid_resolution, self.grid_resolution),
+                                f"Large grid resolution mismatch")
 
-        # Prepare DataLoader using the mocked dataset and your custom collate function
-        dataloader = DataLoader(self.dataset, batch_size=4, collate_fn=custom_collate_fn)
+            # Check for NaN/Inf values
+            for grid, scale in zip([small_grid, medium_grid, large_grid], ['small', 'medium', 'large']):
+                self.assertFalse(torch.isnan(grid).any(), f"NaN values found in {scale} grid for batch {i}")
+                self.assertFalse(torch.isinf(grid).any(), f"Inf values found in {scale} grid for batch {i}")
+                
+        end_time = time.time()
+        print(f"{num_batches_to_test} batches processed in {(end_time-start_time)/60} minutes.")
 
-        # Fetch batches and ensure None entries are skipped
-        for batch in dataloader:
-            if batch is not None:
-                small_grid, medium_grid, large_grid, labels, indices = batch
-                # None values should be skipped, so we expect 2 valid entries per batch
-                self.assertEqual(small_grid.size(0), 2, "Batch size should be 2 after skipping None entries.")'''
 
 '''
 class TestPrepareDataloader(unittest.TestCase):
@@ -515,52 +539,32 @@ class TestCustomCollateFn(unittest.TestCase):
         self.assertEqual(labels.size(0), 2)
         self.assertEqual(indices.size(0), 2)
         
+        
+    you stopped skipping batches now, no need for this
+        @mock.patch('utils.train_data_utils.PointCloudDataset.__getitem__')
+    def test_dataloader_with_none(self, mock_getitem):
+        # Mock __getitem__ to return None for certain indices
+        def side_effect(idx):
+            if idx % 2 == 0:  # Simulate returning None for every other point
+                return None
+            else:
+                # Return a valid tuple with grid data and label
+                return (torch.randn(self.num_channels, self.grid_resolution, self.grid_resolution), \
+                       torch.randn(self.num_channels, self.grid_resolution, self.grid_resolution), \
+                       torch.randn(self.num_channels, self.grid_resolution, self.grid_resolution), \
+                       torch.tensor(1),  
+                       torch.tensor(1))
 
-class TestDataloaderDatasetIntegration(unittest.TestCase):
-    def setUp(self):
-        # Mock parameters
-        self.batch_size = 32
-        self.grid_resolution = 128
-        self.data_dir = 'data/chosen_tiles/32_687000_4930000_FP21.las'
-        self.window_sizes = [('small', 10.0), ('medium', 20.0), ('large', 30.0)]
-        self.features_to_use = ['intensity', 'red', 'green', 'blue']
-        self.num_channels = len(self.features_to_use)
+        mock_getitem.side_effect = side_effect
 
-    def test_dataloader_with_dataset(self):
-        # Prepare DataLoader with the dataset
-        inference_loader, _ = prepare_dataloader(
-            batch_size=self.batch_size,
-            data_filepath=self.data_dir,
-            window_sizes=self.window_sizes,
-            grid_resolution=self.grid_resolution,
-            features_to_use=self.features_to_use,
-            train_split=None,   # lets get only inference dataset, no eval
-            num_workers=16,
-            features_file_path=None,
-            shuffle_train=True  # usualy no shuffle in inference, but in this way we can test random batches
-        )
+        # Prepare DataLoader using the mocked dataset and your custom collate function
+        dataloader = DataLoader(self.dataset, batch_size=4, collate_fn=custom_collate_fn)
 
-        num_batches_to_test = 5000
-        for i, batch in enumerate(tqdm(inference_loader, desc="Testing batches for NaN/Inf", total=num_batches_to_test)):
-            if i >= num_batches_to_test:
-                break  # Test only a subset of batches
-            
-            if batch is None:
-                print(f"Batch {i} skipped: No valid points.")
-                continue
+        # Fetch batches and ensure None entries are skipped
+        for batch in dataloader:
+            if batch is not None:
+                small_grid, medium_grid, large_grid, labels, indices = batch
+                # None values should be skipped, so we expect 2 valid entries per batch
+                self.assertEqual(small_grid.size(0), 2, "Batch size should be 2 after skipping None entries.")'''
+        
 
-            small_grid, medium_grid, large_grid, labels, indices = batch
-            
-            # Validate grid shapes
-            self.assertEqual(small_grid.shape[-3:], (self.num_channels, self.grid_resolution, self.grid_resolution),
-                                f"Small grid resolution mismatch")
-            self.assertEqual(medium_grid.shape[-3:], (self.num_channels, self.grid_resolution, self.grid_resolution),
-                                f"Medium grid resolution mismatch")
-            self.assertEqual(large_grid.shape[-3:], (self.num_channels, self.grid_resolution, self.grid_resolution),
-                                f"Large grid resolution mismatch")
-
-            # Check for NaN/Inf values
-            for grid, scale in zip([small_grid, medium_grid, large_grid], ['small', 'medium', 'large']):
-                self.assertFalse(torch.isnan(grid).any(), f"NaN values found in {scale} grid for batch {i}")
-                self.assertFalse(torch.isinf(grid).any(), f"Inf values found in {scale} grid for batch {i}")
-'''

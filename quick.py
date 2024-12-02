@@ -1,4 +1,4 @@
-from utils.point_cloud_data_utils import sample_data, read_file_to_numpy
+from utils.point_cloud_data_utils import sample_data, read_file_to_numpy, reservoir_sample_data
 import pandas as pd
 from utils.point_cloud_data_utils import subtiler
 import laspy
@@ -11,13 +11,15 @@ from utils.create_dataset import create_dataset
 # - finire di testare train_data_utils con dati reali, e vedere se è molto più lento
 # - testare che il training funzioni come al solito con sta nuova selection, con test_training
 
+sampled_df = reservoir_sample_data(input_file='data/datasets/full_dataset.csv', sample_size=10_000_000, save_dir='data/datasets/10mil_full_dataset', save=True)
 
-input_folders = ['data/ground_and_offground/32_681000_4933500','data/ground_and_offground/32_690500_4930000', 'data/ground_and_offground/32_681500', 'data/ground_and_offground/32_684000', 'data/ground_and_offground/32_686000_4930500', 'data/ground_and_offground/32_686000_4933000']
+
+'''input_folders = ['data/ground_and_offground/32_681000_4933500','data/ground_and_offground/32_690500_4930000', 'data/ground_and_offground/32_681500', 'data/ground_and_offground/32_684000', 'data/ground_and_offground/32_686000_4930500', 'data/ground_and_offground/32_686000_4933000']
 
 create_dataset(input_folders=input_folders, 
                fused_las_folder = 'data/fused_ground_off_ground', 
                max_points_per_class=500000, 
-               output_dataset_folder='data/datasets')
+               output_dataset_folder='data/datasets')'''
 
 
 

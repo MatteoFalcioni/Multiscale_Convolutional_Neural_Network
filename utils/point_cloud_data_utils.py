@@ -5,6 +5,7 @@ import os
 from tqdm import tqdm
 import csv
 from datetime import datetime
+import random
 
 
 def load_las_data(file_path):
@@ -1058,7 +1059,7 @@ is_northernmost = False
     return output_dir'''
 
 
-'''
+
 def reservoir_sample_data(input_file, sample_size, save=False, save_dir='data/sampled_data', feature_to_use=None, chunk_size=100000):
     """
     Samples a random subset of the data from a large CSV file using reservoir sampling.
@@ -1102,7 +1103,6 @@ def reservoir_sample_data(input_file, sample_size, save=False, save_dir='data/sa
         print(f"Sampled data saved to {sample_file_path}")
 
     return sampled_data
-'''
 
 '''
 def get_feature_indices(features_to_use, known_features):
