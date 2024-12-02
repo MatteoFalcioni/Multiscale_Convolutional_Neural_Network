@@ -36,7 +36,6 @@ class TestEvaluationProcess(unittest.TestCase):
         cls.test_folder = 'tests/test_evaluation'
         
         
-        
     def test_evaluation(self):
         evaluate_model(batch_size=self.batch_size, 
                        full_data_filepath=self.full_data_filepath, 

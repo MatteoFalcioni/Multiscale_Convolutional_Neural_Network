@@ -1,4 +1,4 @@
-from utils.point_cloud_data_utils import sample_data, read_file_to_numpy, reservoir_sample_data, reservoir_sample_with_subset, filter_features_in_csv
+from utils.point_cloud_data_utils import sample_data, read_file_to_numpy, reservoir_sample_data, reservoir_sample_with_subset, filter_features_in_csv, clean_and_combine_csv_files
 import pandas as pd
 from utils.point_cloud_data_utils import subtiler
 import laspy
@@ -12,26 +12,20 @@ from utils.create_dataset import create_dataset, create_train_eval_datasets
 # - finire di testare train_data_utils con dati reali, e vedere se è molto più lento    *DONE
 # - testare che il training funzioni come al solito con sta nuova selection, con test_training  *DONE
 
+# ISSUE: quella in verde sopra. L'idea per fare il subsample del full dataset sarebbe: prendi i punti del file train_&_eval, e aggiungi a random punti che non sono già 
+# presenti in train_&_eval dal full dataset. MA: la maschera non funziona bene
 
-"""train_df, eval_df = create_train_eval_datasets(csv_file='data/datasets/full_dataset.csv',
-                               max_points_per_class=500_000,
-                               chosen_classes=[3, 5, 6, 10, 11, 64],
-                               train_split=0.8,
-                               output_dataset_folder='data/datasets')"""
-
-
-input_csv = 'data/datasets/full_dataset.csv'
-csv_name = 'full_dataset.csv'
-output_csv=f'data/datasets/filtered/{csv_name}'
-
-filter_features_in_csv(input_csv=input_csv, output_csv=output_csv)
-
-df = pd.read_csv(output_csv)
+df = pd.read_csv('data/datasets/train_&_eval_dataset.csv')
 print(f"len of eval dataset: {len(df)}")
 # Inspect column names
 print("Column Names in the DataFrame:")
 print(df.columns.tolist())
 
+"""input_csv = 'data/datasets/sampled_full_dataset/sampled_data_5251680.csv'
+csv_name = 'sampled_data_5251680.csv'
+output_csv=f'data/datasets/filtered/{csv_name}'
+
+filter_features_in_csv(input_csv=input_csv, output_csv=output_csv)"""
 
 '''
 subset_array, _ = read_file_to_numpy(data_dir='data/datasets/train_dataset.csv')

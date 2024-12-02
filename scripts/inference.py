@@ -169,7 +169,7 @@ def predict_subtiles(subtile_folder, model, device, batch_size, window_sizes, gr
     return predictions_folder
 
 
-def evaluate_model(model, dataloader, device, class_names, model_save_folder, inference_file_path, save=False):
+def perform_evaluation(model, dataloader, device, class_names, model_save_folder, inference_file_path, save=False):
     """
     Runs inference on the provided data, returns the confusion matrix and classification report,
     and optionally saves them to the 'inference' subfolder of the model save directory.

@@ -1,5 +1,5 @@
 from utils.train_data_utils import prepare_dataloader
-from scripts.inference import evaluate_model
+from scripts.inference import perform_evaluation
 
 
 def evaluate_model(batch_size, full_data_filepath, window_sizes, grid_resolution, features_to_use, num_workers, model, device, model_save_folder, evaluation_data_filepath):
@@ -42,7 +42,7 @@ def evaluate_model(batch_size, full_data_filepath, window_sizes, grid_resolution
             subset_file=evaluation_data_filepath    # select points specified by evaluation file to perform evaluation
         )
     
-    conf_matrix, class_report = evaluate_model(
+    conf_matrix, class_report = perform_evaluation(
         model=model, 
         dataloader=inference_loader, 
         device=device, 
