@@ -11,6 +11,7 @@ from utils.create_dataset import create_dataset, create_train_eval_datasets
 # - creare nuovo dataset, i.e. file enorme con tanti punti + train/eval con train sui 2 milioni/2.5 di punti *DONE
 # - finire di testare train_data_utils con dati reali, e vedere se è molto più lento    *DONE
 # - testare che il training funzioni come al solito con sta nuova selection, con test_training  *DONE
+# - testare che l'evaluation funzioni con nuovi test 
 
 
 # ISSUE: quella in verde sopra. L'idea per fare il subsample del full dataset sarebbe: prendi i punti del file train_&_eval, e aggiungi a random punti che non sono già 

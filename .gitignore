@@ -30,4 +30,6 @@ __pycache__/
 *.asc
 *.env
 *.las:Zone.Identifier
+*.png
+*.txt
 

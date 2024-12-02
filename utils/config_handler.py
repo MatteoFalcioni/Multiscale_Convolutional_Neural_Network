@@ -1,17 +1,23 @@
 import argparse
 import yaml
+import ast
 
 # Custom function to parse the window_sizes argument
 def parse_window_sizes(value):
-    # Split the input string into a list of numbers
-    size_list = value.split()
-    
-    # Map the numbers to the window sizes as tuples
-    window_sizes = [('small', float(size_list[0])), 
-                    ('medium', float(size_list[1])), 
-                    ('large', float(size_list[2]))]
-    
-    return window_sizes
+    """
+    Parses a string that represents a list (e.g., '[10, 20, 30]')
+    and converts it into the desired tuple format:
+    Example: '[10, 20, 30]' -> [('small', 10.0), ('medium', 20.0), ('large', 30.0)]
+    """
+    try:
+        # Parse the string input to a list
+        sizes = ast.literal_eval(value)
+        if not isinstance(sizes, list) or len(sizes) != 3:
+            raise ValueError("Input must be a list of exactly three numeric values.")
+        return [('small', float(sizes[0])), ('medium', float(sizes[1])), ('large', float(sizes[2]))]
+    except (ValueError, SyntaxError):
+        raise argparse.ArgumentTypeError("Invalid format. Use a list like '[10, 20, 30]'.")
+
 
 
 def load_config(file_path='config.yaml'):
@@ -68,10 +74,11 @@ def parse_arguments():
     parser.add_argument('--subset_filepath', type=str, default=config.get('subset_filepath', 'data/training_data/21/train_21.csv'),
                         help='File path to the eventual subset of training_data_filepath to be used during training.')
     
-    parser.add_argument('--window_sizes', 
-                    type=parse_window_sizes,  # Use the custom function
-                    default=[('small', 2.5), ('medium', 5.0), ('large', 10.0)], 
-                    help="List of window sizes for grid generation (e.g., 5 10 20, which translates to [('small', 2.5), ('medium', 5.0), ('large', 10.0)])")
+    parser.add_argument('--window_sizes',
+                        type=parse_window_sizes,
+                        metavar='[SMALL,MEDIUM,LARGE]',
+                        default=[('small', 2.5), ('medium', 5.0), ('large', 10.0)],
+                        help="List of three window sizes for grid generation, e.g., '[10, 20, 30]'.")
 
     parser.add_argument('--features_to_use', type=str, nargs='+', default=config.get('features_to_use'),
                     help='List of feature names to use for training (e.g., intensity red green blue)')
