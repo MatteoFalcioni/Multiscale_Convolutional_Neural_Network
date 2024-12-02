@@ -11,22 +11,22 @@ from utils.create_dataset import create_dataset
 # - finire di testare train_data_utils con dati reali, e vedere se è molto più lento
 # - testare che il training funzioni come al solito con sta nuova selection, con test_training
 
-subset_array, _ = read_file_to_numpy(data_dir='data/datasets/train_dataset.csv')
+'''subset_array, _ = read_file_to_numpy(data_dir='data/datasets/train_dataset.csv')
 sample_size = len(subset_array)*2
 sampled_df = reservoir_sample_with_subset(input_file='data/datasets/full_dataset.csv', subset_file='data/datasets/train_dataset.csv', sample_size=sample_size, save_dir='data/datasets/sampled_full_dataset', save=True)
-
+'''
 '''input_file = 'data/datasets/sampled_full_dataset/sampled_data_5000000.csv'
 array, known_features = read_file_to_numpy(input_file)
 print(f"array dimension before duplicate cleaning: {array.shape}")
 cleaned_array = remove_duplicates_with_tolerance(data_array=array, tolerance=1e-8) 
 print(f"array cleaned of duplicates shape: {cleaned_array.shape}")'''
 
-'''input_folders = ['data/ground_and_offground/32_681000_4933500','data/ground_and_offground/32_690500_4930000', 'data/ground_and_offground/32_681500', 'data/ground_and_offground/32_684000', 'data/ground_and_offground/32_686000_4930500', 'data/ground_and_offground/32_686000_4933000']
+input_folders = ['data/ground_and_offground/32_681000_4933500','data/ground_and_offground/32_690500_4930000', 'data/ground_and_offground/32_681500', 'data/ground_and_offground/32_684000', 'data/ground_and_offground/32_686000_4930500', 'data/ground_and_offground/32_686000_4933000']
 
 create_dataset(input_folders=input_folders, 
                fused_las_folder = 'data/fused_ground_off_ground', 
                max_points_per_class=500000, 
-               output_dataset_folder='data/datasets')'''
+               output_dataset_folder='data/datasets')
 
 
 

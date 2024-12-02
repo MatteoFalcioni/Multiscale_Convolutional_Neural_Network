@@ -983,8 +983,8 @@ def reservoir_sample_with_subset(input_file, sample_size, subset_file, save=Fals
     
     # Inspection: Print dataset summary
     print("\nDataset Summary:")
-    print(f"\n\nTotal points in training set: {len(combined_data)}")
-    print("Class distribution in training set:")
+    print(f"\n\nTotal points in dataset: {len(combined_data)}")
+    print("Class distribution in dataset:")
     print(combined_data['label'].value_counts().sort_index())
 
     # Optionally save the combined data

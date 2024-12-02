@@ -51,7 +51,7 @@ def create_dataset(input_folders, fused_las_folder, max_points_per_class, output
     os.makedirs(csv_subdir, exist_ok=True)
     csv_filepaths = []
     for las_filepath in fused_files:
-        csv_path = las_to_csv(las_file=las_filepath, output_folder=csv_subdir)
+        csv_path = las_to_csv(las_file=las_filepath, output_folder=csv_subdir, selected_classes=chosen_classes)
         csv_filepaths.append(csv_path)
 
     # combine the csvs together to get one big file, and save it. Also cleans nan/inf values of combined file internally
