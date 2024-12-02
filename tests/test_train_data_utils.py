@@ -193,7 +193,7 @@ class TestPointCloudDataset(unittest.TestCase):
             os.remove(self.subset_file)
 
 
-    '''def test_len(self):
+    def test_len(self):
         # Test that the length of the dataset matches the number of points in the selected array
         self.assertEqual(len(self.dataset), len(self.dataset.selected_array))
 
@@ -330,7 +330,7 @@ class TestPointCloudDataset(unittest.TestCase):
         print(f"Fulla data array in bound points: {len(in_bound_array)}")
 
         np.testing.assert_array_equal(in_bound_array, fall_back_array, err_msg=f"The selected array without subset selection doesn't match full data array \
-                                      without out of bounds points.")'''
+                                      without out of bounds points.")
         
         
     def test_with_real_data(self):
@@ -389,7 +389,6 @@ class TestPointCloudDataset(unittest.TestCase):
         smallfile_end = time.time()
         print(f"\nSmall file input: Retrieved {n_test} dataset elements in {(smallfile_end-smallfile_start)/60} minutes")
 
-'''
 class TestDataloaderDatasetIntegration(unittest.TestCase):
     def setUp(self):
         # Mock parameters
@@ -515,12 +514,12 @@ class TestPrepareDataloader(unittest.TestCase):
         self.assertLessEqual(len(labels_eval), self.batch_size, "len labels should be smaller or equal to specified batch size in eval due to skipped points.")
         self.assertLessEqual(len(indices), self.batch_size, "len indices should be smaller or equal to specified batch size due to skipped points.")
         
-        '''
         
         
         
-'''
-class TestCustomCollateFn(unittest.TestCase):
+        
+
+'''class TestCustomCollateFn(unittest.TestCase):
     def setUp(self):
         # Mock dataset entries
         self.mock_data = [
@@ -543,33 +542,5 @@ class TestCustomCollateFn(unittest.TestCase):
         self.assertEqual(large_grids.size(0), 2)
         self.assertEqual(labels.size(0), 2)
         self.assertEqual(indices.size(0), 2)
+        '''
         
-        
-    you stopped skipping batches now, no need for this
-        @mock.patch('utils.train_data_utils.PointCloudDataset.__getitem__')
-    def test_dataloader_with_none(self, mock_getitem):
-        # Mock __getitem__ to return None for certain indices
-        def side_effect(idx):
-            if idx % 2 == 0:  # Simulate returning None for every other point
-                return None
-            else:
-                # Return a valid tuple with grid data and label
-                return (torch.randn(self.num_channels, self.grid_resolution, self.grid_resolution), \
-                       torch.randn(self.num_channels, self.grid_resolution, self.grid_resolution), \
-                       torch.randn(self.num_channels, self.grid_resolution, self.grid_resolution), \
-                       torch.tensor(1),  
-                       torch.tensor(1))
-
-        mock_getitem.side_effect = side_effect
-
-        # Prepare DataLoader using the mocked dataset and your custom collate function
-        dataloader = DataLoader(self.dataset, batch_size=4, collate_fn=custom_collate_fn)
-
-        # Fetch batches and ensure None entries are skipped
-        for batch in dataloader:
-            if batch is not None:
-                small_grid, medium_grid, large_grid, labels, indices = batch
-                # None values should be skipped, so we expect 2 valid entries per batch
-                self.assertEqual(small_grid.size(0), 2, "Batch size should be 2 after skipping None entries.")'''
-        
-

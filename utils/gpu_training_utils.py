@@ -1,7 +1,8 @@
-from scripts.gpu_grid_gen import build_gpu_tree, generate_multiscale_grids_gpu_masked, apply_masks_gpu
+from scripts.gpu_grid_gen import generate_multiscale_grids_gpu_masked, apply_masks_gpu
 from torch.utils.data import Dataset, DataLoader, random_split
 import torch
 from utils.point_cloud_data_utils import read_file_to_numpy, remap_labels, clean_nan_values
+from torch_kdtree import build_kd_tree
 
 
 class GPU_PointCloudDataset(Dataset):
@@ -26,13 +27,13 @@ class GPU_PointCloudDataset(Dataset):
         self.features_to_use = features_to_use
         self.known_features = known_features
         feature_indices = [known_features.index(feature) for feature in features_to_use]
-        self.feature_indices_tensor = torch.Tensor(feature_indices, device=self.device)
+        self.feature_indices_tensor = torch.tensor(feature_indices, device=self.device)
         
         # Build torch kdtree model on the GPU 
-        self.gpu_tree = build_gpu_tree(self.tensor_data_array[:, :3])
+        self.gpu_tree = build_kd_tree(self.tensor_full_data[:, :3])
         
         # Apply masking and compute bounds
-        self.selected_array, mask, point_cloud_bounds = apply_masks_gpu(
+        self.selected_tensor, mask, point_cloud_bounds = apply_masks_gpu(
             tensor_data_array=self.tensor_full_data,
             window_sizes=self.window_sizes,
             subset_file=subset_file
@@ -54,7 +55,7 @@ class GPU_PointCloudDataset(Dataset):
 
         # Generate multiscale grids for this point using the GPU
         grids_dict = generate_multiscale_grids_gpu_masked(
-            center_point_tensor=center_point_tensor, tensor_data_array=self.tensor_data_array, window_sizes=self.window_sizes,
+            center_point_tensor=center_point_tensor, tensor_data_array=self.tensor_full_data, window_sizes=self.window_sizes,
             grid_resolution=self.grid_resolution, feature_indices_tensor=self.feature_indices_tensor,
             gpu_tree=self.gpu_tree, device=self.device
         )
@@ -63,9 +64,12 @@ class GPU_PointCloudDataset(Dataset):
         small_grid = grids_dict['small']
         medium_grid = grids_dict['medium']
         large_grid = grids_dict['large']
+        
+        # Return the grids, label, and original index 
+        original_idx = self.original_indices[idx]  # Map back to the original data_array index
 
         # Return the grids and label
-        return small_grid, medium_grid, large_grid, label, idx
+        return small_grid, medium_grid, large_grid, label, original_idx
 
 
 def gpu_prepare_dataloader(batch_size, data_filepath=None, 
