@@ -145,11 +145,11 @@ import time
 
 class TestPointCloudDataset(unittest.TestCase):
     def setUp(self):
-        real_data_filepath = ''  # read a real las file to test thoroughly 
+        real_data_filepath = 'data/datasets/full_dataset.csv'  # read a real las file to test thoroughly 
         self.real_array, self.real_known_features = read_file_to_numpy(data_dir=real_data_filepath)
-        self.real_subset_file = ''   # A real subset file for testing
+        self.real_subset_file = 'data/datasets/train_dataset.csv'   # A real subset file for testing
 
-        print(f"\nReal data array shape {self.real_array.shape}")
+        print(f"\nReal data array shape {self.real_array.shape}, dtype: {self.real_array.dtype}")
 
         # use a sample file for pipeline tests
         self.full_data_array, self.known_features = read_file_to_numpy(data_dir='tests/test_subtiler/32_687000_4930000_FP21_sampled_10k.las')

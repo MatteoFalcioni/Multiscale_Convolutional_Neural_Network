@@ -15,8 +15,8 @@ class TestTrainingProcess(unittest.TestCase):
     def setUpClass(cls):
         # Run once for the entire test class
         cls.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-        cls.full_data_filepath = 'data/'
-        cls.subset_file = ''
+        cls.full_data_filepath = 'full dataset'
+        cls.subset_file = 'training subset'
         cls.selected_features = ['intensity', 'red', 'green', 'blue']
         cls.num_channels = len(cls.selected_features)  # Determine the number of channels based on selected features
         cls.num_classes = extract_num_classes(raw_file_path=cls.full_data_filepath) # determine the number of classes from the raw data

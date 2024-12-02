@@ -280,7 +280,7 @@ def create_train_eval_datasets(csv_file, max_points_per_class, chosen_classes=No
     filtered_dfs = []  # For storing filtered chunks
     
     # Read and process the CSV in chunks
-    print(f"Reading and processing the dataset in chunks...")
+    print(f"Reading and processing the dataset in chunks for train/eval split...")
     for chunk in pd.read_csv(csv_file, chunksize=chunksize):
         # Filter chosen classes
         if chosen_classes is not None:
