@@ -40,6 +40,7 @@ The training file can be in `.las` or `.csv` format.
 
 To train the MCNN model with custom setting, you can use the argument parser to specify relevant command line arguments. The possible commands are:
 
+- `--subset_filepath` allows you to specify the file path to a file containing a subset of points from the training file, on which you want to train the model. This is useful if you want to generate feature images only for a subset of the full training dataset, while still using all points for nearest neighbor feature assignment. 
 - `--batch size`  specifies batch size for training
 - `--epochs` specifies the number of training epochs
 - `--patience` specifies the number of epochs to wait for an improvement in validation loss before early stopping
@@ -76,7 +77,7 @@ For example:
 ```bash
 python main.py --perform_evaluation <path_to_the_model>
 ```
-In both cases, a folder `inference/<timestamp>` will be created inside the model folder, containing the files
+In both cases, a folder `inference_<timestamp>` will be created inside the model folder, containing the files
 - `classification_report.csv` with the classification report;
 - `confusion_matrix.png` with the confusion matrix;
 - `inference_log.txt` specifying which file the model was evaluated on.

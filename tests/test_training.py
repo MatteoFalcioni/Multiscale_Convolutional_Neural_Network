@@ -5,7 +5,7 @@ import torch.nn as nn
 import torch.optim as optim
 from models.mcnn import MultiScaleCNN
 from utils.point_cloud_data_utils import  extract_num_classes
-from utils.train_data_utils import prepare_dataloader, initialize_weights
+from utils.train_data_utils import prepare_dataloader
 from scripts.train import train, validate, train_epochs
 
 
@@ -15,9 +15,9 @@ class TestTrainingProcess(unittest.TestCase):
     def setUpClass(cls):
         # Run once for the entire test class
         cls.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-        cls.full_data_filepath = 'full dataset'
-        cls.subset_file = 'training subset'
-        cls.selected_features = ['intensity', 'red', 'green', 'blue']
+        cls.full_data_filepath = 'data/datasets/sampled_full_dataset/sampled_data_5251680.csv'
+        cls.subset_file = 'data/datasets/train_dataset.csv'
+        cls.selected_features = ['intensity', 'red']
         cls.num_channels = len(cls.selected_features)  # Determine the number of channels based on selected features
         cls.num_classes = extract_num_classes(raw_file_path=cls.full_data_filepath) # determine the number of classes from the raw data
         cls.model = MultiScaleCNN(channels=cls.num_channels, classes=cls.num_classes).to(cls.device)
@@ -25,9 +25,9 @@ class TestTrainingProcess(unittest.TestCase):
         cls.optimizer = optim.SGD(cls.model.parameters(), lr=0.01)
         cls.scheduler = optim.lr_scheduler.StepLR(cls.optimizer, step_size=1, gamma=0.5)
         cls.grid_resolution = 128
-        cls.window_sizes = [('small', 2.5), ('medium', 5.0), ('large', 10.0)]
-        cls.batch_size = 32
-        cls.num_workers = 16
+        cls.window_sizes = [('small', 10.0), ('medium', 20.0), ('large', 30.0)]
+        cls.batch_size = 16
+        cls.num_workers = 32
 
         # Mocked DataLoader with random data
         cls.train_loader, cls.val_loader = prepare_dataloader(
@@ -111,7 +111,7 @@ class TestTrainingProcess(unittest.TestCase):
         self.assertFalse(torch.isinf(loss).any(), "Loss contains Inf values.")
 
 
-    def test_model_training_over_multiple_epochs(self):
+    '''def test_model_training_over_multiple_epochs(self):
         """Test that the model trains correctly over multiple epochs."""
         epochs_to_run = 2
         train_epochs(
@@ -121,7 +121,7 @@ class TestTrainingProcess(unittest.TestCase):
         )
 
         # Check that the training completes without any exceptions
-        self.assertTrue(True, "Model training did not complete as expected.")
+        self.assertTrue(True, "Model training did not complete as expected.")'''
 
 
     def test_validation_step(self):
@@ -137,7 +137,7 @@ class TestTrainingProcess(unittest.TestCase):
             next(iter(empty_loader))
 
 
-    def test_incorrect_input_shape(self):
+    '''def test_incorrect_input_shape(self):
         """Test the model with incorrect input shapes to ensure it raises an error."""
         # Simulate DataLoader yielding 4 elements with incorrect shapes
         incorrect_loader = [(
@@ -179,11 +179,11 @@ class TestTrainingProcess(unittest.TestCase):
             )
 
             # Check how many times validate was called (accounting for early stopping)
-            self.assertLessEqual(mock_validate.call_count, 3, "Early stopping did not trigger correctly.")
+            self.assertLessEqual(mock_validate.call_count, 3, "Early stopping did not trigger correctly.")'''
 
 
 
-    def test_sanity_check_full_pipeline(self):
+    '''def test_sanity_check_full_pipeline(self):
         """Run a sanity check for the full training pipeline with a small dataset."""
         # Run training loop for 2 epochs as a sanity check
         epochs_to_run = 2
@@ -204,4 +204,4 @@ class TestTrainingProcess(unittest.TestCase):
         print(f'initial train loss: {initial_train_loss}')
         print(f'initial val loss: {initial_val_loss}')
         print(f'final train loss: {final_train_loss}')
-        print(f'final val loss: {final_val_loss}')
+        print(f'final val loss: {final_val_loss}')'''

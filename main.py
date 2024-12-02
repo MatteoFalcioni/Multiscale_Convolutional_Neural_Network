@@ -43,7 +43,7 @@ def main():
     print(f"Using device: {device}")
 
     if predict_labels and perform_evaluation:
-        raise ValueError("You can either predict new labels or evaluate the model's performance. Please set only one among predict_labels and perform evaluation as True.")
+        raise ValueError("You can either predict new labels or evaluate the model's performance. Please set only one among predict_labels and perform_evaluation as True.")
 
     if not predict_labels and not perform_evaluation:
 

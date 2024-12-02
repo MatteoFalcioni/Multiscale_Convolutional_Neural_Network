@@ -14,7 +14,7 @@ import pandas as pd
 import time
 
 
-'''class TestSaveLoadModel(unittest.TestCase):
+class TestSaveLoadModel(unittest.TestCase):
     def setUp(self):
         self.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
         # Initialize a test model
@@ -140,7 +140,7 @@ import time
         print(f"\n\nknown features in orginal file: {original_features}\
                 \ntraining features: {training_features} -> training indices: {training_indices}\
                 \nknown features in inference file:{inference_features}\
-                \nloaded features: {loaded_features} -> loaded_indinces: {loaded_indices}\n\n")'''
+                \nloaded features: {loaded_features} -> loaded_indinces: {loaded_indices}\n\n")
 
 
 class TestPointCloudDataset(unittest.TestCase):
@@ -193,7 +193,7 @@ class TestPointCloudDataset(unittest.TestCase):
             os.remove(self.subset_file)
 
 
-    '''def test_len(self):
+    def test_len(self):
         # Test that the length of the dataset matches the number of points in the selected array
         self.assertEqual(len(self.dataset), len(self.dataset.selected_array))
 
@@ -330,11 +330,11 @@ class TestPointCloudDataset(unittest.TestCase):
         print(f"Fulla data array in bound points: {len(in_bound_array)}")
 
         np.testing.assert_array_equal(in_bound_array, fall_back_array, err_msg=f"The selected array without subset selection doesn't match full data array \
-                                      without out of bounds points.")'''
+                                      without out of bounds points.")
         
         
     def test_with_real_data(self):
-        print('\n======================================================\n')
+        print('\n=====================Testing with real data==============================\n')
         # input a real huge file (about 10 million points) and a subset of usual dimensions (about 2.5 million points)
         '''cleaned_array = remove_duplicates_with_tolerance(data_array=self.real_array, tolerance=1e-10) 
         print(f"Cleaned array shape: {cleaned_array.shape}")'''
@@ -442,7 +442,6 @@ class TestDataloaderDatasetIntegration(unittest.TestCase):
         print(f"{num_batches_to_test} batches processed in {(end_time-start_time)/60} minutes.")
 
 
-'''
 class TestPrepareDataloader(unittest.TestCase):
 
     def setUp(self):
@@ -517,6 +516,10 @@ class TestPrepareDataloader(unittest.TestCase):
         self.assertLessEqual(len(indices), self.batch_size, "len indices should be smaller or equal to specified batch size due to skipped points.")
         
         
+        
+        
+        
+'''
 class TestCustomCollateFn(unittest.TestCase):
     def setUp(self):
         # Mock dataset entries

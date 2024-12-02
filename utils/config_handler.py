@@ -62,8 +62,11 @@ def parse_arguments():
     parser.add_argument('--num_workers', type=int, default=config.get('num_workers', 16),
                         help='Number of workers for parallel processing')
     
-    parser.add_argument('--training_data_filepath', type=str, default=config.get('training_data_filepath', 'data/training_data/21/test_21.csv'),
+    parser.add_argument('--training_data_filepath', type=str, default=config.get('training_data_filepath', 'data/training_data/21/train_21.csv'),
                         help='File path to thed ata to be used during training.')
+    
+    parser.add_argument('--subset_filepath', type=str, default=config.get('subset_filepath', 'data/training_data/21/train_21.csv'),
+                        help='File path to the eventual subset of training_data_filepath to be used during training.')
     
     parser.add_argument('--window_sizes', 
                     type=parse_window_sizes,  # Use the custom function
@@ -85,9 +88,6 @@ def parse_arguments():
     parser.add_argument('--perform_evaluation', action='store_true', default=config.get('perform_evaluation', False),
                     help='If set, evaluates the loaded model.')
 
-    #parser.add_argument('--load_model', action='store_true', default=config.get('load_model', False),
-    #                    help='If set, loads model from load_model_filepath to perform inference')
-    
     parser.add_argument('--load_model_filepath', type=str,
                         default=config.get('load_model_filepath', 'models/saved/mcnn_model_20241015_005511/model.pth'),
                         help='File path to the pre-trained model to be loaded.')

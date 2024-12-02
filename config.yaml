@@ -9,6 +9,7 @@ momentum: 0.9    # used in first article
 num_workers : 0  # number of workers for parallel processing
 
 training_data_filepath: "data/training_data/21/train_21.csv"   # File path to training data
+subset_filepath: 'data/training_data/21/train_21.csv'  # Subset
 
 window_sizes:    # window sizes to be used for grids
   - [small, 2.5]
