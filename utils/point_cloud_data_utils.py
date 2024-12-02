@@ -362,47 +362,6 @@ def clean_bugged_las(bugged_las_path):
     print(f"Original points: {len(las_data.points)}, Cleaned points: {len(cleaned_points)}")
 
 
-def sample_data(input_file, sample_size, save=False, save_dir='data/sampled_data', feature_to_use=None, features_file_path=None):
-    """
-    Samples a subset of the data from a CSV, NumPy, or LAS file. Optionally saves the sampled data as a CSV file.
-
-    Args:
-    - input_file (str): Path to the input file (either a CSV, NumPy file, or LAS file).
-    - sample_size (int): The number of samples to extract.
-    - save (bool): Whether to save the sampled data to a file. Default is False.
-    - save_dir (str): Directory where the sampled data will be saved. Default is 'data/sampled_data'.
-    - feature_to_use (list): List of feature names to select from the data.
-    - features_file_path (str): File path to known features of the .npy data (required only if input is NumPy).
-
-    Returns:
-    - np.ndarray: The sampled data array.
-    """
-    # Load the data
-    data_array, feature_names = read_file_to_numpy(data_dir=input_file, features_to_use=feature_to_use, features_file_path=features_file_path)
-
-    # Ensure the label column is included in the features
-    if 'label' not in feature_names:
-        feature_names.append('label')
-
-    # Check if sample_size is greater than the dataset size
-    if sample_size > data_array.shape[0]:
-        raise ValueError(f"Sample size {sample_size} is larger than the dataset size {data_array.shape[0]}.")
-
-    # Sample the data
-    print(f"Sampling {sample_size} rows from the dataset...")
-    sampled_data = data_array[np.random.choice(data_array.shape[0], sample_size, replace=False)]
-
-    # Optionally save the sampled data as a CSV file
-    if save:
-        os.makedirs(save_dir, exist_ok=True)
-        sample_file_path = os.path.join(save_dir, f'sampled_data_{sample_size}.csv')
-        df_sample = pd.DataFrame(sampled_data, columns=feature_names)
-        df_sample.to_csv(sample_file_path, index=False)
-        print(f"Sampled data saved to {sample_file_path}")
-
-    return sampled_data
-
-
 def remap_labels(data_array, label_column_index=-1):
     """
     Automatically remaps the labels in the given data array to a continuous range starting from 0. Needed for
@@ -931,7 +890,48 @@ def las_to_csv(las_file, output_folder, selected_classes = None):
     return output_csv_filepath
 
 
-def reservoir_sample_with_subset(input_file, sample_size, subset_file, save=False, save_dir='data/sampled_data', feature_to_use=None, chunk_size=100000, tol=1e-8):
+def sample_data(input_file, sample_size, save=False, save_dir='data/sampled_data', feature_to_use=None, features_file_path=None):
+    """
+    Samples a subset of the data from a CSV, NumPy, or LAS file. Optionally saves the sampled data as a CSV file.
+
+    Args:
+    - input_file (str): Path to the input file (either a CSV, NumPy file, or LAS file).
+    - sample_size (int): The number of samples to extract.
+    - save (bool): Whether to save the sampled data to a file. Default is False.
+    - save_dir (str): Directory where the sampled data will be saved. Default is 'data/sampled_data'.
+    - feature_to_use (list): List of feature names to select from the data.
+    - features_file_path (str): File path to known features of the .npy data (required only if input is NumPy).
+
+    Returns:
+    - np.ndarray: The sampled data array.
+    """
+    # Load the data
+    data_array, feature_names = read_file_to_numpy(data_dir=input_file, features_to_use=feature_to_use, features_file_path=features_file_path)
+
+    # Ensure the label column is included in the features
+    if 'label' not in feature_names:
+        feature_names.append('label')
+
+    # Check if sample_size is greater than the dataset size
+    if sample_size > data_array.shape[0]:
+        raise ValueError(f"Sample size {sample_size} is larger than the dataset size {data_array.shape[0]}.")
+
+    # Sample the data
+    print(f"Sampling {sample_size} rows from the dataset...")
+    sampled_data = data_array[np.random.choice(data_array.shape[0], sample_size, replace=False)]
+
+    # Optionally save the sampled data as a CSV file
+    if save:
+        os.makedirs(save_dir, exist_ok=True)
+        sample_file_path = os.path.join(save_dir, f'sampled_data_{sample_size}.csv')
+        df_sample = pd.DataFrame(sampled_data, columns=feature_names)
+        df_sample.to_csv(sample_file_path, index=False)
+        print(f"Sampled data saved to {sample_file_path}")
+
+    return sampled_data
+
+
+def reservoir_sample_with_subset(input_file, sample_size, subset_file, save=False, save_dir='data/sampled_data', feature_to_use=None, chunk_size=100000, tol=1e-24):
     """
     Samples a random subset of the data from a large CSV file, ensuring no overlap with a provided subset file using tolerance-based matching.
 
@@ -983,7 +983,7 @@ def reservoir_sample_with_subset(input_file, sample_size, subset_file, save=Fals
     
     # Inspection: Print dataset summary
     print("\nDataset Summary:")
-    print(f"\n\nTotal points in dataset: {len(combined_data)}")
+    print(f"\nTotal points in dataset: {len(combined_data)}")
     print("Class distribution in dataset:")
     print(combined_data['label'].value_counts().sort_index())
 
@@ -997,7 +997,49 @@ def reservoir_sample_with_subset(input_file, sample_size, subset_file, save=Fals
     return combined_data
 
 
+def reservoir_sample_data(input_file, sample_size, save=False, save_dir='data/sampled_data', feature_to_use=None, chunk_size=100000):
+    """
+    Samples a random subset of the data from a large CSV file using reservoir sampling.
 
+    Args:
+    - input_file (str): Path to the input CSV file.
+    - sample_size (int): The number of samples to extract.
+    - save (bool): Whether to save the sampled data to a file. Default is False.
+    - save_dir (str): Directory where the sampled data will be saved. Default is 'data/sampled_data'.
+    - feature_to_use (list): List of feature names to select from the data.
+    - chunk_size (int): Number of rows to process per chunk. Default is 100000.
+
+    Returns:
+    - pd.DataFrame: The sampled data DataFrame.
+    """
+    reservoir = []  # List to store the sampled rows
+    total_rows = 0  # Total number of rows processed
+
+    # Iterate over chunks of the data and add tqdm for the progress bar
+    for chunk in tqdm(pd.read_csv(input_file, chunksize=chunk_size, usecols=feature_to_use), desc="Processing chunks"):
+        total_rows += len(chunk)
+
+        for row in chunk.itertuples(index=False):
+            if len(reservoir) < sample_size:
+                # If the reservoir is not full, add the row
+                reservoir.append(row)
+            else:
+                # Randomly decide whether to replace an existing element in the reservoir
+                replace_idx = random.randint(0, total_rows - 1)
+                if replace_idx < sample_size:
+                    reservoir[replace_idx] = row
+
+    # Convert the reservoir to a DataFrame
+    sampled_data = pd.DataFrame(reservoir, columns=chunk.columns)
+
+    # Optionally save the sampled data
+    if save:
+        os.makedirs(save_dir, exist_ok=True)
+        sample_file_path = os.path.join(save_dir, f'sampled_data_{sample_size}.csv')
+        sampled_data.to_csv(sample_file_path, index=False)
+        print(f"Sampled data saved to {sample_file_path}")
+
+    return sampled_data
 
 
 def remove_duplicates_with_tolerance(data_array, tolerance=1e-10):
@@ -1021,9 +1063,6 @@ def remove_duplicates_with_tolerance(data_array, tolerance=1e-10):
     filtered_array = data_array[np.sort(unique_indices)]
     
     return filtered_array
-
-
-
 
 
 ''' THIS WAS INSIDE STITCH
@@ -1150,52 +1189,6 @@ is_northernmost = False
     print('\nSubtiles created succesfully.\n')
 
     return output_dir'''
-
-
-
-def reservoir_sample_data(input_file, sample_size, save=False, save_dir='data/sampled_data', feature_to_use=None, chunk_size=100000):
-    """
-    Samples a random subset of the data from a large CSV file using reservoir sampling.
-
-    Args:
-    - input_file (str): Path to the input CSV file.
-    - sample_size (int): The number of samples to extract.
-    - save (bool): Whether to save the sampled data to a file. Default is False.
-    - save_dir (str): Directory where the sampled data will be saved. Default is 'data/sampled_data'.
-    - feature_to_use (list): List of feature names to select from the data.
-    - chunk_size (int): Number of rows to process per chunk. Default is 100000.
-
-    Returns:
-    - pd.DataFrame: The sampled data DataFrame.
-    """
-    reservoir = []  # List to store the sampled rows
-    total_rows = 0  # Total number of rows processed
-
-    # Iterate over chunks of the data and add tqdm for the progress bar
-    for chunk in tqdm(pd.read_csv(input_file, chunksize=chunk_size, usecols=feature_to_use), desc="Processing chunks"):
-        total_rows += len(chunk)
-
-        for row in chunk.itertuples(index=False):
-            if len(reservoir) < sample_size:
-                # If the reservoir is not full, add the row
-                reservoir.append(row)
-            else:
-                # Randomly decide whether to replace an existing element in the reservoir
-                replace_idx = random.randint(0, total_rows - 1)
-                if replace_idx < sample_size:
-                    reservoir[replace_idx] = row
-
-    # Convert the reservoir to a DataFrame
-    sampled_data = pd.DataFrame(reservoir, columns=chunk.columns)
-
-    # Optionally save the sampled data
-    if save:
-        os.makedirs(save_dir, exist_ok=True)
-        sample_file_path = os.path.join(save_dir, f'sampled_data_{sample_size}.csv')
-        sampled_data.to_csv(sample_file_path, index=False)
-        print(f"Sampled data saved to {sample_file_path}")
-
-    return sampled_data
 
 '''
 def get_feature_indices(features_to_use, known_features):

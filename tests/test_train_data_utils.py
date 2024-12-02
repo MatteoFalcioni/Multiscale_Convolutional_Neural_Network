@@ -145,7 +145,7 @@ import time
 
 class TestPointCloudDataset(unittest.TestCase):
     def setUp(self):
-        real_data_filepath = 'data/datasets/sampled_full_dataset/sampled_data_5000000.csv'  # read a real las file to test thoroughly 
+        real_data_filepath = 'data/datasets/sampled_full_dataset/sampled_data_5251680.0.csv'  # read a real las file to test thoroughly 
         self.real_array, self.real_known_features = read_file_to_numpy(data_dir=real_data_filepath)
         self.real_subset_file = 'data/datasets/train_dataset.csv'   # A real subset file for testing
         real_subset_array, _ = read_file_to_numpy(self.real_subset_file)
@@ -336,11 +336,11 @@ class TestPointCloudDataset(unittest.TestCase):
     def test_with_real_data(self):
         print('\n======================================================\n')
         # input a real huge file (about 10 million points) and a subset of usual dimensions (about 2.5 million points)
-        cleaned_array = remove_duplicates_with_tolerance(data_array=self.real_array, tolerance=1e-10) 
-        print(f"Cleaned array shape: {cleaned_array.shape}")
+        '''cleaned_array = remove_duplicates_with_tolerance(data_array=self.real_array, tolerance=1e-10) 
+        print(f"Cleaned array shape: {cleaned_array.shape}")'''
         dataset_start = time.time()
         huge_dataset = PointCloudDataset(
-            full_data_array=cleaned_array,
+            full_data_array=self.real_array,
             window_sizes=self.window_sizes,
             grid_resolution=self.grid_resolution,
             features_to_use=self.features_to_use,
@@ -395,7 +395,7 @@ class TestDataloaderDatasetIntegration(unittest.TestCase):
         # Mock parameters
         self.batch_size = 32
         self.grid_resolution = 128
-        self.full_data_path = 'data/datasets/sampled_full_dataset/sampled_data_5000000.csv'
+        self.full_data_path = 'data/datasets/sampled_full_dataset/sampled_data_5251680.0.csv'
         self.real_subset_file = 'data/datasets/train_dataset.csv'
         self.window_sizes = [('small', 10.0), ('medium', 20.0), ('large', 30.0)]
         self.features_to_use = ['intensity', 'red', 'green', 'blue']
