@@ -13,6 +13,8 @@ def main():
     
     # training data file path
     training_data_filepath = args.training_data_filepath  
+    # subset filepath
+    subset_file = args.subset_filepath
     
     # training params
     batch_size = args.batch_size
@@ -62,7 +64,7 @@ def main():
                                                                 device = device,
                                                                 window_sizes=window_sizes,
                                                                 grid_resolution=grid_resolution,
-                                                                subset_file=)
+                                                                subset_file=subset_file)
         
         if evaluate_model_after_training:
             # perform evaluation after training 
