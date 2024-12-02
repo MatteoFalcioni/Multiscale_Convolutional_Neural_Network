@@ -145,7 +145,7 @@ import time
 
 class TestPointCloudDataset(unittest.TestCase):
     def setUp(self):
-        real_data_filepath = 'data/datasets/sampled_full_dataset/sampled_data_10000000.csv'  # read a real las file to test thoroughly 
+        real_data_filepath = 'data/datasets/sampled_full_dataset/sampled_data_5000000.csv'  # read a real las file to test thoroughly 
         self.real_array, self.real_known_features = read_file_to_numpy(data_dir=real_data_filepath)
         self.real_subset_file = 'data/datasets/train_dataset.csv'   # A real subset file for testing
         real_subset_array, _ = read_file_to_numpy(self.real_subset_file)
@@ -390,13 +390,12 @@ class TestPointCloudDataset(unittest.TestCase):
         print(f"\nSmall file input: Retrieved {n_test} dataset elements in {(smallfile_end-smallfile_start)/60} minutes")
 
 
-'''
 class TestDataloaderDatasetIntegration(unittest.TestCase):
     def setUp(self):
         # Mock parameters
         self.batch_size = 32
         self.grid_resolution = 128
-        self.full_data_path = 'data/datasets/sampled_full_dataset/sampled_data_10000000.csv'
+        self.full_data_path = 'data/datasets/sampled_full_dataset/sampled_data_5000000.csv'
         self.real_subset_file = 'data/datasets/train_dataset.csv'
         self.window_sizes = [('small', 10.0), ('medium', 20.0), ('large', 30.0)]
         self.features_to_use = ['intensity', 'red', 'green', 'blue']
@@ -440,7 +439,7 @@ class TestDataloaderDatasetIntegration(unittest.TestCase):
                 self.assertFalse(torch.isinf(grid).any(), f"Inf values found in {scale} grid for batch {i}")
                 
         end_time = time.time()
-        print(f"{num_batches_to_test} batches processed in {(end_time-start_time)/60} minutes.")'''
+        print(f"{num_batches_to_test} batches processed in {(end_time-start_time)/60} minutes.")
 
 
 '''

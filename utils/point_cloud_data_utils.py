@@ -770,7 +770,6 @@ def isin_tolerance(A, B, tol):
     return np.minimum(lval, rval) <= tol
 
 
-# Updated apply_masks function using isin_tolerance
 def apply_masks(full_data_array, window_sizes, subset_file=None, tol=1e-8):
     """
     Applies masking operations on a point cloud dataset:
@@ -930,6 +929,75 @@ def las_to_csv(las_file, output_folder, selected_classes = None):
 
     print(f"Converted {las_file} to {output_csv_filepath}")
     return output_csv_filepath
+
+
+def reservoir_sample_with_subset(input_file, sample_size, subset_file, save=False, save_dir='data/sampled_data', feature_to_use=None, chunk_size=100000, tol=1e-8):
+    """
+    Samples a random subset of the data from a large CSV file, ensuring no overlap with a provided subset file using tolerance-based matching.
+
+    Args:
+    - input_file (str): Path to the input CSV file.
+    - sample_size (int): The total number of samples to extract (including subset points).
+    - subset_file (str): Path to the subset CSV file.
+    - save (bool): Whether to save the sampled data to a file. Default is False.
+    - save_dir (str): Directory where the sampled data will be saved. Default is 'data/sampled_data'.
+    - feature_to_use (list): List of feature names to select from the data.
+    - chunk_size (int): Number of rows to process per chunk. Default is 100000.
+    - tol (float): Tolerance for approximate matching.
+
+    Returns:
+    - pd.DataFrame: The combined sampled data DataFrame (subset + additional sampled points).
+    """
+    # Load subset points
+    subset_points = pd.read_csv(subset_file, usecols=feature_to_use).values
+
+    reservoir = []  # List to store additional sampled rows
+    total_rows = 0  # Total number of rows processed
+
+    # Iterate over chunks of the full data
+    for chunk in tqdm(pd.read_csv(input_file, chunksize=chunk_size, usecols=feature_to_use), desc="Processing chunks"):
+        chunk_values = chunk.values
+
+        # Apply tolerance-based filtering to exclude duplicates with the subset
+        is_not_duplicate = np.ones(len(chunk_values), dtype=bool)
+        for i in range(3):  # Compare each coordinate dimension
+            is_not_duplicate &= ~isin_tolerance(chunk_values[:, i], subset_points[:, i], tol)
+
+        unique_points = chunk[is_not_duplicate]
+        total_rows += len(unique_points)
+
+        for row in unique_points.itertuples(index=False):
+            if len(reservoir) < sample_size - len(subset_points):
+                # If the reservoir is not full, add the row
+                reservoir.append(row)
+            else:
+                # Randomly decide whether to replace an existing element in the reservoir
+                replace_idx = random.randint(0, total_rows - 1)
+                if replace_idx < sample_size - len(subset_points):
+                    reservoir[replace_idx] = row
+
+    # Combine subset and additional sampled points
+    print(f"\nConcatenating sampled points and existing points...")
+    sampled_data = pd.DataFrame(reservoir, columns=chunk.columns)
+    combined_data = pd.concat([pd.DataFrame(subset_points, columns=chunk.columns), sampled_data])
+    
+    # Inspection: Print dataset summary
+    print("\nDataset Summary:")
+    print(f"\n\nTotal points in training set: {len(combined_data)}")
+    print("Class distribution in training set:")
+    print(combined_data['label'].value_counts().sort_index())
+
+    # Optionally save the combined data
+    if save:
+        os.makedirs(save_dir, exist_ok=True)
+        sample_file_path = os.path.join(save_dir, f'sampled_data_{sample_size}.csv')
+        combined_data.to_csv(sample_file_path, index=False)
+        print(f"Combined sampled data saved to {sample_file_path}")
+
+    return combined_data
+
+
+
 
 
 def remove_duplicates_with_tolerance(data_array, tolerance=1e-10):
