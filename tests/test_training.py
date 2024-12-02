@@ -111,7 +111,7 @@ class TestTrainingProcess(unittest.TestCase):
         self.assertFalse(torch.isinf(loss).any(), "Loss contains Inf values.")
 
 
-    '''def test_model_training_over_multiple_epochs(self):
+    def test_model_training_over_multiple_epochs(self):
         """Test that the model trains correctly over multiple epochs."""
         epochs_to_run = 2
         train_epochs(
@@ -121,7 +121,7 @@ class TestTrainingProcess(unittest.TestCase):
         )
 
         # Check that the training completes without any exceptions
-        self.assertTrue(True, "Model training did not complete as expected.")'''
+        self.assertTrue(True, "Model training did not complete as expected.")
 
 
     def test_validation_step(self):
@@ -137,7 +137,7 @@ class TestTrainingProcess(unittest.TestCase):
             next(iter(empty_loader))
 
 
-    '''def test_incorrect_input_shape(self):
+    def test_incorrect_input_shape(self):
         """Test the model with incorrect input shapes to ensure it raises an error."""
         # Simulate DataLoader yielding 4 elements with incorrect shapes
         incorrect_loader = [(
@@ -179,11 +179,11 @@ class TestTrainingProcess(unittest.TestCase):
             )
 
             # Check how many times validate was called (accounting for early stopping)
-            self.assertLessEqual(mock_validate.call_count, 3, "Early stopping did not trigger correctly.")'''
+            self.assertLessEqual(mock_validate.call_count, 3, "Early stopping did not trigger correctly.")
 
 
 
-    '''def test_sanity_check_full_pipeline(self):
+    def test_sanity_check_full_pipeline(self):
         """Run a sanity check for the full training pipeline with a small dataset."""
         # Run training loop for 2 epochs as a sanity check
         epochs_to_run = 2
@@ -204,4 +204,6 @@ class TestTrainingProcess(unittest.TestCase):
         print(f'initial train loss: {initial_train_loss}')
         print(f'initial val loss: {initial_val_loss}')
         print(f'final train loss: {final_train_loss}')
-        print(f'final val loss: {final_val_loss}')'''
+        print(f'final val loss: {final_val_loss}')
+
+

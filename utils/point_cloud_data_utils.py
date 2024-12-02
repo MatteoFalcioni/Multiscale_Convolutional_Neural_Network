@@ -1042,6 +1042,77 @@ def reservoir_sample_data(input_file, sample_size, save=False, save_dir='data/sa
     return sampled_data
 
 
+def filter_features_in_csv(input_csv, output_csv, required_columns=None, suffix='_b', chunk_size=100000):
+    """
+    Filters columns in a large CSV file in chunks, keeping only those with the specified suffix
+    and additional required columns. Renames the filtered columns to remove the suffix
+    and saves the cleaned DataFrame to a new CSV file.
+
+    Args:
+    - input_csv (str): Path to the input CSV file.
+    - output_csv (str): Path to save the cleaned CSV file.
+    - required_columns (list, optional): List of additional columns to keep. Defaults to:
+                                        ['x', 'y', 'z', 'intensity', 'return_number', 'number_of_returns', 'classification',  
+                                        'red', 'green', 'blue', 'nir', 'ndvi', 'ndwi', 'ssi', 'N_h', 'delta_z_fl', 'segment_id', 'label'].
+    - suffix (str, optional): Suffix to filter columns by. Defaults to '_b'.
+    - chunk_size (int, optional): Number of rows per chunk for processing. Defaults to 100000.
+
+    Returns:
+    - None
+    """
+    if required_columns is None:
+        required_columns = ['x', 'y', 'z', 'intensity', 'return_number', 'number_of_returns', 'classification',  
+                            'red', 'green', 'blue', 'nir', 'ndvi', 'ndwi', 'ssi', 'N_h', 'delta_z_fl', 'segment_id', 'label']
+
+    # Get the column names from the first chunk to determine which ones to keep
+    first_chunk = pd.read_csv(input_csv, nrows=1)
+    initial_columns = first_chunk.columns.tolist()
+    filtered_columns = [col for col in first_chunk.columns if col.endswith(suffix) or col in required_columns]
+    rename_columns = {col: col[:-len(suffix)] for col in filtered_columns if col.endswith(suffix)}
+    
+    # Print before and after column selection
+    print("Initial columns:")
+    print(initial_columns)
+    print("\nFiltered columns:")
+    print(filtered_columns)
+
+    # Prepare to write to the output file
+    os.makedirs(os.path.dirname(output_csv), exist_ok=True)
+    with pd.read_csv(input_csv, chunksize=chunk_size) as reader:
+        for i, chunk in enumerate(reader):
+            # Filter and rename columns
+            filtered_chunk = chunk[filtered_columns].rename(columns=rename_columns)
+
+            # Write to the output file
+            if i == 0:
+                # Write header for the first chunk
+                filtered_chunk.to_csv(output_csv, index=False, mode='w')
+            else:
+                # Append without writing the header
+                filtered_chunk.to_csv(output_csv, index=False, mode='a', header=False)
+
+            print(f"Processed chunk {i + 1} of size {len(chunk)}.")
+
+    print(f"Filtered CSV saved to: {output_csv}")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+'''
 def remove_duplicates_with_tolerance(data_array, tolerance=1e-10):
     """
     Removes duplicates from the point cloud dataset based on a specified tolerance.
@@ -1062,7 +1133,7 @@ def remove_duplicates_with_tolerance(data_array, tolerance=1e-10):
     # Filter the data array to keep only unique points
     filtered_array = data_array[np.sort(unique_indices)]
     
-    return filtered_array
+    return filtered_array'''
 
 
 ''' THIS WAS INSIDE STITCH

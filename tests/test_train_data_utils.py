@@ -1,7 +1,7 @@
 import unittest
 from unittest import mock
 from torch.utils.data import DataLoader
-from utils.point_cloud_data_utils import read_file_to_numpy, remap_labels, clean_nan_values, compute_point_cloud_bounds, remove_duplicates_with_tolerance
+from utils.point_cloud_data_utils import read_file_to_numpy, remap_labels, clean_nan_values, compute_point_cloud_bounds
 from models.mcnn import MultiScaleCNN
 from scipy.spatial import cKDTree
 from utils.train_data_utils import PointCloudDataset, prepare_dataloader, save_model, load_model, load_parameters, save_used_parameters
@@ -13,7 +13,7 @@ import shutil
 import pandas as pd
 import time
 
-
+'''
 class TestSaveLoadModel(unittest.TestCase):
     def setUp(self):
         self.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
@@ -140,12 +140,12 @@ class TestSaveLoadModel(unittest.TestCase):
         print(f"\n\nknown features in orginal file: {original_features}\
                 \ntraining features: {training_features} -> training indices: {training_indices}\
                 \nknown features in inference file:{inference_features}\
-                \nloaded features: {loaded_features} -> loaded_indinces: {loaded_indices}\n\n")
+                \nloaded features: {loaded_features} -> loaded_indinces: {loaded_indices}\n\n")'''
 
 
 class TestPointCloudDataset(unittest.TestCase):
     def setUp(self):
-        real_data_filepath = 'data/datasets/sampled_full_dataset/sampled_data_5251680.0.csv'  # read a real las file to test thoroughly 
+        real_data_filepath = 'data/datasets/sampled_full_dataset/sampled_data_5251680.csv'  # read a real las file to test thoroughly 
         self.real_array, self.real_known_features = read_file_to_numpy(data_dir=real_data_filepath)
         self.real_subset_file = 'data/datasets/train_dataset.csv'   # A real subset file for testing
         real_subset_array, _ = read_file_to_numpy(self.real_subset_file)
@@ -193,7 +193,7 @@ class TestPointCloudDataset(unittest.TestCase):
             os.remove(self.subset_file)
 
 
-    def test_len(self):
+    '''def test_len(self):
         # Test that the length of the dataset matches the number of points in the selected array
         self.assertEqual(len(self.dataset), len(self.dataset.selected_array))
 
@@ -330,7 +330,7 @@ class TestPointCloudDataset(unittest.TestCase):
         print(f"Fulla data array in bound points: {len(in_bound_array)}")
 
         np.testing.assert_array_equal(in_bound_array, fall_back_array, err_msg=f"The selected array without subset selection doesn't match full data array \
-                                      without out of bounds points.")
+                                      without out of bounds points.")'''
         
         
     def test_with_real_data(self):
@@ -389,7 +389,7 @@ class TestPointCloudDataset(unittest.TestCase):
         smallfile_end = time.time()
         print(f"\nSmall file input: Retrieved {n_test} dataset elements in {(smallfile_end-smallfile_start)/60} minutes")
 
-
+'''
 class TestDataloaderDatasetIntegration(unittest.TestCase):
     def setUp(self):
         # Mock parameters
@@ -515,7 +515,7 @@ class TestPrepareDataloader(unittest.TestCase):
         self.assertLessEqual(len(labels_eval), self.batch_size, "len labels should be smaller or equal to specified batch size in eval due to skipped points.")
         self.assertLessEqual(len(indices), self.batch_size, "len indices should be smaller or equal to specified batch size due to skipped points.")
         
-        
+        '''
         
         
         

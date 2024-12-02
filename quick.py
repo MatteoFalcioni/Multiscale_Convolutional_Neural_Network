@@ -1,11 +1,11 @@
-from utils.point_cloud_data_utils import sample_data, read_file_to_numpy, reservoir_sample_data, remove_duplicates_with_tolerance, reservoir_sample_with_subset
+from utils.point_cloud_data_utils import sample_data, read_file_to_numpy, reservoir_sample_data, reservoir_sample_with_subset, filter_features_in_csv
 import pandas as pd
 from utils.point_cloud_data_utils import subtiler
 import laspy
 import numpy as np
 import os
 from datetime import datetime
-from utils.create_dataset import create_dataset
+from utils.create_dataset import create_dataset, create_train_eval_datasets
 
 '''still, error in matching subset with selected array. probably due to precision issues'''
 # - creare nuovo dataset, i.e. file enorme con tanti punti + train/eval con train sui 2 milioni/2.5 di punti *DONE
@@ -13,13 +13,34 @@ from utils.create_dataset import create_dataset
 # - testare che il training funzioni come al solito con sta nuova selection, con test_training  *DONE
 
 
+"""train_df, eval_df = create_train_eval_datasets(csv_file='data/datasets/full_dataset.csv',
+                               max_points_per_class=500_000,
+                               chosen_classes=[3, 5, 6, 10, 11, 64],
+                               train_split=0.8,
+                               output_dataset_folder='data/datasets')"""
+
+
+input_csv = 'data/datasets/full_dataset.csv'
+csv_name = 'full_dataset.csv'
+output_csv=f'data/datasets/filtered/{csv_name}'
+
+filter_features_in_csv(input_csv=input_csv, output_csv=output_csv)
+
+df = pd.read_csv(output_csv)
+print(f"len of eval dataset: {len(df)}")
+# Inspect column names
+print("Column Names in the DataFrame:")
+print(df.columns.tolist())
+
+
+'''
 subset_array, _ = read_file_to_numpy(data_dir='data/datasets/train_dataset.csv')
 print(f"Subset array size: {subset_array.shape}")
 sample_size = len(subset_array)*2.5
 print(f"Sample size: {sample_size}")
-'''sampled_df = reservoir_sample_with_subset(input_file='data/datasets/full_dataset.csv', subset_file='data/datasets/train_dataset.csv', sample_size=sample_size, save_dir='data/datasets/sampled_full_dataset', save=True)
-'''
-sampled_df = reservoir_sample_data(input_file='data/datasets/full_dataset.csv', sample_size=sample_size, save_dir='data/datasets/sampled_full_dataset', save=True)
+sampled_df = reservoir_sample_with_subset(input_file='data/datasets/full_dataset.csv', subset_file='data/datasets/train_dataset.csv', sample_size=sample_size, save_dir='data/datasets/sampled_full_dataset', save=True)
+
+sampled_df = reservoir_sample_data(input_file='data/datasets/full_dataset.csv', sample_size=sample_size, save_dir='data/datasets/sampled_full_dataset', save=True)'''
 
 '''input_file = 'data/datasets/sampled_full_dataset/sampled_data_5000000.csv'
 array, known_features = read_file_to_numpy(input_file)
