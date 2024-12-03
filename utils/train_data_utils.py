@@ -1,7 +1,7 @@
 import torch
 from torch.utils.data import Dataset, DataLoader, random_split
 import os
-from utils.point_cloud_data_utils import read_file_to_numpy, remap_labels, clean_nan_values, apply_masks
+from utils.point_cloud_data_utils import read_file_to_numpy, remap_labels, clean_nan_values, apply_masks_KDTree
 from scripts.point_cloud_to_image import generate_multiscale_grids_masked
 from datetime import datetime
 import pandas as pd
@@ -36,7 +36,7 @@ class PointCloudDataset(Dataset):
         self.feature_indices = [known_features.index(feature) for feature in features_to_use]
         
         # Apply masking and compute bounds
-        self.selected_array, mask, point_cloud_bounds = apply_masks(
+        self.selected_array, mask, point_cloud_bounds = apply_masks_KDTree(
             full_data_array=full_data_array,
             window_sizes=window_sizes,
             subset_file=subset_file

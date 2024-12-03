@@ -75,7 +75,7 @@ python main.py <training_command_line_arguments> --evaluate_model_after_training
 Otherwise, you can evaluate model independently from training by specifying it in the command line with the argument `--perform_evaluation` and specifying the path to the model you want to evaluate with the argument `--load_model_filepath <path_to_the_model>`. 
 For example:
 ```bash
-python main.py --perform_evaluation <path_to_the_model>
+python main.py --perform_evaluation --load_model_filepath <path_to_the_model>
 ```
 In both cases, a folder `inference_<timestamp>` will be created inside the model folder, containing the files
 - `classification_report.csv` with the classification report;

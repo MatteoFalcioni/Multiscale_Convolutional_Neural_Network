@@ -90,14 +90,14 @@ def main():
 
         # Evaluate loaded model
         evaluate_model(batch_size=batch_size, 
-                        data_dir=evaluation_data_filepath, 
+                        full_data_filepath=full_data_filepath, 
                         window_sizes=window_sizes, 
                         grid_resolution=grid_resolution, 
                         features_to_use=loaded_features, 
                         num_workers=num_workers, 
                         model=loaded_model, 
                         device=device, 
-                        model_save_folder=model_save_folder, 
+                        model_save_folder=loaded_model_path, 
                         evaluation_data_filepath=evaluation_data_filepath)
         
     elif predict_labels:
