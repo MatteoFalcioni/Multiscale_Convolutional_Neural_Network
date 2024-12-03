@@ -14,21 +14,27 @@ from utils.create_dataset import create_dataset, create_train_eval_datasets
 # - testare che l'evaluation funzioni con nuovi test 
 
 # Quindi -------------------
-# - Vedere risultati training e controllare se predictions funziona normalmente
+# - Vedere risultati training *DONE
+# - controllare se predictions funziona normalmente 
 # - Vedere se con l'implementazione attuale su gpu è più veloce --> problema in num_workers>0
 # - Sistemare il match dei punti ---> *DONE
 
-# check questo sampling, vuoi avere un full data file che abia sia eval sia train così da poterlo dare adentrambi specificando il subset?
-# al momento hai fatto solo con train questa cosa
-
-input_file='data/datasets/full_dataset.csv'
-subset_file='data/datasets/train_dataset.csv'
+'''input_file='data/datasets/full_dataset.csv'
+subset_file='data/datasets/train_&_eval_dataset.csv'
 subset_df = pd.read_csv(subset_file)
 print(f"len of subset dataset: {len(subset_df)}")
-sample_size = 2.5*len(subset_df)
+sample_size = int(2*len(subset_df)) +1
 
 df = reservoir_sample_with_subset(input_file, sample_size, subset_file, save=True, save_dir='data/datasets/sampled_full_dataset', feature_to_use=None, chunk_size=100000, tol=1e-10)
+'''
 
+df = pd.read_csv('data/datasets/eval_dataset.csv')
+print(df.columns)
+
+# Count the number of points per class
+class_counts = df['label'].value_counts()
+print("Number of points per class:")
+print(class_counts)
 
 '''df = pd.read_csv('data/datasets/train_&_eval_dataset.csv')
 print(f"len of eval dataset: {len(df)}")
