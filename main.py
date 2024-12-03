@@ -11,10 +11,12 @@ def main():
     # Parse arguments with defaults from config.yaml
     args = parse_arguments()
     
+    # full dataset file path
+    full_data_filepath = args.dataset_filepath
     # training data file path
     training_data_filepath = args.training_data_filepath  
-    # subset filepath
-    subset_file = args.subset_filepath
+    # evaluation data file path
+    evaluation_data_filepath = args.evaluation_data_filepath
     
     # training params
     batch_size = args.batch_size
@@ -31,7 +33,6 @@ def main():
     evaluate_model_after_training = args.evaluate_model_after_training
     loaded_model_path = args.load_model_filepath 
     perform_evaluation = args.perform_evaluation
-    evaluation_data_filepath = args.evaluation_data_filepath
     predict_labels = args.predict_labels
     file_to_predict = args.file_to_predict
     
@@ -50,10 +51,7 @@ def main():
     if not predict_labels and not perform_evaluation:
 
         # training
-        '''qui pure sarebbe da mettere full data e poi subset=training_data'''
-        '''quindi aggiungere in config un param full_data_filepath. Poi cambia i check dentro le funzioni
-        cioè se full data e subset file sono uguali allora subset file=None, dovrebbe funzionare'''
-        model, model_save_folder = train_model(training_data_filepath=,
+        model, model_save_folder = train_model(full_data_filepath=full_data_filepath,
                                                                 features_to_use=features_to_use,
                                                                 batch_size = batch_size,
                                                                 epochs = epochs,
@@ -73,7 +71,7 @@ def main():
             '''evaluation vuole due file, il grande e il subset'''
             # perform evaluation after training 
             evaluate_model(batch_size=batch_size, 
-                           full_data_filepath=, 
+                           full_data_filepath=full_data_filepath, 
                            window_sizes=window_sizes, 
                            grid_resolution=grid_resolution, 
                            features_to_use=features_to_use, 
