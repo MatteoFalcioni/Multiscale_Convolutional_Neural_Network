@@ -18,6 +18,11 @@ from utils.create_dataset import create_dataset, create_train_eval_datasets
 # presenti in train_&_eval dal full dataset. MA: la maschera non funziona bene. Al momento non prende altri punti oltre a quelli già presenti nel subset file.
 # come se non distinguesse tra i punti del subset e quelli del file grande. Al variare della tolleranza il risultato non sembra cambiare...
 
+# Quindi -------------------
+# - Vedere risultati training e controllare se predictions funziona normalmente
+# - Vedere se con l'implementazione attuale su gpu è più veloce
+# - Sistemare il match dei punti (vedi ISSUE) 
+
 
 df = pd.read_csv('data/datasets/train_&_eval_dataset.csv')
 print(f"len of eval dataset: {len(df)}")
