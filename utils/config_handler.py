@@ -68,11 +68,11 @@ def parse_arguments():
     parser.add_argument('--num_workers', type=int, default=config.get('num_workers', 16),
                         help='Number of workers for parallel processing')
     
-    parser.add_argument('--training_data_filepath', type=str, default=config.get('training_data_filepath', 'data/training_data/21/train_21.csv'),
-                        help='File path to thed ata to be used during training.')
+    parser.add_argument('--dataset_filepath', type=str, default=config.get('dataset_filepath', 'data/datasets/sampled_full_dataset/sampled_data_5251681.csv'),
+                        help='File path to the full dataset file.')
     
-    parser.add_argument('--subset_filepath', type=str, default=config.get('subset_filepath', 'data/training_data/21/train_21.csv'),
-                        help='File path to the eventual subset of training_data_filepath to be used during training.')
+    parser.add_argument('--training_data_filepath', type=str, default=config.get('training_data_filepath', 'data/datasets/train_dataset.csv'),
+                        help='File path to thed ata to be used during training.')
     
     parser.add_argument('--window_sizes',
                         type=parse_window_sizes,
@@ -99,7 +99,7 @@ def parse_arguments():
                         default=config.get('load_model_filepath', 'models/saved/mcnn_model_20241015_005511/model.pth'),
                         help='File path to the pre-trained model to be loaded.')
     
-    parser.add_argument('--evaluation_data_filepath', type=str, default=config.get('evaluation_data_filepath', 'data/raw'),
+    parser.add_argument('--evaluation_data_filepath', type=str, default=config.get('evaluation_data_filepath', 'data/datasets/eval_dataset.csv'),
                         help='File path to the data to be used for evaluating the model.')
     
     parser.add_argument('--predict_labels', action='store_true', default=config.get('predict', False),

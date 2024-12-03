@@ -8,8 +8,8 @@ learning_rate_decay_epochs: 5    # not mentioned
 momentum: 0.9    # used in first article
 num_workers : 0  # number of workers for parallel processing
 
-training_data_filepath: "data/training_data/21/train_21.csv"   # File path to training data
-subset_filepath: 'data/training_data/21/train_21.csv'  # Subset
+dataset_filepath: "data/datasets/sampled_full_dataset/sampled_data_5251681.csv"   # File path to the full dataset file
+training_data_filepath: "data/training_data/21/train_21.csv"   # File path to training data (subset of full dataset)
 
 window_sizes:    # window sizes to be used for grids
   - [small, 2.5]
@@ -26,7 +26,7 @@ save_model: true    # whether to save the model or to discard. Default is False,
 
 evaluate_model_after_training : false    # whether to evaluate the model after training it
 perform_evaluation : false  # wetheer to evaluate a loaded model
-evaluation_data_filepath : "data/training_data/21/test_21.csv"  # file path to the data to evaluate the model 
+evaluation_data_filepath : "data/training_data/21/test_21.csv"  # file path to the evaluation dataset (subset of full data)
 
 predict_labels: false  # wether to predict labels on an input file or not
 file_to_predict: "data/chosen_tiles/" # file path to the file whose label we need to predict 
