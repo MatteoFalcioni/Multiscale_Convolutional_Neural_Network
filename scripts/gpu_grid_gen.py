@@ -104,22 +104,25 @@ def isin_tolerance_gpu(A, B, tol):
     Checks if elements of tensor A are approximately in tensor B within a specified tolerance using GPU operations.
 
     Args:
-    - A (torch.Tensor): Tensor to check (shape: [N], e.g., full data points).
-    - B (torch.Tensor): Tensor to match against (shape: [M], e.g., subset points).
+    - A (torch.Tensor): Tensor to check (shape: [N]).
+    - B (torch.Tensor): Tensor to match against (shape: [M]).
     - tol (float): Tolerance for approximate matching.
 
     Returns:
     - mask (torch.Tensor): Boolean tensor indicating matches within tolerance (shape: [N]).
     """
-    # Sort B (assumes 1D tensors)
-    B_sorted, _ = torch.sort(B)
+    # Ensure tensors are contiguous
+    A = A.contiguous()
+    B_sorted, _ = torch.sort(B.contiguous())
 
-    # Use searchsorted-like behavior
+    # Perform searchsorted and clamp indices
     idx = torch.searchsorted(B_sorted, A)
+    idx_clamped = torch.clamp(idx, max=len(B_sorted) - 1)
 
-    # Compute distances to closest neighbors
-    lval = torch.abs(A - B_sorted.clamp(max=len(B_sorted) - 1).gather(0, idx))
-    rval = torch.abs(A - B_sorted.clamp(min=0).gather(0, torch.clamp(idx - 1, min=0)))
+    # Compute distances to nearest neighbors
+    lval = torch.abs(A - B_sorted.gather(0, idx_clamped))
+    idx1 = torch.clamp(idx - 1, min=0)
+    rval = torch.abs(A - B_sorted.gather(0, idx1))
 
     # Return mask for elements within tolerance
     return (torch.min(lval, rval) <= tol)
@@ -149,18 +152,18 @@ def apply_masks_gpu(tensor_data_array, window_sizes, subset_file=None, tol=1e-8)
     if subset_file is not None:
         subset_points = torch.tensor(
             pd.read_csv(subset_file)[['x', 'y', 'z']].values,
-            dtype=torch.float32,
+            dtype=torch.float64,  # Match numpy default
             device=tensor_data_array.device
         )
         for i in range(3):  # Apply isin_tolerance_gpu for each coordinate
             subset_mask = isin_tolerance_gpu(tensor_data_array[:, i], subset_points[:, i], tol)
             final_mask &= subset_mask
 
-        print(f"Subset mask: {torch.sum(final_mask).item()} points match subset within tolerance {tol}.")
+        print(f"GPU subset mask: {torch.sum(final_mask).item()} points match subset within tolerance {tol}.")
 
     # Filter the tensor data array based on the combined mask
     selected_tensor = tensor_data_array[final_mask]
-    print(f"Selected array length after masking with subset: {len(selected_tensor)}")
+    print(f"GPU selected array length after masking with subset: {len(selected_tensor)}")
 
     # Compute bounds on the full data tensor
     bounds = {
@@ -181,7 +184,7 @@ def apply_masks_gpu(tensor_data_array, window_sizes, subset_file=None, tol=1e-8)
 
     final_mask[torch.where(final_mask)[0]] &= out_of_bounds_mask
     selected_tensor = tensor_data_array[final_mask]
-    print(f"Selected array length after masking out of bounds: {len(selected_tensor)}")
+    print(f"GPU selected array length after masking out of bounds: {len(selected_tensor)}")
 
     return selected_tensor, final_mask, bounds
 
