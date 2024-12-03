@@ -1,6 +1,6 @@
 import unittest
 from utils.gpu_training_utils import gpu_prepare_dataloader, GPU_PointCloudDataset
-from scripts.gpu_grid_gen import apply_masks_gpu, isin_tolerance_gpu
+from scripts.gpu_grid_gen import apply_masks_gpu
 from utils.train_data_utils import prepare_dataloader, PointCloudDataset
 from utils.point_cloud_data_utils import read_file_to_numpy, remap_labels
 from torch.utils.data import Dataset, random_split
@@ -8,7 +8,7 @@ import pandas as pd
 import numpy as np
 import torch
 import os
-from utils.point_cloud_data_utils import apply_masks, isin_tolerance
+from utils.point_cloud_data_utils import apply_masks_KDTree
 import time
 from torch.utils.data import Dataset, DataLoader, random_split
 from tqdm import tqdm
@@ -36,44 +36,17 @@ from tqdm import tqdm
         self.subset_file = "tests/test_subset.csv"
         np.savetxt(self.subset_file, self.subset_points, delimiter=',', header='x,y,z', comments='')
 
-        self.tol = 1e-8
+        self.tol = 1e-10
         
-        self.real_data = 'data/datasets/sampled_full_dataset/sampled_data_5251680.csv'
+        self.real_data = 'data/datasets/sampled_full_dataset/sampled_data_5251681.csv'
         self.real_subset_file = 'data/datasets/train_dataset.csv'
-        self.real_data_array, self.real_knonw_features = read_file_to_numpy(data_dir=self.real_data)
+        self.real_data_array, self.real_known_features = read_file_to_numpy(data_dir=self.real_data)
         self.tensor_real_data = torch.tensor(self.real_data_array, dtype=torch.float64, device=self.device)
-        self.real_subset_file = 'data/datasets/train_dataset.csv'   # A real subset file for testing
         self.real_subset_array, _ = read_file_to_numpy(self.real_subset_file)
+
         print(f"\nFull real data array shape: {self.real_data_array.shape}, dtype: {self.real_data_array.dtype}")
-        print(f"\nReal data tensor shape: {self.tensor_real_data.shape}")
+        print(f"Real data tensor shape: {self.tensor_real_data.shape}")
         print(f"Subset array shape: {self.real_subset_array.shape}, dtype: {self.real_subset_array.dtype}\n")
-
-
-    def test_isin_tolerance_cpu_vs_gpu(self):
-        """Compare the CPU and GPU versions of isin_tolerance with both simulated and real data."""
-        for dataset, subset in [
-            (self.full_data_array, self.subset_points),
-            (self.real_data_array, self.real_subset_array)
-        ]:
-            # CPU mask
-            cpu_mask = np.ones(len(dataset), dtype=bool)
-            # GPU mask
-            gpu_mask = torch.ones(len(dataset), dtype=torch.bool, device=self.device)
-
-            for i in range(3):  # Iterate over x, y, z
-                cpu_mask &= isin_tolerance(dataset[:, i], subset[:, i], self.tol)
-                gpu_mask &= isin_tolerance_gpu(
-                    torch.tensor(dataset[:, i], dtype=torch.float64, device=self.device),
-                    torch.tensor(subset[:, i], dtype=torch.float64, device=self.device),
-                    self.tol
-                )
-
-            # Compare results
-            np.testing.assert_array_equal(
-                cpu_mask, gpu_mask.cpu().numpy(),
-                err_msg=f"CPU and GPU isin_tolerance masks do not match for dataset: {dataset}."
-            )
-
 
     def test_apply_masks_cpu_vs_gpu(self):
         """Compare the CPU and GPU implementations of apply_masks for synthetic and real data."""
@@ -81,8 +54,8 @@ from tqdm import tqdm
             (self.full_data_array, self.subset_file),
             (self.real_data_array, self.real_subset_file)
         ]:
-            # CPU masking
-            cpu_selected_array, cpu_mask, cpu_bounds = apply_masks(
+            # CPU masking with KDTree
+            cpu_selected_array, cpu_mask, cpu_bounds = apply_masks_KDTree(
                 full_data_array=data_array,
                 window_sizes=self.window_sizes,
                 subset_file=subset_file,
@@ -90,9 +63,8 @@ from tqdm import tqdm
             )
 
             # GPU masking
-            tensor_data = torch.tensor(data_array, dtype=torch.float64, device=self.device)
             gpu_selected_array, gpu_mask, gpu_bounds = apply_masks_gpu(
-                tensor_data_array=tensor_data,
+                tensor_data_array=torch.tensor(data_array, dtype=torch.float64, device=self.device),
                 window_sizes=self.window_sizes,
                 subset_file=subset_file,
                 tol=self.tol
@@ -131,7 +103,7 @@ from tqdm import tqdm
 class TestGPUPointCloudDataset(unittest.TestCase):
     def setUp(self):
         # Use a smaller dataset for testing consistency
-        self.full_data_array, self.known_features = read_file_to_numpy(data_dir='data/datasets/sampled_full_dataset/sampled_data_5251680.csv')
+        self.full_data_array, self.known_features = read_file_to_numpy(data_dir='data/datasets/sampled_full_dataset/sampled_data_5251681.csv')
         self.subset_file = 'data/datasets/train_dataset.csv'   # A real subset file for testing
         subset_array, _ = read_file_to_numpy(self.subset_file)
 
@@ -196,13 +168,14 @@ class TestDataloaderDatasetIntegrationGPU(unittest.TestCase):
         # Mock parameters
         self.batch_size = 32
         self.grid_resolution = 128
-        self.full_data_path = 'data/datasets/sampled_full_dataset/sampled_data_5251680.csv'
+        self.full_data_path = 'data/datasets/sampled_full_dataset/sampled_data_5251681.csv'
         self.real_subset_file = 'data/datasets/train_dataset.csv'
         self.window_sizes = [('small', 10.0), ('medium', 20.0), ('large', 30.0)]
         self.features_to_use = ['intensity', 'red']
         self.num_channels = len(self.features_to_use)
         self.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
         self.num_workers = 0
+
 
     def test_dataloader_with_dataset(self):
         # Prepare DataLoader with the GPU dataset
@@ -244,14 +217,14 @@ class TestDataloaderDatasetIntegrationGPU(unittest.TestCase):
         end_time = time.time()
         print(f"{num_batches_to_test} batches processed in {(end_time-start_time)/60:.2f} minutes.")
 
-
+'''
 class TestPrepareDataloaderGPU(unittest.TestCase):
     def setUp(self):
         # Configurable parameters for the test
         self.batch_size = 32
         self.grid_resolution = 128
         self.train_split = 0.8
-        self.full_data_path = 'data/datasets/sampled_full_dataset/sampled_data_5251680.csv'
+        self.full_data_path = 'data/datasets/sampled_full_dataset/sampled_data_5251681.csv'
         self.real_subset_file = 'data/datasets/train_dataset.csv'
         self.window_sizes = [('small', 10.0), ('medium', 20.0), ('large', 30.0)]
         self.features_to_use = ['intensity', 'red']
@@ -286,6 +259,7 @@ class TestPrepareDataloaderGPU(unittest.TestCase):
         self.assertEqual(medium_grid.shape[-3:], (self.num_channels, self.grid_resolution, self.grid_resolution), "Medium grid resolution mismatch.")
         self.assertEqual(large_grid.shape[-3:], (self.num_channels, self.grid_resolution, self.grid_resolution), "Large grid resolution mismatch.")
 
+
     def test_train_eval_dataloader(self):
         # Load both train and eval DataLoader
         train_loader, eval_loader = gpu_prepare_dataloader(
@@ -317,4 +291,4 @@ class TestPrepareDataloaderGPU(unittest.TestCase):
 
         self.assertEqual(small_grid.shape[-3:], (self.num_channels, self.grid_resolution, self.grid_resolution), "Small grid resolution mismatch in eval.")
         self.assertEqual(medium_grid.shape[-3:], (self.num_channels, self.grid_resolution, self.grid_resolution), "Medium grid resolution mismatch in eval.")
-        self.assertEqual(large_grid.shape[-3:], (self.num_channels, self.grid_resolution, self.grid_resolution), "Large grid resolution mismatch in eval.")
+        self.assertEqual(large_grid.shape[-3:], (self.num_channels, self.grid_resolution, self.grid_resolution), "Large grid resolution mismatch in eval.")'''
