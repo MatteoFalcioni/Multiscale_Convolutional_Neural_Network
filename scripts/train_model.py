@@ -36,11 +36,6 @@ def train_model(full_data_filepath, features_to_use, batch_size, epochs, patienc
         - model (MultiScaleCNN) : The trained model
         - model_save_folder (str): Directory where the trained model has been saved.
     """
-    if full_data_filepath is None:
-        print("Warning: Training might perform better if a full dataset file was to be provided, instead of the training subset only.")
-        full_data_filepath = training_data_filepath  # use the training data as the only dataset, without subset
-        training_data_filepath = None   # set 'subset file' to None
-    
     # Ensure (additional check) that x, y, z are not included in the selected features
     features_to_use = [feature for feature in features_to_use if feature not in ['x', 'y', 'z']]    
     
@@ -57,7 +52,7 @@ def train_model(full_data_filepath, features_to_use, batch_size, epochs, patienc
         train_split=0.8,
         num_workers=num_workers,
         shuffle_train=True,
-        subset_file=training_data_filepath  # if None, no subset selction
+        subset_file=training_data_filepath
     )
     
     full_data_array, full_known_features = read_file_to_numpy(data_dir=full_data_filepath, features_to_use=None)   # get the known features from the full dataset
@@ -72,22 +67,20 @@ def train_model(full_data_filepath, features_to_use, batch_size, epochs, patienc
     print(f'Number of unique classes read from full data file: {num_classes}\n')
 
 
-    if training_data_filepath is not None and full_data_filepath is not None:  # a subset file was provided 
+    if training_data_filepath is not None: # check subset file 
         subset_array, subset_features = read_file_to_numpy(data_dir=training_data_filepath, features_to_use=None)
         num_subset = subset_array.shape[0]
         num_subset_classes = extract_num_classes(raw_file_path=training_data_filepath)
-        print(f"\nSince a subset of the full dataset was selected, feature images will be generated only for points contained in {training_data_filepath}, corresponding to {num_subset} / {total_num_points} points.")
-        
+        print(f"\nSince a subset of the full dataset was selected, feature images will be generated only for points contained in {subset_file}, corresponding to {num_subset} / {total_num_points} points.")
         assert full_known_features == subset_features, f"Full training data features do not match the features from the subset."
         assert num_subset_classes == num_classes, f"Number of unique classes (labels) doesn't match between full data file and subset file."
-        
-    elif training_data_filepath is None and full_data_filepath is not None:  # a subset file was *not* provided (therefore, training data --> full data) 
-        training_data_filepath = "No training subset selected"  # write this in hyperparams
+    else: 
+        subset_file = "No subset selected"  # write this in hyperparams
 
 
     hyperparameters = {     # store hyperparameters and metadata in dictionary in order to save them together with the model
-        'training file': full_data_filepath,
-        'training subset file' : training_data_filepath,
+        'training file': training_data_filepath,
+        'subset file' : subset_file,
         'num_classes' : num_classes,
         'number of total points' : total_num_points,
         'window_sizes' : window_sizes,
