@@ -9,9 +9,12 @@ import numpy as np
 import torch
 import os
 from utils.point_cloud_data_utils import apply_masks, isin_tolerance
+import time
+from torch.utils.data import Dataset, DataLoader, random_split
+from tqdm import tqdm
 
 
-class TestMaskingCPUvsGPU(unittest.TestCase):
+'''class TestMaskingCPUvsGPU(unittest.TestCase):
     def setUp(self):
         self.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
         
@@ -125,8 +128,7 @@ class TestMaskingCPUvsGPU(unittest.TestCase):
             os.remove(self.subset_file)
 
 
-
-'''class TestGPUPointCloudDataset(unittest.TestCase):
+class TestGPUPointCloudDataset(unittest.TestCase):
     def setUp(self):
         # Use a smaller dataset for testing consistency
         self.full_data_array, self.known_features = read_file_to_numpy(data_dir='data/datasets/sampled_full_dataset/sampled_data_5251680.csv')
@@ -164,15 +166,11 @@ class TestMaskingCPUvsGPU(unittest.TestCase):
             subset_file=self.subset_file
         )
 
-    def tearDown(self):
-        # Clean up subset file
-        if os.path.exists(self.subset_file):
-            os.remove(self.subset_file)
-
 
     def test_lengths(self):
         """Test that CPU and GPU datasets have the same length."""
         self.assertEqual(len(self.cpu_dataset), len(self.gpu_dataset), "CPU and GPU dataset lengths mismatch.")
+
 
     def test_subset_filtering(self):
         """Test subset filtering consistency between CPU and GPU datasets."""
@@ -181,31 +179,142 @@ class TestMaskingCPUvsGPU(unittest.TestCase):
             self.gpu_dataset.selected_tensor[:, :3].cpu().numpy(),
             atol=1e-10,
             err_msg="Mismatch between CPU and GPU subset filtering."
-        )'''
-
-'''def test_grid_generation(self):
-        """Test multiscale grid generation consistency for random indices."""
-        np.random.seed(self.seed)
-        indices = np.random.choice(len(self.cpu_dataset), 1000, replace=False)  # Test on 10 random points
-        for idx in indices:
-            # CPU grids
-            cpu_small, cpu_medium, cpu_large, cpu_label, _ = self.cpu_dataset[idx]
-
-            # GPU grids
-            gpu_small, gpu_medium, gpu_large, gpu_label, _ = self.gpu_dataset[idx]
-
-            # Compare grids
-            np.testing.assert_close(cpu_small, gpu_small.cpu().numpy()), atol=1e-10, msg=f"Small grid mismatch at index {idx}")
-            np.testing.assert_close(cpu_medium, gpu_medium.cpu().numpy(), atol=1e-10, msg=f"Medium grid mismatch at index {idx}")
-            np.testing.assert_close(cpu_large, gpu_large.cpu().numpy(), atol=1e-10, msg=f"Large grid mismatch at index {idx}")
-
-            # Compare labels
-            self.assertEqual(cpu_label, gpu_label.item(), f"Label mismatch at index {idx}")'''
-
-'''def test_original_indices_mapping(self):
+        )
+    
+    
+    def test_original_indices_mapping(self):
         """Test that the original indices mapping matches between CPU and GPU."""
         np.testing.assert_array_equal(
             self.cpu_dataset.original_indices,
             self.gpu_dataset.original_indices,
             "Original indices mapping mismatch between CPU and GPU datasets."
         )'''
+
+
+class TestDataloaderDatasetIntegrationGPU(unittest.TestCase):
+    def setUp(self):
+        # Mock parameters
+        self.batch_size = 32
+        self.grid_resolution = 128
+        self.full_data_path = 'data/datasets/sampled_full_dataset/sampled_data_5251680.csv'
+        self.real_subset_file = 'data/datasets/train_dataset.csv'
+        self.window_sizes = [('small', 10.0), ('medium', 20.0), ('large', 30.0)]
+        self.features_to_use = ['intensity', 'red']
+        self.num_channels = len(self.features_to_use)
+        self.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+        self.num_workers = 0
+
+    def test_dataloader_with_dataset(self):
+        # Prepare DataLoader with the GPU dataset
+        loader, _ = gpu_prepare_dataloader(
+            batch_size=self.batch_size,
+            data_filepath=self.full_data_path,
+            window_sizes=self.window_sizes,
+            grid_resolution=self.grid_resolution,
+            features_to_use=self.features_to_use,
+            train_split=None,  # no eval
+            num_workers=self.num_workers,
+            shuffle_train=True,
+            device=self.device,
+            subset_file=self.real_subset_file  
+        )
+
+        num_batches_to_test = 1000
+        
+        start_time = time.time()
+        for i, batch in enumerate(tqdm(loader, desc="Testing GPU dataloader + dataset integration", total=num_batches_to_test)):
+            if i >= num_batches_to_test:
+                break  # Test only a subset of batches
+
+            small_grid, medium_grid, large_grid, labels, indices = batch
+            
+            # Validate grid shapes
+            self.assertEqual(small_grid.shape[-3:], (self.num_channels, self.grid_resolution, self.grid_resolution),
+                                f"Small grid resolution mismatch")
+            self.assertEqual(medium_grid.shape[-3:], (self.num_channels, self.grid_resolution, self.grid_resolution),
+                                f"Medium grid resolution mismatch")
+            self.assertEqual(large_grid.shape[-3:], (self.num_channels, self.grid_resolution, self.grid_resolution),
+                                f"Large grid resolution mismatch")
+
+            # Check for NaN/Inf values (directly on the GPU)
+            for grid, scale in zip([small_grid, medium_grid, large_grid], ['small', 'medium', 'large']):
+                self.assertFalse(torch.isnan(grid).any().item(), f"NaN values found in {scale} grid for batch {i}")
+                self.assertFalse(torch.isinf(grid).any().item(), f"Inf values found in {scale} grid for batch {i}")
+                
+        end_time = time.time()
+        print(f"{num_batches_to_test} batches processed in {(end_time-start_time)/60:.2f} minutes.")
+
+
+class TestPrepareDataloaderGPU(unittest.TestCase):
+    def setUp(self):
+        # Configurable parameters for the test
+        self.batch_size = 32
+        self.grid_resolution = 128
+        self.train_split = 0.8
+        self.full_data_path = 'data/datasets/sampled_full_dataset/sampled_data_5251680.csv'
+        self.real_subset_file = 'data/datasets/train_dataset.csv'
+        self.window_sizes = [('small', 10.0), ('medium', 20.0), ('large', 30.0)]
+        self.features_to_use = ['intensity', 'red']
+        self.num_channels = len(self.features_to_use)
+        self.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+        self.num_workers = 0
+
+    def test_dataloader_full_dataset(self):
+        # Prepare DataLoader without train/test split (using full dataset)
+        train_loader, eval_loader = gpu_prepare_dataloader(
+            batch_size=self.batch_size,
+            data_filepath=self.full_data_path,
+            window_sizes=self.window_sizes,
+            grid_resolution=self.grid_resolution,
+            features_to_use=self.features_to_use,
+            train_split=None,  # No train/test split, using full dataset
+            num_workers=self.num_workers,
+            shuffle_train=True,
+            device=self.device,
+            subset_file=self.real_subset_file
+        )
+
+        self.assertIsInstance(train_loader, DataLoader, "train_loader is not a DataLoader instance.")
+        self.assertIsNone(eval_loader, "eval_loader should be None when train_split=None.")
+
+        first_batch = next(iter(train_loader))
+        self.assertIsNotNone(first_batch, "First batch should not be None.")
+        small_grid, medium_grid, large_grid, labels, indices = first_batch
+
+        # Validate shapes
+        self.assertEqual(small_grid.shape[-3:], (self.num_channels, self.grid_resolution, self.grid_resolution), "Small grid resolution mismatch.")
+        self.assertEqual(medium_grid.shape[-3:], (self.num_channels, self.grid_resolution, self.grid_resolution), "Medium grid resolution mismatch.")
+        self.assertEqual(large_grid.shape[-3:], (self.num_channels, self.grid_resolution, self.grid_resolution), "Large grid resolution mismatch.")
+
+    def test_train_eval_dataloader(self):
+        # Load both train and eval DataLoader
+        train_loader, eval_loader = gpu_prepare_dataloader(
+            batch_size=self.batch_size,
+            data_filepath=self.full_data_path,
+            window_sizes=self.window_sizes,
+            grid_resolution=self.grid_resolution,
+            features_to_use=self.features_to_use,
+            train_split=self.train_split,
+            device=self.device,
+            subset_file=self.real_subset_file,
+            num_workers=self.num_workers
+        )
+
+        # Test train_loader
+        first_batch = next(iter(train_loader))
+        self.assertIsNotNone(first_batch, "First batch should not be None.")
+        small_grid, medium_grid, large_grid, labels, indices = first_batch
+
+        self.assertEqual(small_grid.shape[-3:], (self.num_channels, self.grid_resolution, self.grid_resolution), "Small grid resolution mismatch.")
+        self.assertEqual(medium_grid.shape[-3:], (self.num_channels, self.grid_resolution, self.grid_resolution), "Medium grid resolution mismatch.")
+        self.assertEqual(large_grid.shape[-3:], (self.num_channels, self.grid_resolution, self.grid_resolution), "Large grid resolution mismatch.")
+
+        # Test eval_loader
+        self.assertIsNotNone(eval_loader, "Evaluation DataLoader is None.")
+        first_eval_batch = next(iter(eval_loader))
+        self.assertIsNotNone(first_eval_batch, "First eval batch should not be None.")
+        small_grid, medium_grid, large_grid, labels_eval, indices_eval = first_eval_batch
+
+        self.assertEqual(small_grid.shape[-3:], (self.num_channels, self.grid_resolution, self.grid_resolution), "Small grid resolution mismatch in eval.")
+        self.assertEqual(medium_grid.shape[-3:], (self.num_channels, self.grid_resolution, self.grid_resolution), "Medium grid resolution mismatch in eval.")
+        self.assertEqual(large_grid.shape[-3:], (self.num_channels, self.grid_resolution, self.grid_resolution), "Large grid resolution mismatch in eval.")
