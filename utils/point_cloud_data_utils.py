@@ -858,7 +858,7 @@ def reservoir_sample_with_subset(input_file, sample_size, subset_file, save=Fals
     subset_points = pd.read_csv(subset_file, usecols=feature_to_use).values.astype(np.float64)
 
     # Build KDTree for fast exclusion of subset points
-    subset_kdtree = cKDTree(subset_points)
+    subset_kdtree = cKDTree(subset_points[:, :3])
 
     reservoir = []  # List to store additional sampled rows
     total_processed_points = 0  # Total number of processed points

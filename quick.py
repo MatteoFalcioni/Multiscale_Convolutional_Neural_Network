@@ -18,12 +18,23 @@ from utils.create_dataset import create_dataset, create_train_eval_datasets
 # - Vedere se con l'implementazione attuale su gpu è più veloce --> problema in num_workers>0
 # - Sistemare il match dei punti ---> *DONE
 
+# check questo sampling, vuoi avere un full data file che abia sia eval sia train così da poterlo dare adentrambi specificando il subset?
+# al momento hai fatto solo con train questa cosa
 
-df = pd.read_csv('data/datasets/train_&_eval_dataset.csv')
+input_file='data/datasets/full_dataset.csv'
+subset_file='data/datasets/train_dataset.csv'
+subset_df = pd.read_csv(subset_file)
+print(f"len of subset dataset: {len(subset_df)}")
+sample_size = 2.5*len(subset_df)
+
+df = reservoir_sample_with_subset(input_file, sample_size, subset_file, save=True, save_dir='data/datasets/sampled_full_dataset', feature_to_use=None, chunk_size=100000, tol=1e-10)
+
+
+'''df = pd.read_csv('data/datasets/train_&_eval_dataset.csv')
 print(f"len of eval dataset: {len(df)}")
 # Inspect column names
 print("Column Names in the DataFrame:")
-print(df.columns.tolist())
+print(df.columns.tolist())'''
 
 """input_csv = 'data/datasets/sampled_full_dataset/sampled_data_5251680.csv'
 csv_name = 'sampled_data_5251680.csv'
