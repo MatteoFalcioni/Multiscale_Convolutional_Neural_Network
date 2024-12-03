@@ -50,7 +50,10 @@ def main():
     if not predict_labels and not perform_evaluation:
 
         # training
-        model, model_save_folder = train_model(training_data_filepath=training_data_filepath,
+        '''qui pure sarebbe da mettere full data e poi subset=training_data'''
+        '''quindi aggiungere in config un param full_data_filepath. Poi cambia i check dentro le funzioni
+        cioè se full data e subset file sono uguali allora subset file=None, dovrebbe funzionare'''
+        model, model_save_folder = train_model(training_data_filepath=,
                                                                 features_to_use=features_to_use,
                                                                 batch_size = batch_size,
                                                                 epochs = epochs,
@@ -64,12 +67,13 @@ def main():
                                                                 device = device,
                                                                 window_sizes=window_sizes,
                                                                 grid_resolution=grid_resolution,
-                                                                subset_file=subset_file)
+                                                                subset_file=training_data_filepath)
         
         if evaluate_model_after_training:
+            '''evaluation vuole due file, il grande e il subset'''
             # perform evaluation after training 
             evaluate_model(batch_size=batch_size, 
-                           data_dir=evaluation_data_filepath, 
+                           full_data_filepath=, 
                            window_sizes=window_sizes, 
                            grid_resolution=grid_resolution, 
                            features_to_use=features_to_use, 

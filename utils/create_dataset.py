@@ -63,6 +63,7 @@ def create_dataset(input_folders, fused_las_folder, max_points_per_class, output
                                chosen_classes=chosen_classes,
                                train_split=train_split,
                                output_dataset_folder=output_dataset_folder)
+    '''need to add filtering of dfs because they may contain too many feats and _b,_a suffyxes'''
     
     # Inspection: Print dataset summary
     print("\nDataset Summary:")
