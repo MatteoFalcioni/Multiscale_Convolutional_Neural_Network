@@ -13,15 +13,10 @@ from utils.create_dataset import create_dataset, create_train_eval_datasets
 # - testare che il training funzioni come al solito con sta nuova selection, con test_training  *DONE
 # - testare che l'evaluation funzioni con nuovi test 
 
-
-# ISSUE: quella in verde sopra. L'idea per fare il subsample del full dataset sarebbe: prendi i punti del file train_&_eval, e aggiungi a random punti che non sono già 
-# presenti in train_&_eval dal full dataset. MA: la maschera non funziona bene. Al momento non prende altri punti oltre a quelli già presenti nel subset file.
-# come se non distinguesse tra i punti del subset e quelli del file grande. Al variare della tolleranza il risultato non sembra cambiare...
-
 # Quindi -------------------
 # - Vedere risultati training e controllare se predictions funziona normalmente
-# - Vedere se con l'implementazione attuale su gpu è più veloce
-# - Sistemare il match dei punti (vedi ISSUE) 
+# - Vedere se con l'implementazione attuale su gpu è più veloce --> problema in num_workers>0
+# - Sistemare il match dei punti ---> *DONE
 
 
 df = pd.read_csv('data/datasets/train_&_eval_dataset.csv')

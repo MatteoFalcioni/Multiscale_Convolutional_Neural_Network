@@ -2,7 +2,7 @@
 # and full point cloud (also in csv format)
 
 import unittest
-from utils.point_cloud_data_utils import read_file_to_numpy, apply_masks, isin_tolerance, apply_masks_KDTree
+from utils.point_cloud_data_utils import read_file_to_numpy, apply_masks_KDTree
 import numpy as np
 
 
@@ -10,7 +10,7 @@ class TestPointMatching(unittest.TestCase):
     
     def setUp(self):
         
-        self.full_data_filepath = 'data/datasets/train_&_eval_dataset.csv'    # 'data/datasets/full_dataset.csv'
+        self.full_data_filepath = 'data/datasets/full_dataset.csv' #'data/datasets/train_&_eval_dataset.csv' 
         self.subset_filepath = 'data/datasets/train_dataset.csv'
         
         self.full_data_array, self.full_features = read_file_to_numpy(data_dir=self.full_data_filepath)
@@ -47,31 +47,15 @@ class TestPointMatching(unittest.TestCase):
         self.assertLessEqual(len(selected_array), len(self.full_data_array),
                             "More points were selected than available in the full dataset.")
         
-    '''def test_debug_matching(self):
-        
-        unique_full_points = np.unique(self.full_data_array[:, :3], axis=0)
-        print(f"Number of unique points in full data: {len(unique_full_points)}")
-        
-        unique_subset_points = np.unique(self.subset_data_array[:, :3], axis=0)
-        print(f"Number of unique points in subset data: {len(unique_subset_points)}")
-        
-        intersection_mask = np.isin(self.full_data_array[:, :3], self.subset_data_array[:, :3], assume_unique=False).all(axis=1)
-        print(f"Number of exact matches (intersection): {np.sum(intersection_mask)}")
-        
-        for i in range(10):  # Compare the first 10 subset points
-            subset_point = self.subset_data_array[i, :3]
-            matches = np.isclose(self.full_data_array[:, :3], subset_point, atol=1e-10).all(axis=1)
-            print(f"Subset Point {i}: {subset_point}, Matches: {np.sum(matches)}")'''
-        
-    '''
+    
     def test_different_tolerances(self):
         
-        tolerances = [1e-30 , 1e-20, 1e-10, 1e-6, 1e-4, 1e-2, 1]
+        tolerances = [1e-20, 1e-10, 1e-6, 1e-4, 1e-2, 1]
         
         for tol in tolerances:
             print(f"\n=========================== Tolerance: {tol} ===========================")
             # Apply masks with KDTree implementation
-            selected_array, mask, bounds = apply_masks(
+            selected_array, mask, bounds = apply_masks_KDTree(
                 full_data_array=self.full_data_array,
                 window_sizes=self.window_sizes,
                 subset_file=self.subset_filepath,
@@ -80,4 +64,4 @@ class TestPointMatching(unittest.TestCase):
             
             # Validate the number of selected points
             print(f"Selected points: {len(selected_array)}")
-        '''
+        

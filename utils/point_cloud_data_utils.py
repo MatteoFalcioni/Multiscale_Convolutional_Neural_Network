@@ -9,6 +9,8 @@ import random
 from scipy.spatial import cKDTree
 
 
+#============================================== FILE READING AND NP CONVERSIONS ================================================
+
 def load_las_data(file_path):
     """
     Carica il file LAS e restituisce le coordinate XYZ.
@@ -275,153 +277,7 @@ def read_file_to_numpy(data_dir, features_to_use=None, features_file_path=None):
     return data_array, known_features
 
 
-def clean_and_combine_csv_files(csv_files, output_csv, default_replacement=0.0):
-    """
-    Combines multiple CSV files into a single CSV file efficiently, processing them in chunks,
-    and cleans the final combined file of NaN/Inf values by overwriting it with a default value.
-
-    Args:
-    - csv_files (list of str): List of paths to CSV files to combine.
-    - output_csv (str): Path to save the combined CSV file.
-    - default_replacement (numeric): Value to replace nan/inf with. Default is 0.0
-
-    Returns:
-    - output_csv (str): Path to the saved combined CSV file.
-    """
-    # Ensure the output folder exists
-    os.makedirs(os.path.dirname(output_csv), exist_ok=True)
-
-    # Combine CSV files
-    with tqdm(total=len(csv_files), desc="Combining CSV files", unit="file") as pbar:
-        for i, file in enumerate(csv_files):
-            for chunk in pd.read_csv(file, chunksize=10_000):
-                # Append to the output CSV, writing the header only for the first chunk
-                chunk.to_csv(output_csv, index=False, header=(i == 0 and chunk.index.start == 0), mode='a')
-            pbar.update(1)
-
-    print(f"Combined CSV saved to {output_csv}")
-
-    # Clean the combined file in chunks and overwrite it
-    print("\nCleaning csv file from nan/inf values...")
-    temp_file = f"{output_csv}.tmp"  # Temporary file to write cleaned data
-    with open(temp_file, 'w') as outfile:
-        for chunk in pd.read_csv(output_csv, chunksize=10_000):
-            # clean file from nan/inf values
-            chunk.replace([np.inf, -np.inf], default_replacement, inplace=True)
-            chunk.fillna(default_replacement, inplace=True)
-            chunk.to_csv(outfile, index=False, header=(outfile.tell() == 0), mode='a')
-
-    # Overwrite the original file
-    os.replace(temp_file, output_csv)  # Replace the original CSV with the cleaned version
-
-    print(f"\nCleaned combined CSV saved to {output_csv}")
-
-    return output_csv
-
-
-def clean_bugged_las(bugged_las_path):
-    """
-    Cleans a bugged LAS file by removing points outside the valid bounds inferred from its filename.
-
-    Args:
-    - bugged_las_path (str): Path to the bugged LAS file.
-
-    Returns:
-    - None
-    """
-    # Extract xmin and ymin from the filename
-    base_name = os.path.basename(bugged_las_path)
-    parts = base_name.split("_")
-    try:
-        xmin = float(parts[2]) 
-        ymin = float(parts[3].split(".")[0])
-    except ValueError:
-        raise ValueError(f"Invalid filename format for bugged LAS file: {bugged_las_path}")
-
-    # Load the LAS file
-    las_data = laspy.read(bugged_las_path)
-    
-    print(f"\nFrom tile name: xmin: {xmin}, ymin:{ymin}")
-    print(f"From .min() and .max() -> xmin:{las_data.x.min()}, ymin:{las_data.y.min()}")
-
-    # Apply the mask to filter points within bounds
-    mask = (las_data.x >= xmin) & (las_data.y >= ymin)
-    cleaned_points = las_data.points[mask]
-    cleaned_labels = las_data.label[mask]
-
-    # Create a new LAS object with the cleaned data
-    cleaned_las = laspy.LasData(las_data.header)
-    cleaned_las.points = cleaned_points
-    cleaned_las.label = cleaned_labels
-    
-    cleaned_las.update_header()
-    
-    cleaned_las.write(bugged_las_path)
-
-    # Print the number of points before and after cleaning
-    print(f"Cleaned LAS file: {bugged_las_path}")
-    print(f"Original points: {len(las_data.points)}, Cleaned points: {len(cleaned_points)}")
-
-
-def remap_labels(data_array, label_column_index=-1):
-    """
-    Automatically remaps the labels in the given data array to a continuous range starting from 0. Needed for
-    training purpose (in order to feed labels as targets to the loss).
-    Stores the mapping for future reference.
-
-    Args:
-    - data_array (np.ndarray): The input data array where the last column (by default) contains the labels.
-    - label_column_index (int): The index of the column containing the labels (default is the last column).
-
-    Returns:
-    - np.ndarray: The data array with the labels remapped.
-    - dict: A dictionary that stores the original to new label mapping.
-    """
-    # Extract the label column
-    labels = data_array[:, label_column_index]
-
-    # Get the unique labels
-    unique_labels = np.unique(labels)
-
-    # Create a mapping from the unique labels to continuous integers
-    label_mapping = {label: idx for idx, label in enumerate(unique_labels)}
-
-    # Apply the mapping to the labels
-    remapped_labels = np.array([label_mapping[label] for label in labels])
-
-    # Replace the original labels in the data array with the remapped labels
-    data_array[:, label_column_index] = remapped_labels
-
-    # Return the remapped data array and the mapping dictionary
-    return data_array, label_mapping
-
-
-def extract_num_classes(raw_file_path=None):
-    """
-    Extracts the number of unique classes from raw data (LAS, CSV, or NPY).
-
-    Args:
-    - raw_file_path (str): Path to the input LAS, CSV, or NPY file.
-
-    Returns:
-    - int: The number of unique classes.
-    """
-
-    if raw_file_path is None: 
-        raise ValueError('ERROR: File path to raw data must be provided to extract the number of classes.')
-
-    # Load data from raw files
-    data_array, _ = read_file_to_numpy(raw_file_path, features_to_use=None, features_file_path=None)
-    
-    # Extract class labels from the last column of the data array
-    class_labels = data_array[:, -1]
-
-    # Extract the unique number of classes
-    num_classes = len(np.unique(class_labels))
-
-    # print(f"Number of unique classes: {num_classes}")
-    
-    return num_classes
+# ============================================== SUBTILING + STITCHING ================================================
 
 
 def subtiler(file_path, tile_size=50, overlap_size=10):
@@ -674,6 +530,42 @@ def stitch_subtiles(subtile_folder, original_las, original_filename, model_direc
     # print(f"Stitching completed. Stitched file saved at: {output_filepath}")
 
     return output_filepath
+
+
+# ============================================== POINT CLOUD POINTS PROCESSING ================================================
+    
+
+def remap_labels(data_array, label_column_index=-1):
+    """
+    Automatically remaps the labels in the given data array to a continuous range starting from 0. Needed for
+    training purpose (in order to feed labels as targets to the loss).
+    Stores the mapping for future reference.
+
+    Args:
+    - data_array (np.ndarray): The input data array where the last column (by default) contains the labels.
+    - label_column_index (int): The index of the column containing the labels (default is the last column).
+
+    Returns:
+    - np.ndarray: The data array with the labels remapped.
+    - dict: A dictionary that stores the original to new label mapping.
+    """
+    # Extract the label column
+    labels = data_array[:, label_column_index]
+
+    # Get the unique labels
+    unique_labels = np.unique(labels)
+
+    # Create a mapping from the unique labels to continuous integers
+    label_mapping = {label: idx for idx, label in enumerate(unique_labels)}
+
+    # Apply the mapping to the labels
+    remapped_labels = np.array([label_mapping[label] for label in labels])
+
+    # Replace the original labels in the data array with the remapped labels
+    data_array[:, label_column_index] = remapped_labels
+
+    # Return the remapped data array and the mapping dictionary
+    return data_array, label_mapping   
     
 
 def clean_nan_values(data_array, default_value=0.0):
@@ -806,6 +698,53 @@ def compute_point_cloud_bounds(data_array, padding=0.0):
     return bounds_dict
 
 
+# ============================================== CSV OPERATIONS ================================================
+
+
+def clean_and_combine_csv_files(csv_files, output_csv, default_replacement=0.0):
+    """
+    Combines multiple CSV files into a single CSV file efficiently, processing them in chunks,
+    and cleans the final combined file of NaN/Inf values by overwriting it with a default value.
+
+    Args:
+    - csv_files (list of str): List of paths to CSV files to combine.
+    - output_csv (str): Path to save the combined CSV file.
+    - default_replacement (numeric): Value to replace nan/inf with. Default is 0.0
+
+    Returns:
+    - output_csv (str): Path to the saved combined CSV file.
+    """
+    # Ensure the output folder exists
+    os.makedirs(os.path.dirname(output_csv), exist_ok=True)
+
+    # Combine CSV files
+    with tqdm(total=len(csv_files), desc="Combining CSV files", unit="file") as pbar:
+        for i, file in enumerate(csv_files):
+            for chunk in pd.read_csv(file, chunksize=10_000):
+                # Append to the output CSV, writing the header only for the first chunk
+                chunk.to_csv(output_csv, index=False, header=(i == 0 and chunk.index.start == 0), mode='a')
+            pbar.update(1)
+
+    print(f"Combined CSV saved to {output_csv}")
+
+    # Clean the combined file in chunks and overwrite it
+    print("\nCleaning csv file from nan/inf values...")
+    temp_file = f"{output_csv}.tmp"  # Temporary file to write cleaned data
+    with open(temp_file, 'w') as outfile:
+        for chunk in pd.read_csv(output_csv, chunksize=10_000):
+            # clean file from nan/inf values
+            chunk.replace([np.inf, -np.inf], default_replacement, inplace=True)
+            chunk.fillna(default_replacement, inplace=True)
+            chunk.to_csv(outfile, index=False, header=(outfile.tell() == 0), mode='a')
+
+    # Overwrite the original file
+    os.replace(temp_file, output_csv)  # Replace the original CSV with the cleaned version
+
+    print(f"\nCleaned combined CSV saved to {output_csv}")
+
+    return output_csv
+
+
 def las_to_csv(las_file, output_folder, selected_classes = None):
     """
     Converts a LAS file to a CSV file by extracting its data and features.
@@ -898,7 +837,7 @@ def sample_data(input_file, sample_size, save=False, save_dir='data/sampled_data
     return sampled_data
 
 
-def reservoir_sample_with_subset(input_file, sample_size, subset_file, save=False, save_dir='data/sampled_data', feature_to_use=None, chunk_size=100000, tol=1e-24):
+def reservoir_sample_with_subset(input_file, sample_size, subset_file, save=False, save_dir='data/sampled_data', feature_to_use=None, chunk_size=100000, tol=1e-10):
     """
     Samples a random subset of the data from a large CSV file, ensuring no overlap with a provided subset file using tolerance-based matching.
 
@@ -916,22 +855,24 @@ def reservoir_sample_with_subset(input_file, sample_size, subset_file, save=Fals
     - pd.DataFrame: The combined sampled data DataFrame (subset + additional sampled points).
     """
     # Load subset points
-    subset_points = pd.read_csv(subset_file, usecols=feature_to_use).values
+    subset_points = pd.read_csv(subset_file, usecols=feature_to_use).values.astype(np.float64)
+
+    # Build KDTree for fast exclusion of subset points
+    subset_kdtree = cKDTree(subset_points)
 
     reservoir = []  # List to store additional sampled rows
-    total_rows = 0  # Total number of rows processed
+    total_processed_points = 0  # Total number of processed points
 
     # Iterate over chunks of the full data
     for chunk in tqdm(pd.read_csv(input_file, chunksize=chunk_size, usecols=feature_to_use), desc="Processing chunks"):
-        chunk_values = chunk.values
+        chunk_values = chunk.values.astype(np.float64)
 
-        # Apply tolerance-based filtering to exclude duplicates with the subset
-        is_not_duplicate = np.ones(len(chunk_values), dtype=bool)
-        for i in range(3):  # Compare each coordinate dimension
-            is_not_duplicate &= ~isin_tolerance(chunk_values[:, i], subset_points[:, i], tol)
+        # Apply KDTree filtering to exclude duplicates with the subset
+        distances, _ = subset_kdtree.query(chunk_values[:, :3], distance_upper_bound=tol)
+        is_not_duplicate = distances > tol
 
         unique_points = chunk[is_not_duplicate]
-        total_rows += len(unique_points)
+        total_processed_points += len(unique_points)
 
         for row in unique_points.itertuples(index=False):
             if len(reservoir) < sample_size - len(subset_points):
@@ -939,20 +880,21 @@ def reservoir_sample_with_subset(input_file, sample_size, subset_file, save=Fals
                 reservoir.append(row)
             else:
                 # Randomly decide whether to replace an existing element in the reservoir
-                replace_idx = random.randint(0, total_rows - 1)
+                replace_idx = random.randint(0, total_processed_points - 1)
                 if replace_idx < sample_size - len(subset_points):
                     reservoir[replace_idx] = row
 
     # Combine subset and additional sampled points
     print(f"\nConcatenating sampled points and existing points...")
     sampled_data = pd.DataFrame(reservoir, columns=chunk.columns)
-    combined_data = pd.concat([pd.DataFrame(subset_points, columns=chunk.columns), sampled_data])
-    
+    combined_data = pd.concat([pd.DataFrame(subset_points, columns=chunk.columns), sampled_data], ignore_index=True)
+
     # Inspection: Print dataset summary
     print("\nDataset Summary:")
     print(f"\nTotal points in dataset: {len(combined_data)}")
     print("Class distribution in dataset:")
-    print(combined_data['label'].value_counts().sort_index())
+    if 'label' in combined_data.columns:
+        print(combined_data['label'].value_counts().sort_index())
 
     # Optionally save the combined data
     if save:
@@ -1063,7 +1005,78 @@ def filter_features_in_csv(input_csv, output_csv, required_columns=None, suffix=
     print(f"Filtered CSV saved to: {output_csv}")
 
 
+# ================================================= OTHERS ====================================================
 
+def clean_bugged_las(bugged_las_path):
+    """
+    Cleans a bugged LAS file by removing points outside the valid bounds inferred from its filename.
+
+    Args:
+    - bugged_las_path (str): Path to the bugged LAS file.
+
+    Returns:
+    - None
+    """
+    # Extract xmin and ymin from the filename
+    base_name = os.path.basename(bugged_las_path)
+    parts = base_name.split("_")
+    try:
+        xmin = float(parts[2]) 
+        ymin = float(parts[3].split(".")[0])
+    except ValueError:
+        raise ValueError(f"Invalid filename format for bugged LAS file: {bugged_las_path}")
+
+    # Load the LAS file
+    las_data = laspy.read(bugged_las_path)
+    
+    print(f"\nFrom tile name: xmin: {xmin}, ymin:{ymin}")
+    print(f"From .min() and .max() -> xmin:{las_data.x.min()}, ymin:{las_data.y.min()}")
+
+    # Apply the mask to filter points within bounds
+    mask = (las_data.x >= xmin) & (las_data.y >= ymin)
+    cleaned_points = las_data.points[mask]
+    cleaned_labels = las_data.label[mask]
+
+    # Create a new LAS object with the cleaned data
+    cleaned_las = laspy.LasData(las_data.header)
+    cleaned_las.points = cleaned_points
+    cleaned_las.label = cleaned_labels
+    
+    cleaned_las.update_header()
+    
+    cleaned_las.write(bugged_las_path)
+
+    # Print the number of points before and after cleaning
+    print(f"Cleaned LAS file: {bugged_las_path}")
+    print(f"Original points: {len(las_data.points)}, Cleaned points: {len(cleaned_points)}")
+
+
+def extract_num_classes(raw_file_path=None):
+    """
+    Extracts the number of unique classes from raw data (LAS, CSV, or NPY).
+
+    Args:
+    - raw_file_path (str): Path to the input LAS, CSV, or NPY file.
+
+    Returns:
+    - int: The number of unique classes.
+    """
+
+    if raw_file_path is None: 
+        raise ValueError('ERROR: File path to raw data must be provided to extract the number of classes.')
+
+    # Load data from raw files
+    data_array, _ = read_file_to_numpy(raw_file_path, features_to_use=None, features_file_path=None)
+    
+    # Extract class labels from the last column of the data array
+    class_labels = data_array[:, -1]
+
+    # Extract the unique number of classes
+    num_classes = len(np.unique(class_labels))
+
+    # print(f"Number of unique classes: {num_classes}")
+    
+    return num_classes
 
 
 
