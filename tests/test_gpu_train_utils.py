@@ -12,6 +12,8 @@ from utils.point_cloud_data_utils import apply_masks_KDTree
 import time
 from torch.utils.data import Dataset, DataLoader, random_split
 from tqdm import tqdm
+import torch.multiprocessing as mp
+
 
 
 '''class TestMaskingCPUvsGPU(unittest.TestCase):
@@ -165,6 +167,7 @@ class TestGPUPointCloudDataset(unittest.TestCase):
 
 class TestDataloaderDatasetIntegrationGPU(unittest.TestCase):
     def setUp(self):
+        mp.set_start_method(method="forkserver")
         # Mock parameters
         self.batch_size = 32
         self.grid_resolution = 128
@@ -174,7 +177,7 @@ class TestDataloaderDatasetIntegrationGPU(unittest.TestCase):
         self.features_to_use = ['intensity', 'red']
         self.num_channels = len(self.features_to_use)
         self.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-        self.num_workers = 0
+        self.num_workers = 2
 
 
     def test_dataloader_with_dataset(self):

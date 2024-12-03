@@ -20,14 +20,14 @@ class GPU_PointCloudDataset(Dataset):
         - subset_file (str, optional): Path to a csv file containing coordinates of points to be selected from the full data. If None, all are selected.
         """
         self.device = device
-        self.tensor_full_data = torch.tensor(full_data_array, dtype=torch.float64).to(device=self.device)  # too big for gpu?
+        self.tensor_full_data = torch.tensor(full_data_array, dtype=torch.float64)  # Keep tensors on the CPU here in order to use multiprocessing
         
         self.window_sizes = window_sizes
         self.grid_resolution = grid_resolution
         self.features_to_use = features_to_use
         self.known_features = known_features
         feature_indices = [known_features.index(feature) for feature in features_to_use]
-        self.feature_indices_tensor = torch.tensor(feature_indices, device=self.device)
+        self.feature_indices_tensor = torch.tensor(feature_indices, dtype=torch.int64)
         
         # Build torch kdtree model on the GPU 
         self.gpu_tree = build_kd_tree(self.tensor_full_data[:, :3])

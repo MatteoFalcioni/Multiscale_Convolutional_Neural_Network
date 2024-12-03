@@ -71,16 +71,16 @@ def train_model(full_data_filepath, features_to_use, batch_size, epochs, patienc
         subset_array, subset_features = read_file_to_numpy(data_dir=training_data_filepath, features_to_use=None)
         num_subset = subset_array.shape[0]
         num_subset_classes = extract_num_classes(raw_file_path=training_data_filepath)
-        print(f"\nSince a subset of the full dataset was selected, feature images will be generated only for points contained in {subset_file}, corresponding to {num_subset} / {total_num_points} points.")
+        print(f"\nSince a subset of the full dataset was selected, feature images will be generated only for points contained in {training_data_filepath}, corresponding to {num_subset} / {total_num_points} points.")
         assert full_known_features == subset_features, f"Full training data features do not match the features from the subset."
         assert num_subset_classes == num_classes, f"Number of unique classes (labels) doesn't match between full data file and subset file."
     else: 
-        subset_file = "No subset selected"  # write this in hyperparams
+        training_data_filepath = "No subset selected"  # write this in hyperparams
 
 
     hyperparameters = {     # store hyperparameters and metadata in dictionary in order to save them together with the model
-        'training file': training_data_filepath,
-        'subset file' : subset_file,
+        'dataset file': full_data_filepath,
+        'training file' : training_data_filepath,
         'num_classes' : num_classes,
         'number of total points' : total_num_points,
         'window_sizes' : window_sizes,

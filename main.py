@@ -65,10 +65,9 @@ def main():
                                                                 device = device,
                                                                 window_sizes=window_sizes,
                                                                 grid_resolution=grid_resolution,
-                                                                subset_file=training_data_filepath)
+                                                                training_data_filepath=training_data_filepath)
         
         if evaluate_model_after_training:
-            '''evaluation vuole due file, il grande e il subset'''
             # perform evaluation after training 
             evaluate_model(batch_size=batch_size, 
                            full_data_filepath=full_data_filepath, 
