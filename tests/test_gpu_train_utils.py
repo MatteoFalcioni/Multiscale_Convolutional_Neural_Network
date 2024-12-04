@@ -1,6 +1,6 @@
 import unittest
-from utils.gpu_training_utils import gpu_prepare_dataloader, GPU_PointCloudDataset
-from scripts.gpu_grid_gen import apply_masks_gpu
+from utils.old_gpu_training_utils import gpu_prepare_dataloader, GPU_PointCloudDataset
+from scripts.old_gpu_grid_gen import apply_masks_gpu
 from utils.train_data_utils import prepare_dataloader, PointCloudDataset
 from utils.point_cloud_data_utils import read_file_to_numpy, remap_labels
 from torch.utils.data import Dataset, random_split

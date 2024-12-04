@@ -10,7 +10,7 @@ from utils.plot_utils import visualize_grid
 from torch_kdtree import build_kd_tree
 import torch
 from scripts.point_cloud_to_image import old_generate_multiscale_grids, create_feature_grid, assign_features_to_grid
-from scripts.gpu_grid_gen import mask_out_of_bounds_points_gpu, old_generate_multiscale_grids_gpu, generate_multiscale_grids_gpu_masked, create_feature_grid_gpu, assign_features_to_grid_gpu, mask_out_of_bounds_points_gpu
+from scripts.old_gpu_grid_gen import mask_out_of_bounds_points_gpu, old_generate_multiscale_grids_gpu, generate_multiscale_grids_gpu_masked, create_feature_grid_gpu, assign_features_to_grid_gpu, mask_out_of_bounds_points_gpu
 import os
 from utils.point_cloud_data_utils import clean_nan_values
 from torch_kdtree import build_kd_tree

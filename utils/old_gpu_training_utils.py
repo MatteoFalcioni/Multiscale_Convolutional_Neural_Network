@@ -1,4 +1,4 @@
-from scripts.gpu_grid_gen import generate_multiscale_grids_gpu_masked, apply_masks_gpu
+from scripts.old_gpu_grid_gen import generate_multiscale_grids_gpu_masked, apply_masks_gpu
 from torch.utils.data import Dataset, DataLoader, random_split
 import torch
 from utils.point_cloud_data_utils import read_file_to_numpy, remap_labels, clean_nan_values

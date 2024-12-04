@@ -7,7 +7,7 @@ import os
 from datetime import datetime
 from utils.create_dataset import create_dataset, create_train_eval_datasets
 
-'''still, error in matching subset with selected array. probably due to precision issues'''
+
 # - creare nuovo dataset, i.e. file enorme con tanti punti + train/eval con train sui 2 milioni/2.5 di punti *DONE
 # - finire di testare train_data_utils con dati reali, e vedere se è molto più lento    *DONE
 # - testare che il training funzioni come al solito con sta nuova selection, con test_training  *DONE
