@@ -14,7 +14,8 @@ class GPU_PointCloudDataset(Dataset):
         self.device = device
         self.tensor_full_data = torch.tensor(full_data_array, dtype=torch.float64, device=self.device) 
         
-        self.window_sizes = torch.tensor([size for _, size in window_sizes], dtype=torch.float64, device=self.device)  # Vectorized window sizes
+        '''fix this thing where you need window sizes in the two formats '''
+        self.window_sizes_tensor = torch.tensor([size for _, size in window_sizes], dtype=torch.float64, device=self.device) 
         self.grid_resolution = grid_resolution
         self.features_to_use = features_to_use
         self.known_features = known_features
@@ -26,7 +27,7 @@ class GPU_PointCloudDataset(Dataset):
         # Apply masking and compute bounds
         self.selected_tensor, mask, point_cloud_bounds = apply_masks_gpu(
             tensor_data_array=self.tensor_full_data,
-            window_sizes=self.window_sizes,
+            window_sizes=window_sizes,
             subset_file=subset_file
         )
         
@@ -53,7 +54,7 @@ class GPU_PointCloudDataset(Dataset):
         grids = vectorized_generate_multiscale_grids(
             center_points=batch_center_points,
             tensor_data_array=self.tensor_full_data,
-            window_sizes=self.window_sizes,
+            window_sizes=self.window_sizes_tensor,
             grid_resolution=self.grid_resolution,
             feature_indices_tensor=self.feature_indices_tensor,
             gpu_tree=self.gpu_tree,

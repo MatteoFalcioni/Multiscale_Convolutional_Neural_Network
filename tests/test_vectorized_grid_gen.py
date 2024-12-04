@@ -18,14 +18,11 @@ class TestFeatureAssignment(unittest.TestCase):
         self.features_to_use = ['intensity', 'red', 'green', 'blue']
         self.channels = len(self.features_to_use)
         self.window_sizes = [('small', 10.0), ('medium', 20.0), ('large', 30.0)]
-        self.tensor_window_sizes = torch.tensor([size for _, size in self.window_sizes], dtype=torch.float64, device=self.device)
         
         # full data
         dataset_filepath = 'data/datasets/train_dataset.csv'
         self.full_data_array, known_features = read_file_to_numpy(data_dir=dataset_filepath)
         print(f"\n\nLoaded data with shape {self.full_data_array.shape}")
-        feature_indices = [known_features.index(feature) for feature in self.features_to_use]
-        self.feature_indices_tensor = torch.tensor(feature_indices, dtype=torch.int64)
         # transfer full data to gpu
         self.tensor_full_data = torch.tensor(self.full_data_array, dtype=torch.float64, device=self.device)
         print("\nFull data array transferred to GPU")
