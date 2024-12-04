@@ -95,17 +95,19 @@ def new_prepare_dataloader(batch_size, data_filepath=None, window_sizes=None, fe
     return train_loader, val_loader
 
 
-def prepare_utilities(full_data_filepath, features_to_use, device='cuda:0'):
+def prepare_utilities(full_data_filepath, features_to_use, grid_resolution, window_sizes, device='cuda:0'):
     """
-    Prepares shared resources like KDTree, feature indices, and the full data tensor.
+    Prepares shared resources like KDTree, feature indices, the full data tensor, and window sizes tensor.
 
     Args:
     - full_data_filepath (str): Path to the raw data file.
     - features_to_use (list): List of features to include in the grids.
+    - grid_resolution (int): Resolution of the grid (e.g., 128).
+    - window_sizes (list): List of window sizes (e.g., [('small', 10.0), ('medium', 20.0)]).
     - device (str): CUDA device for GPU operations.
 
     Returns:
-    - dict: Contains GPU KDTree, feature indices tensor, and full data tensor.
+    - dict: Contains GPU KDTree, feature indices tensor, full data tensor, window sizes tensor, and grid resolution.
     """
     # Read raw data and preprocess
     data_array, known_features = read_file_to_numpy(full_data_filepath)
@@ -124,8 +126,15 @@ def prepare_utilities(full_data_filepath, features_to_use, device='cuda:0'):
     feature_indices = [known_features.index(feature) for feature in features_to_use]
     feature_indices_tensor = torch.tensor(feature_indices, dtype=torch.int64, device=device)
 
-    return {
+    # Prepare window sizes tensor
+    window_sizes_tensor = torch.tensor([size for _, size in window_sizes], dtype=torch.float64, device=device)
+
+    shared_objects = {
         'gpu_tree': gpu_tree,
         'tensor_full_data': tensor_full_data,
-        'feature_indices_tensor': feature_indices_tensor
+        'feature_indices_tensor': feature_indices_tensor,
+        'window_sizes_tensor': window_sizes_tensor,
+        'grid_resolution': grid_resolution
     }
+
+    return shared_objects
