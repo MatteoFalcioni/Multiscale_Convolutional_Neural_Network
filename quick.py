@@ -22,6 +22,11 @@ from utils.create_dataset import create_dataset, create_train_eval_datasets
 # (SMALL ISSUE): non c'è una logica user friendly se lo user non vuole usare un subset ma tipo trainare direttamente solo su un training file 
 # magari il subset glielo creiamo noi in quel caso? boh, non molto importante ora
 
+# --------------4/12---------------
+# GPU vectorized grid gen working. refactoting code in order to have simple get item
+# Grid generation ouside the get_item method now.  
+# Still problems with n_workers>0 ;aybe leave evrything on cpu until training??
+
 '''input_file='data/datasets/full_dataset.csv'
 subset_file='data/datasets/train_&_eval_dataset.csv'
 subset_df = pd.read_csv(subset_file)

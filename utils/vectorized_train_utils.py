@@ -42,7 +42,7 @@ class NEW_PointCloudDataset(Dataset):
 
 
 def new_prepare_dataloader(batch_size, data_filepath=None, window_sizes=None, features_to_use=None, 
-                           train_split=None, num_workers=4, shuffle_train=True, device='cuda:0', subset_file=None):
+                           train_split=None, num_workers=4, shuffle_train=True, device='cpu', subset_file=None):
     """
     Prepares the DataLoader using an external KDTree and feature index tensor for multiprocessing.
 
@@ -67,17 +67,7 @@ def new_prepare_dataloader(batch_size, data_filepath=None, window_sizes=None, fe
     data_array, _ = remap_labels(data_array)
     data_array = clean_nan_values(data_array)
 
-    # Move data to the appropriate device
     tensor_full_data = torch.tensor(data_array, dtype=torch.float64, device=device)
-
-    # Build the KDTree
-    print("Building KDTree...")
-    gpu_tree = build_kd_tree(tensor_full_data[:, :3])
-    print("KDTree successfully built.")
-
-    # Prepare feature indices tensor
-    feature_indices = [known_features.index(feature) for feature in features_to_use]
-    feature_indices_tensor = torch.tensor(feature_indices, dtype=torch.int64, device=device)
 
     # Apply masking to select points if subset_file is provided
     selected_tensor, mask, point_cloud_bounds = apply_masks_gpu(
@@ -102,11 +92,40 @@ def new_prepare_dataloader(batch_size, data_filepath=None, window_sizes=None, fe
         train_loader = DataLoader(dataset, batch_size=batch_size, shuffle=shuffle_train, num_workers=num_workers)
         val_loader = None
 
-    # Share the reusable components
-    shared_objects = {
+    return train_loader, val_loader
+
+
+def prepare_utilities(full_data_filepath, features_to_use, device='cuda:0'):
+    """
+    Prepares shared resources like KDTree, feature indices, and the full data tensor.
+
+    Args:
+    - full_data_filepath (str): Path to the raw data file.
+    - features_to_use (list): List of features to include in the grids.
+    - device (str): CUDA device for GPU operations.
+
+    Returns:
+    - dict: Contains GPU KDTree, feature indices tensor, and full data tensor.
+    """
+    # Read raw data and preprocess
+    data_array, known_features = read_file_to_numpy(full_data_filepath)
+    data_array, _ = remap_labels(data_array)
+    data_array = clean_nan_values(data_array)
+
+    # Move full data to GPU
+    tensor_full_data = torch.tensor(data_array, dtype=torch.float64, device=device)
+
+    # Build GPU KDTree
+    print("Building KDTree on GPU...")
+    gpu_tree = build_kd_tree(tensor_full_data[:, :3])
+    print("KDTree successfully built.")
+
+    # Prepare feature indices tensor
+    feature_indices = [known_features.index(feature) for feature in features_to_use]
+    feature_indices_tensor = torch.tensor(feature_indices, dtype=torch.int64, device=device)
+
+    return {
         'gpu_tree': gpu_tree,
         'tensor_full_data': tensor_full_data,
         'feature_indices_tensor': feature_indices_tensor
     }
-
-    return train_loader, val_loader, shared_objects
