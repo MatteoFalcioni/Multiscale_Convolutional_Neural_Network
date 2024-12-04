@@ -1,6 +1,6 @@
 import unittest
-from torch.utils.data import DataLoader
-from utils.vectorized_train_utils import GPU_PointCloudDataset 
+from scripts.vectorized_grid_gen import vectorized_generate_multiscale_grids
+from utils.vectorized_train_utils import NEW_PointCloudDataset, new_prepare_dataloader 
 import torch
 from utils.point_cloud_data_utils import read_file_to_numpy
 
@@ -23,47 +23,65 @@ class TestPointCloudDataset(unittest.TestCase):
         self.subset_filepath = 'data/datasets/train_dataset.csv'
         self.subset_array, subset_features = read_file_to_numpy(self.subset_filepath) 
         print(f"\nLoaded subset array of shape: {self.subset_array.shape}, dtype: {self.subset_array.dtype}")
+        
+        self.num_workers = 4
 
-        # Initialize the dataset
-        self.dataset = GPU_PointCloudDataset(
-            full_data_array=self.full_data_array,
+        # Prepare DataLoader
+        self.train_loader, self.eval_loader = new_prepare_dataloader(
+            batch_size=self.batch_size,
+            data_filepath=self.dataset_filepath,
             window_sizes=self.window_sizes,
             grid_resolution=self.grid_resolution,
             features_to_use=self.features_to_use,
-            known_features=self.known_features,
+            train_split=None,
+            num_workers=self.num_workers,
+            shuffle_train=False,
             device=self.device,
-            subset_file=None
+            subset_file=self.subset_filepath
         )
 
-    def test_dataset_initialization(self):
-        # Check if dataset initializes correctly
-        self.assertEqual(len(self.dataset), len(self.dataset.selected_tensor))
-        self.assertEqual(len(self.dataset.original_indices), len(self.dataset.selected_tensor))
+    def test_dataloader_batch_generation(self):
+        """
+        Test that the DataLoader prepared by `gpu_prepare_dataloader` returns batches of raw points and labels
+        and verify that grid generation works for these batches.
+        """
+        for batch_idx, batch in enumerate(self.train_loader):
+            if batch is None:
+                continue
+            
+            raw_points, labels, original_indices = batch
+            print(f"Batch {batch_idx}: Raw points shape: {raw_points.shape}, Labels shape: {labels.shape}")
 
-    def test_single_item_retrieval(self):
-        # Retrieve a single item from the dataset
-        idx = 0
-        grids, label, original_idx = self.dataset[idx]
+            # Verify shapes of raw points and labels
+            self.assertEqual(raw_points.shape, (self.batch_size, 3))  # x, y, z
+            self.assertEqual(labels.shape, (self.batch_size,))  # Labels
 
-        # Check the shapes of the grids and label
-        self.assertEqual(grids.shape, (3, self.grid_resolution, self.grid_resolution, len(self.features_to_use)))
-        self.assertTrue(isinstance(label, torch.Tensor))
-        self.assertTrue(isinstance(original_idx, int))
+    def test_grid_generation_for_batches(self):
+        """
+        Test grid generation using `vectorized_generate_multiscale_grids` for batches returned by the DataLoader.
+        """
+        for batch_idx, batch in enumerate(self.train_loader):
+            if batch is None:
+                continue
 
-    def test_dataloader_integration(self):
-        # Initialize a dataloader
-        dataloader = DataLoader(self.dataset, batch_size=4, collate_fn=None, num_workers=0)
+            raw_points, labels, _ = batch
+            raw_points = raw_points.to(self.device)
 
-        # Iterate through one batch
-        for batch in dataloader:
-            grids, labels, original_indices = batch
+            # Generate grids
+            grids = vectorized_generate_multiscale_grids(
+                raw_points,
+                torch.tensor([size for _, size in self.window_sizes], dtype=torch.float64, device=self.device),
+                self.grid_resolution,
+                len(self.features_to_use),
+                self.train_loader.dataset.gpu_tree,
+                self.train_loader.dataset.tensor_full_data,
+                self.train_loader.dataset.feature_indices_tensor,
+                self.device
+            )
 
-            # Check batch dimensions
-            self.assertEqual(grids.shape[0], 4)  # Batch size
-            self.assertEqual(grids.shape[1:], (3, self.grid_resolution, self.grid_resolution, len(self.features_to_use)))  # Grid dimensions
-            self.assertEqual(labels.shape, (4,))
-            self.assertEqual(original_indices.shape, (4,))
-            break
+            # Check the shape of the generated grids
+            self.assertEqual(grids.shape, (self.batch_size, len(self.window_sizes), len(self.features_to_use), self.grid_resolution, self.grid_resolution))
+
 
 
 if __name__ == '__main__':
