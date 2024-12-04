@@ -17,43 +17,42 @@ def vectorized_create_feature_grids(center_points, window_sizes, grid_resolution
     - grids (torch.Tensor): Initialized grids of shape (batch_size, scales, channels, grid_resolution, grid_resolution).
     - grid_coords (torch.Tensor): Flattened grid coordinates of shape (batch_size, scales, grid_resolution^2, 3).
     """
+    
+    '''Note: put asserts for float64 of center point, need that float64 for matching'''
     batch_size = center_points.shape[0]
     scales = len(window_sizes)
 
-    # Step 1: Compute cell sizes for each scale
+    # Compute cell sizes for each scale
     cell_sizes = window_sizes / grid_resolution
-    print(f"Cell sizes for each scale: {cell_sizes}")  # Debugging print
+    #print(f"Cell sizes for each scale: {cell_sizes}")  # Debugging print
 
-    # Step 2: Precompute indices for grid resolution
+    # Precompute indices for grid resolution
     indices = torch.arange(grid_resolution, device=device)
     i_indices, j_indices = torch.meshgrid(indices, indices, indexing="ij")
-    print(f"Grid indices shape: i: {i_indices.shape}, j: {j_indices.shape}")  # Debugging print
-
     half_resolution_minus_half = torch.tensor((grid_resolution / 2) - 0.5, device=device, dtype=torch.float64)
+    
+    # Precompute offsets
+    x_offsets = (j_indices.flatten() - half_resolution_minus_half).to(dtype=torch.float64)
+    y_offsets = (i_indices.flatten() - half_resolution_minus_half).to(dtype=torch.float64)
+    # Expand offsets to match scales
+    x_offsets = x_offsets.unsqueeze(0).unsqueeze(0)  # Shape: (1, 1, grid_resolution^2)
+    y_offsets = y_offsets.unsqueeze(0).unsqueeze(0)  # Shape: (1, 1, grid_resolution^2)
+    # Expand cell_sizes to match grid offsets
+    cell_sizes = cell_sizes.view(1, scales, 1)  # Shape: (1, scales, 1)
 
-    # Step 3: Compute grid coordinates for all batches and scales
-    grid_coords = torch.empty(batch_size, scales, grid_resolution**2, 3, device=device)
+    # Compute grid coordinates for all scales and center points
+    x_coords = center_points[:, 0:1].unsqueeze(1) + x_offsets * cell_sizes
+    y_coords = center_points[:, 1:2].unsqueeze(1) + y_offsets * cell_sizes
+    z_coords = center_points[:, 2:3].unsqueeze(1).expand(-1, scales, grid_resolution**2)
+    
+    #print(f"x_coords shape: {x_coords.shape}")  # Debugging print
+    #print(f"y_coords shape: {y_coords.shape}")  # Debugging print
+    #print(f"z_coords shape: {z_coords.shape}")  # Debugging print
 
-    for scale_idx, cell_size in enumerate(cell_sizes):
-        print(f"\nProcessing scale {scale_idx + 1}/{scales}, cell size: {cell_size}")  # Debugging print
+    # Stack into grid_coords tensor
+    grid_coords = torch.stack([x_coords, y_coords, z_coords], dim=-1)  # Shape: (batch_size, scales, grid_resolution^2, 3)
+    print(f"grid coords shape: {grid_coords.shape}, dtype: {grid_coords.dtype}")
 
-        # Dynamic calculation for all center points
-        x_coords = center_points[:, 0:1] - (half_resolution_minus_half - j_indices.flatten()) * cell_size
-        y_coords = center_points[:, 1:2] - (half_resolution_minus_half - i_indices.flatten()) * cell_size
-        z_coords = center_points[:, 2:3]
-
-        print(f"x_coords shape: {x_coords.shape}")  # Debugging print
-        print(f"y_coords shape: {y_coords.shape}")  # Debugging print
-        print(f"z_coords shape: {z_coords.shape}")  # Debugging print
-
-        # Store grid coordinates
-        grid_coords[:, scale_idx, :, 0] = x_coords
-        grid_coords[:, scale_idx, :, 1] = y_coords
-        grid_coords[:, scale_idx, :, 2] = z_coords
-        
-        print(f"grid coords after assignment of x,y,z: {grid_coords}")
-
-    # Step 4: Initialize grids (empty for now)
     grids = torch.zeros(batch_size, scales, channels, grid_resolution, grid_resolution, dtype=torch.float64, device=device)
     print(f"Initialized grids with shape: {grids.shape}")  # Debugging print
 
