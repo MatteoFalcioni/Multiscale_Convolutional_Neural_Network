@@ -99,18 +99,15 @@ class TestFeatureAssignment(unittest.TestCase):
                 # Extract old and new grids
                 old_grid = grids_dict_old[(batch_idx, scale_idx)].permute(2, 0, 1)  # Permute old grid
                 new_grid = grids_new[batch_idx, scale_idx]
-                
-                #print(f"old grid shape: [{old_grid.shape}, dtype:{old_grid.dtype}] VS new grid shape: [{new_grid.shape}, dtype:{new_grid.dtype}]")
-                #print(f"Printing first 10 values of new grid at [batch_idx, scale_idx] = [{batch_idx}, {scale_idx}]\n{new_grid[:10]}")
-                #print(f"\nPrinting first 10 values of old grid at [batch_idx, scale_idx] = [{batch_idx}, {scale_idx}]\n{old_grid[:10]}")
 
                 # Assert shapes are the same
                 self.assertEqual(
                     old_grid.shape, new_grid.shape, f"Shape mismatch for batch {batch_idx}, scale {scale_idx}"
                 )
                 
-                visualize_grid(old_grid.cpu().numpy(), channel=0)
-                visualize_grid(new_grid.cpu().numpy(), channel=0)
+                if batch_idx < 3:   # visualize a couple of grids
+                    visualize_grid(old_grid.cpu().numpy(), channel=0, feature_names=self.features_to_use)
+                    visualize_grid(new_grid.cpu().numpy(), channel=0, feature_names=self.features_to_use)
 
                 # Assert values are close
                 self.assertTrue(
