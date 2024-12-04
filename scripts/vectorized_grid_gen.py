@@ -23,7 +23,7 @@ def vectorized_create_feature_grids(center_points, window_sizes, grid_resolution
     scales = len(window_sizes)
 
     # Compute cell sizes for each scale
-    cell_sizes = window_sizes / grid_resolution
+    cell_sizes = window_sizes / grid_resolution  # Shape: (scales,)
     #print(f"Cell sizes for each scale: {cell_sizes}")  # Debugging print
 
     # Precompute indices for grid resolution
@@ -37,17 +37,13 @@ def vectorized_create_feature_grids(center_points, window_sizes, grid_resolution
     # Expand offsets to match scales
     x_offsets = x_offsets.unsqueeze(0).unsqueeze(0)  # Shape: (1, 1, grid_resolution^2)
     y_offsets = y_offsets.unsqueeze(0).unsqueeze(0)  # Shape: (1, 1, grid_resolution^2)
-    # Expand cell_sizes to match grid offsets
-    cell_sizes = cell_sizes.view(1, scales, 1)  # Shape: (1, scales, 1)
+    # Temporary broadcasting view of cell_sizes
+    cell_sizes_broadcasted = cell_sizes.view(1, scales, 1)  # Shape: (1, scales, 1)
 
     # Compute grid coordinates for all scales and center points
-    x_coords = center_points[:, 0:1].unsqueeze(1) + x_offsets * cell_sizes
-    y_coords = center_points[:, 1:2].unsqueeze(1) + y_offsets * cell_sizes
+    x_coords = center_points[:, 0:1].unsqueeze(1) + x_offsets * cell_sizes_broadcasted  # Broadcasting produces shape (B, S, res^2)
+    y_coords = center_points[:, 1:2].unsqueeze(1) + y_offsets * cell_sizes_broadcasted
     z_coords = center_points[:, 2:3].unsqueeze(1).expand(-1, scales, grid_resolution**2)
-    
-    #print(f"x_coords shape: {x_coords.shape}")  # Debugging print
-    #print(f"y_coords shape: {y_coords.shape}")  # Debugging print
-    #print(f"z_coords shape: {z_coords.shape}")  # Debugging print
 
     # Stack into grid_coords tensor
     grid_coords = torch.stack([x_coords, y_coords, z_coords], dim=-1)  # Shape: (batch_size, scales, grid_resolution^2, 3)

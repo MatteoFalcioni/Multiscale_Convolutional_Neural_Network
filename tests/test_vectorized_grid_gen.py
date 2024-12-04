@@ -28,7 +28,6 @@ class TestFeatureGridCreation(unittest.TestCase):
         self.single_idx = self.random_indices[0]
 
 
-
     def test_single_point(self):
         center_point_tensor = torch.tensor(self.data_array[self.single_idx, :], device=self.device, dtype=torch.float64)
         window_size = 5.0
@@ -47,8 +46,6 @@ class TestFeatureGridCreation(unittest.TestCase):
             ),
             dim=-1
         )
-        print(f"[OLD] old grid shape: {old_grid.shape}")
-        print(f"[OLD] old grid coords shape: {old_grid_coords.shape}")
 
         # New function
         center_points = center_point_tensor.unsqueeze(0)  # Add batch dimension
@@ -57,9 +54,6 @@ class TestFeatureGridCreation(unittest.TestCase):
         new_cell_sizes, new_grids, new_grid_coords = vectorized_create_feature_grids(
             center_points, window_sizes, self.grid_resolution, self.channels, self.device
         )
-        
-        print(f"[NEW] new grid shape: {new_grids.shape}")
-        print(f"[NEW] new coords shape: {new_grid_coords.shape}")
 
         # Compare cell sizes
         self.assertAlmostEqual(new_cell_sizes[0].item(), old_cell_size, places=10)
@@ -69,8 +63,9 @@ class TestFeatureGridCreation(unittest.TestCase):
         self.assertTrue(torch.allclose(new_grid_coords[0, 0], old_grid_coords, atol=1e-10))
 
 
-    '''def test_batch_support(self):
-        center_points = torch.tensor(self.data_array[self.random_indices, :], device=self.device)
+    def test_batch_support(self):
+        # Select random center points from the dataset
+        center_points = torch.tensor(self.data_array[self.random_indices, :], device=self.device, dtype=torch.float64)
         window_size = 5.0
 
         # Old function results for each point
@@ -80,20 +75,35 @@ class TestFeatureGridCreation(unittest.TestCase):
             ) for center_point_tensor in center_points
         ]
 
+        # Mesh the old grid for each result
+        old_meshed_coords = []
+        for old_grid, old_cell_size, old_x_coords, old_y_coords, old_z in old_results:
+            grid_x, grid_y = torch.meshgrid(old_x_coords, old_y_coords, indexing='ij')
+            old_meshed_coords.append(
+                torch.stack(
+                    (
+                        grid_x.flatten(),
+                        grid_y.flatten(),
+                        torch.full((grid_x.numel(),), old_z, device=self.device, dtype=torch.float64),
+                    ),
+                    dim=-1
+                )
+            )
+
         # New function
-        window_sizes = torch.tensor([window_size], device=self.device)
+        window_sizes = torch.tensor([window_size], device=self.device, dtype=torch.float64)
         new_cell_sizes, new_grids, new_grid_coords = vectorized_create_feature_grids(
             center_points, window_sizes, self.grid_resolution, self.channels, self.device
         )
 
-        for i, (old_grid, old_cell_size, old_x_coords, old_y_coords, old_z) in enumerate(old_results):
-            self.assertAlmostEqual(new_cell_sizes[0].item(), old_cell_size, places=6)
-            self.assertTrue(torch.allclose(new_grid_coords[i, 0, :, 0], old_x_coords.flatten(), atol=1e-6))
-            self.assertTrue(torch.allclose(new_grid_coords[i, 0, :, 1], old_y_coords.flatten(), atol=1e-6))
-            self.assertTrue(torch.allclose(new_grid_coords[i, 0, :, 2], torch.full_like(old_x_coords.flatten(), old_z), atol=1e-6))
+        # Compare results
+        for i, old_grid_coords in enumerate(old_meshed_coords):
+            self.assertAlmostEqual(new_cell_sizes[0].item(), old_results[i][1], places=10)  # Compare cell sizes
+            self.assertTrue(torch.allclose(new_grid_coords[i, 0], old_grid_coords, atol=1e-10))  # Compare coordinates
+            
 
     def test_multiscale_support(self):
-        center_point_tensor = torch.tensor([0.0, 0.0, 0.0], device=self.device)
+        center_point_tensor = torch.tensor(self.data_array[self.random_indices[0], :], device=self.device, dtype=torch.float64)
         window_sizes = torch.tensor([1.0, 2.0], device=self.device)  # Two scales
 
         # Old function results for each scale
@@ -103,15 +113,29 @@ class TestFeatureGridCreation(unittest.TestCase):
             ) for window_size in window_sizes
         ]
 
+        # Mesh the old grid for each scale
+        old_meshed_coords = []
+        for old_grid, old_cell_size, old_x_coords, old_y_coords, old_z in old_results:
+            grid_x, grid_y = torch.meshgrid(old_x_coords, old_y_coords, indexing='ij')
+            old_meshed_coords.append(
+                torch.stack(
+                    (
+                        grid_x.flatten(),
+                        grid_y.flatten(),
+                        torch.full((grid_x.numel(),), old_z, device=self.device, dtype=torch.float64),
+                    ),
+                    dim=-1
+                )
+            )
+
         # New function
         center_points = center_point_tensor.unsqueeze(0)  # Add batch dimension
         new_cell_sizes, new_grids, new_grid_coords = vectorized_create_feature_grids(
             center_points, window_sizes, self.grid_resolution, self.channels, self.device
         )
 
-        for scale_idx, (old_grid, old_cell_size, old_x_coords, old_y_coords, old_z) in enumerate(old_results):
-            self.assertAlmostEqual(new_cell_sizes[scale_idx].item(), old_cell_size, places=6)
-            self.assertTrue(torch.allclose(new_grid_coords[0, scale_idx, :, 0], old_x_coords.flatten(), atol=1e-6))
-            self.assertTrue(torch.allclose(new_grid_coords[0, scale_idx, :, 1], old_y_coords.flatten(), atol=1e-6))
-            self.assertTrue(torch.allclose(new_grid_coords[0, scale_idx, :, 2], torch.full_like(old_x_coords.flatten(), old_z), atol=1e-6))
-'''
+        # Compare results
+        for scale_idx, old_grid_coords in enumerate(old_meshed_coords):
+            self.assertAlmostEqual(new_cell_sizes[scale_idx].item(), old_results[scale_idx][1], places=10)  # Compare cell sizes
+            self.assertTrue(torch.allclose(new_grid_coords[0, scale_idx], old_grid_coords, atol=1e-10))  # Compare coordinates
+
