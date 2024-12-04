@@ -54,7 +54,8 @@ def vectorized_create_feature_grids(center_points, window_sizes, grid_resolution
 
     return cell_sizes, grids, grid_coords
 
-def vectorized_assign_features_to_grids_gpu(gpu_tree, tensor_data_array, grid_coords, grids, feature_indices_tensor, device):
+
+def vectorized_assign_features_to_grids(gpu_tree, tensor_data_array, grid_coords, grids, feature_indices_tensor, device):
     """
     Assign features to all grids for all scales and batches in a fully vectorized manner.
 
@@ -77,17 +78,46 @@ def vectorized_assign_features_to_grids_gpu(gpu_tree, tensor_data_array, grid_co
 
     # Query KDTree for nearest neighbors
     _, indices = gpu_tree.query(flattened_coords)  # Shape: (batch_size * scales * grid_resolution^2,)
-    print(f"returned indices shape {indices.shape}")
+    # Remove the singleton dimension
+    indices = indices.squeeze(-1)  # Shape: (batch_size * scales * grid_resolution^2,)
     indices = indices.view(batch_size, scales, num_cells)  # Reshape back
-    print(f"returned indices after reshaping {indices.shape}")
     
     # Fetch features for nearest neighbors
     # tensor_data_array[indices, :] -> (batch_size, scales, num_cells, num_features), 
     # [:, :, :, feature_indices_tensor] -> (batch_size, scales, num_cells, channels)
-    features = tensor_data_array[indices, :][:, :, :, feature_indices_tensor]  # Shape: (batch_size, scales, num_cells, channels)
-    print(f"features shape: {features.shape}")  
+    new_features = tensor_data_array[indices, :][:, :, :, feature_indices_tensor].view(-1, len(feature_indices_tensor))
+    features = tensor_data_array[indices, :][:, :, :, feature_indices_tensor]  # Shape: (batch_size, scales, num_cells, channels) 
     
     # Reshape and assign features to grids
-    grids[:] = features.view(batch_size, scales, grid_resolution, grid_resolution, channels).permute(0, 1, 4, 2, 3)
+    grids[:] = features.view(batch_size, scales, grid_resolution, grid_resolution, channels).permute(0, 1, 4, 3, 2)
+    
+    return grids
+
+
+def vectorized_generate_multiscale_grids(center_points, tensor_data_array, window_sizes, grid_resolution, feature_indices_tensor, gpu_tree, device="cuda:0"):
+    """
+    Generate multiscale grids for a batch of points on GPU, fully vectorized.
+
+    Args:
+    - center_points (torch.Tensor): (batch_size, 3) coordinates of the points.
+    - tensor_data_array (torch.Tensor): Point cloud data (on GPU).
+    - window_sizes (torch.Tensor): Tensor of window sizes (floats).
+    - grid_resolution (int): Resolution of the grid.
+    - feature_indices_tensor (torch.Tensor): Indices of features to use.
+    - gpu_tree (torch_kdtree): KDTree for nearest neighbor search.
+    - device (str): CUDA device.
+
+    Returns:
+    - grids (torch.Tensor): Generated grids filled with features.
+    """
+    # Generate grids and grid coordinates
+    cell_sizes, grids, grid_coords = vectorized_create_feature_grids(
+        center_points, window_sizes, grid_resolution, len(feature_indices_tensor), device
+    )
+
+    # Assign features to grids
+    grids = vectorized_assign_features_to_grids(
+        gpu_tree, tensor_data_array, grid_coords, grids, feature_indices_tensor, device
+    )
 
     return grids
