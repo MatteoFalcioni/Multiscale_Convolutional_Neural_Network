@@ -67,7 +67,7 @@ def new_prepare_dataloader(batch_size, data_filepath=None, window_sizes=None, fe
     data_array, _ = remap_labels(data_array)
     data_array = clean_nan_values(data_array)
 
-    tensor_full_data = torch.tensor(data_array, dtype=torch.float64, device=device)
+    tensor_full_data = torch.tensor(data_array, device=device, dtype=torch.float32)  # it's crucial to enforce float64 to match with cpu. tying to erase it momentarily for performance , dtype=torch.float64
 
     # Apply masking to select points if subset_file is provided
     selected_tensor, mask, point_cloud_bounds = apply_masks_gpu(
@@ -75,6 +75,8 @@ def new_prepare_dataloader(batch_size, data_filepath=None, window_sizes=None, fe
         window_sizes=window_sizes,
         subset_file=subset_file
     )
+    # assert selected_tensor.dtype == torch.float64, f"Data type must be float64"
+    
     original_indices = torch.where(mask.cpu())[0].numpy()  # Map from selected array to original data indices
 
     # Initialize dataset

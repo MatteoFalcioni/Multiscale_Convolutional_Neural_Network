@@ -7,8 +7,8 @@ import torch
 from utils.plot_utils import plot_loss
 from utils.train_data_utils import save_model
 
-'''attenzione ai punti in float64, non li stai mettedno ora credo!!!'''
-def train(model, dataloader, criterion, optimizer, device, shared_objects):
+
+def vec_train(model, dataloader, criterion, optimizer, device, shared_objects):
     """
     Trains the model for one epoch.
 
@@ -27,8 +27,8 @@ def train(model, dataloader, criterion, optimizer, device, shared_objects):
     total_loss = 0.0
     progress_bar = tqdm(enumerate(dataloader), total=len(dataloader), desc='Training', leave=False)
 
-    for i, (center_points, labels, _) in progress_bar:  '''metti i center points n float64 qunado li passiiiiii'''
-        raw_points, labels = raw_points.to(device), labels.to(device)
+    for i, (center_points, labels, _) in progress_bar:  
+        center_points, labels = center_points.to(device), labels.to(device)
 
         # Generate grids on-the-fly
         grids = vectorized_generate_multiscale_grids(
@@ -41,7 +41,12 @@ def train(model, dataloader, criterion, optimizer, device, shared_objects):
             device=device
         )
 
-        small_grids, medium_grids, large_grids = grids[:, 0], grids[:, 1], grids[:, 2]
+        # Split grids and cast to float32
+        small_grids, medium_grids, large_grids = (
+            grids[:, 0].to(torch.float32),
+            grids[:, 1].to(torch.float32),
+            grids[:, 2].to(torch.float32)
+        )
 
         optimizer.zero_grad()
         outputs = model(small_grids, medium_grids, large_grids)
@@ -55,7 +60,7 @@ def train(model, dataloader, criterion, optimizer, device, shared_objects):
     return total_loss / len(dataloader)
 
 
-def validate(model, dataloader, criterion, device, shared_objects):
+def vec_validate(model, dataloader, criterion, device, shared_objects):
     """
     Validates the model on the validation dataset.
 
@@ -73,21 +78,25 @@ def validate(model, dataloader, criterion, device, shared_objects):
     total_loss = 0.0
 
     with torch.no_grad():
-        for raw_points, labels, _ in tqdm(dataloader, desc="Validating", leave=False):
-            raw_points, labels = raw_points.to(device), labels.to(device)
+        for center_points, labels, _ in tqdm(dataloader, desc="Validating", leave=False):
+            center_points, labels = center_points.to(device), labels.to(device)
 
             grids = vectorized_generate_multiscale_grids(
-                raw_points,
-                shared_objects['window_sizes'],
-                shared_objects['grid_resolution'],
-                shared_objects['num_features'],
-                shared_objects['gpu_tree'],
-                shared_objects['tensor_full_data'],
-                shared_objects['feature_indices_tensor'],
-                device
+                center_points=center_points,
+                window_sizes=shared_objects['window_sizes_tensor'],
+                grid_resolution=shared_objects['grid_resolution'],
+                gpu_tree=shared_objects['gpu_tree'],
+                tensor_data_array=shared_objects['tensor_full_data'],
+                feature_indices_tensor=shared_objects['feature_indices_tensor'],
+                device=device
             )
 
-            small_grids, medium_grids, large_grids = grids[:, 0], grids[:, 1], grids[:, 2]
+            # Split grids and cast to float32
+            small_grids, medium_grids, large_grids = (
+                grids[:, 0].to(torch.float32),
+                grids[:, 1].to(torch.float32),
+                grids[:, 2].to(torch.float32)
+            )
             outputs = model(small_grids, medium_grids, large_grids)
             loss = criterion(outputs, labels)
             total_loss += loss.item()
@@ -95,7 +104,7 @@ def validate(model, dataloader, criterion, device, shared_objects):
     return total_loss / len(dataloader)
 
 
-def train_epochs(model, train_loader, val_loader, criterion, optimizer, scheduler, epochs, patience, device, shared_objects, model_save_dir='models/saved/', save=False, used_features=None, hyperparameters=None):
+def vec_train_epochs(model, train_loader, val_loader, criterion, optimizer, scheduler, epochs, patience, device, shared_objects, model_save_dir='models/saved/', save=False, used_features=None, hyperparameters=None):
     """
     Trains the MCNN model over multiple epochs with early stopping and applies learning rate decay.
     After each epoch, the model is evaluated on a validation set, and training stops if the validation
@@ -128,41 +137,33 @@ def train_epochs(model, train_loader, val_loader, criterion, optimizer, schedule
     patience_counter = 0
 
     # Extract shared objects
-    gpu_tree = shared_objects['gpu_tree']
+    """gpu_tree = shared_objects['gpu_tree']
     tensor_full_data = shared_objects['tensor_full_data']
     feature_indices_tensor = shared_objects['feature_indices_tensor']
     window_sizes_tensor = shared_objects['window_sizes_tensor']
-    grid_resolution = shared_objects['grid_resolution']
+    grid_resolution = shared_objects['grid_resolution']"""
 
     for epoch in range(epochs):
         print(f'Epoch {epoch + 1}/{epochs}')
 
         # Training step
-        train_loss = train(
+        train_loss = vec_train(
             model,
             train_loader,
             criterion,
             optimizer,
             device,
-            gpu_tree,
-            tensor_full_data,
-            feature_indices_tensor,
-            window_sizes_tensor,
-            grid_resolution
+            shared_objects
         )
         train_losses.append(train_loss)
 
         # Validation step
-        val_loss = validate(
+        val_loss = vec_validate(
             model,
             val_loader,
             criterion,
             device,
-            gpu_tree,
-            tensor_full_data,
-            feature_indices_tensor,
-            window_sizes_tensor,
-            grid_resolution
+            shared_objects
         )
         val_losses.append(val_loss)
 

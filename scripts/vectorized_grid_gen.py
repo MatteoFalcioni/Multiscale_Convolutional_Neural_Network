@@ -47,10 +47,10 @@ def vectorized_create_feature_grids(center_points, window_sizes, grid_resolution
 
     # Stack into grid_coords tensor
     grid_coords = torch.stack([x_coords, y_coords, z_coords], dim=-1)  # Shape: (batch_size, scales, grid_resolution^2, 3)
-    print(f"grid coords shape: {grid_coords.shape}, dtype: {grid_coords.dtype}")
+    #print(f"grid coords shape: {grid_coords.shape}, dtype: {grid_coords.dtype}")
 
     grids = torch.zeros(batch_size, scales, channels, grid_resolution, grid_resolution, dtype=torch.float64, device=device)
-    print(f"Initialized grids with shape: {grids.shape}")  # Debugging print
+    #print(f"Initialized grids with shape: {grids.shape}")  # Debugging print
 
     return cell_sizes, grids, grid_coords
 
