@@ -8,24 +8,12 @@ from datetime import datetime
 from utils.create_dataset import create_dataset, create_train_eval_datasets
 
 
-# - creare nuovo dataset, i.e. file enorme con tanti punti + train/eval con train sui 2 milioni/2.5 di punti *DONE
-# - finire di testare train_data_utils con dati reali, e vedere se è molto più lento    *DONE
-# - testare che il training funzioni come al solito con sta nuova selection, con test_training  *DONE
+# CPU implementation funziona ed è la migliore possibile. Testato.
+# Prove training con finestre più piccole ora che abbiamo punti nei dintorni del train daatset.
+# Poi eventualmente ripetere prove già fatte, poche feature, finestre molto piccole...
 
-# Quindi -------------------
-# - Vedere risultati training *DONE
-# - Controllare evaluation  *DONE
-# - controllare se predictions funziona normalmente 
-# - Vedere se con l'implementazione attuale su gpu è più veloce --> problema in num_workers>0
-# - Sistemare il match dei punti ---> *DONE
-
-# (SMALL ISSUE): non c'è una logica user friendly se lo user non vuole usare un subset ma tipo trainare direttamente solo su un training file 
-# magari il subset glielo creiamo noi in quel caso? boh, non molto importante ora
-
-# --------------4/12---------------
-# GPU vectorized grid gen working. refactoting code in order to have simple get item
-# Grid generation ouside the get_item method now.  
-# Still problems with n_workers>0 ;aybe leave evrything on cpu until training??
+# --> metti dati suLeonardo in modo da poter fare un training lì e uno qua nel frattempo, o cose del genere.
+# --> nel frattempo fare inferenza
 
 '''input_file='data/datasets/full_dataset.csv'
 subset_file='data/datasets/train_&_eval_dataset.csv'
