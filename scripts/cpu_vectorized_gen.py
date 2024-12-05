@@ -1,5 +1,5 @@
 import numpy as np
-from scipy.spatial import cKDTree
+
 
 def numpy_create_feature_grids(center_points, window_sizes, grid_resolution, channels):
     """
@@ -73,7 +73,7 @@ def numpy_assign_features_to_grids(cpu_tree, full_data_array, grid_coords, grids
 
     # Reshape and assign features to grids
     reshaped_features = features.reshape(batch_size, scales, grid_resolution, grid_resolution, len(feature_indices))
-    grids[:] = np.transpose(reshaped_features, axes=(0, 1, 4, 2, 3))
+    grids[:] = np.transpose(reshaped_features, axes=(0, 1, 4, 3, 2))
 
     return grids
 
