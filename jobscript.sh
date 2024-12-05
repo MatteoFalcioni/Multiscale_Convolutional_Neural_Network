@@ -2,7 +2,7 @@
 #SBATCH --job-name=CNN_inference_try      # Nome del job
 #SBATCH --output=job_%j.out               # File di output (%j inserisce il JobID)
 #SBATCH --error=job_%j.err                # File di errore (%j inserisce il JobID)
-#SBATCH --time=12:00:00                   # Tempo massimo di esecuzione (hh:mm:ss)
+#SBATCH --time=20:00:00                   # Tempo massimo di esecuzione (hh:mm:ss)
 #SBATCH --partition=boost_usr_prod        # Partizione su cui lanciare il lavoro (boost_usr_prod = normale, con GPU)
 #SBATCH --nodes=1                         # Numero di compute nodes
 #SBATCH --ntasks-per-node=1               # Numero di task
@@ -14,4 +14,4 @@
 # Carica i moduli necessari 
 module load cineca-ai
 
-srun python main.py --load_model --load_model_filepath 'models/saved/mcnn_model_20241030_051517/model.pth' --batch_size 32 --num_workers 1
+srun python main.py --dataset_filepath 'data/datasets/sampled_data_5251681.csv' --training_data_filepath 'data/datasets/train_dataset.csv' --evaluate_model_after_training --evaluation_data_filepath 'data/datasets/eval_dataset.csv' --batch_size 32 --num_workers 32 --window_sizes '[10, 20, 30]' --features_to_use intensity, red, green, blue --epochs 10 --patience 2 
