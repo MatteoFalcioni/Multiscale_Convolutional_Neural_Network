@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=CNN_inference_try      # Nome del job
+#SBATCH --job-name=CNN_train      # Nome del job
 #SBATCH --output=job_%j.out               # File di output (%j inserisce il JobID)
 #SBATCH --error=job_%j.err                # File di errore (%j inserisce il JobID)
 #SBATCH --time=20:00:00                   # Tempo massimo di esecuzione (hh:mm:ss)
@@ -11,7 +11,8 @@
 #SBATCH --mem=400GB                       # Memoria per nodo (0 = richedi tutta la memoria?)
 #SBATCH --account=DTbo_DTBO-HPC           # Account da cui prendere le ore di CPU
 
-# Carica i moduli necessari 
-module load cineca-ai
+echo "compae"
 
-srun python main.py --dataset_filepath 'data/datasets/sampled_data_5251681.csv' --training_data_filepath 'data/datasets/train_dataset.csv' --evaluate_model_after_training --evaluation_data_filepath 'data/datasets/eval_dataset.csv' --batch_size 32 --num_workers 32 --window_sizes '[10, 20, 30]' --features_to_use intensity, red, green, blue --epochs 10 --patience 2 
+srun python -u main.py --dataset_filepath 'data/datasets/sampled_data_5251681.csv' --training_data_filepath 'data/datasets/train_dataset.csv' --evaluate_model_after_training --evaluation_data_filepath 'data/datasets/eval_dataset.csv' --batch_size 32 --num_workers 32 --window_sizes '[10, 20, 30]' --features_to_use intensity, red, green, blue --epochs 10 --patience 2 
+
+echo "Python script executed."

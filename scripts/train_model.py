@@ -109,7 +109,7 @@ def train_model(full_data_filepath, features_to_use, batch_size, epochs, patienc
                                         gamma=learning_rate_decay_factor)
 
     # Training and validation loop
-    print("\n==============================Starting training==============================\n")
+    print("\n==============================Starting training==============================\n", flush=True)
     start_time = time.time()
 
     model_save_folder = train_epochs(
@@ -130,6 +130,6 @@ def train_model(full_data_filepath, features_to_use, batch_size, epochs, patienc
 
     end_time = time.time()
     elapsed_time = (end_time - start_time) /3600   # in hours
-    print(f"\n========================Training completed in {elapsed_time:.2f} hours========================\n")
+    print(f"\n========================Training completed in {elapsed_time:.2f} hours========================\n", flush=True)
 
     return model, model_save_folder
