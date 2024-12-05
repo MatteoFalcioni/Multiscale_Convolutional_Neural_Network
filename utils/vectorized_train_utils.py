@@ -1,5 +1,5 @@
 from scripts.old_gpu_grid_gen import apply_masks_gpu
-from scripts.vectorized_grid_gen import vectorized_generate_multiscale_grids
+from scripts.vectorized_gpu_grid_gen import vectorized_generate_multiscale_grids
 from torch.utils.data import Dataset, DataLoader, random_split
 import torch
 from utils.point_cloud_data_utils import read_file_to_numpy, remap_labels, clean_nan_values

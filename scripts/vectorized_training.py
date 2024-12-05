@@ -2,7 +2,7 @@
 Sennò le griglie non matchano tra cpu e gpu'''
 
 from tqdm import tqdm
-from scripts.vectorized_grid_gen import vectorized_generate_multiscale_grids
+from scripts.vectorized_gpu_grid_gen import vectorized_generate_multiscale_grids
 import torch
 from utils.plot_utils import plot_loss
 from utils.train_data_utils import save_model

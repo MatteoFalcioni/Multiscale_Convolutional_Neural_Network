@@ -3,7 +3,7 @@ import torch
 import numpy as np
 import random
 from scripts.old_gpu_grid_gen import create_feature_grid_gpu, apply_masks_gpu, assign_features_to_grid_gpu
-from scripts.vectorized_grid_gen import vectorized_create_feature_grids, vectorized_assign_features_to_grids, vectorized_generate_multiscale_grids
+from scripts.vectorized_gpu_grid_gen import vectorized_create_feature_grids, vectorized_assign_features_to_grids, vectorized_generate_multiscale_grids
 from utils.point_cloud_data_utils import read_file_to_numpy
 from torch_kdtree import build_kd_tree
 from utils.plot_utils import visualize_grid

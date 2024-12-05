@@ -85,7 +85,6 @@ def vectorized_assign_features_to_grids(gpu_tree, tensor_data_array, grid_coords
     # Fetch features for nearest neighbors
     # tensor_data_array[indices, :] -> (batch_size, scales, num_cells, num_features), 
     # [:, :, :, feature_indices_tensor] -> (batch_size, scales, num_cells, channels)
-    new_features = tensor_data_array[indices, :][:, :, :, feature_indices_tensor].view(-1, len(feature_indices_tensor))
     features = tensor_data_array[indices, :][:, :, :, feature_indices_tensor]  # Shape: (batch_size, scales, num_cells, channels) 
     
     # Reshape and assign features to grids
