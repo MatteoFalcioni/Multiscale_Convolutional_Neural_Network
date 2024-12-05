@@ -26,7 +26,7 @@ sample_size = int(2*len(subset_df)) +1
 df = reservoir_sample_with_subset(input_file, sample_size, subset_file, save=True, save_dir='data/datasets/sampled_full_dataset', feature_to_use=None, chunk_size=100000, tol=1e-10)
 '''
 
-df = pd.read_csv('data/datasets/eval_dataset.csv')
+df = pd.read_csv('data/datasets/train_dataset.csv')
 print(df.columns)
 
 # Count the number of points per class
