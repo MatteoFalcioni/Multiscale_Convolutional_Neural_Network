@@ -13,4 +13,4 @@
 
 echo "Running python script..."
 
-srun python -u main.py --dataset_filepath 'data/datasets/sampled_data_5251681.csv' --training_data_filepath 'data/datasets/train_dataset.csv' --evaluate_model_after_training --evaluation_data_filepath 'data/datasets/eval_dataset.csv' --batch_size 32 --num_workers 32 --window_sizes '[5, 10, 20]' --features_to_use intensity --epochs 10 --patience 2
+srun python -u main.py --dataset_filepath 'data/datasets/sampled_data_5251681.csv' --training_data_filepath 'data/datasets/train_dataset.csv' --evaluate_model_after_training --evaluation_data_filepath 'data/datasets/eval_dataset.csv' --batch_size 32 --num_workers 32 --window_sizes '[2.5, 5, 10]' --features_to_use intensity --epochs 10 --patience 2
