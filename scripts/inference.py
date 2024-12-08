@@ -12,6 +12,7 @@ from tqdm import tqdm
 import torch.multiprocessing as mp
 import sys
 import shutil
+import time
 
 
 
@@ -37,6 +38,8 @@ def predict(file_path, model, model_path, device, batch_size, window_sizes, grid
     Returns:
     - None: This function performs inference and saves results to disk.
     """
+    start_time = time.time()
+
     # get the model direcotry from its path
     model_directory = os.path.dirname(model_path)
     
@@ -46,7 +49,6 @@ def predict(file_path, model, model_path, device, batch_size, window_sizes, grid
 
     # get overlap size from window sizes: it's the dimension of the largest window size
     overlap_size = int([value for label, value in window_sizes if label == 'large'][0])
-    # print(f'overlap size: {overlap_size}')
 
     # print(f"Total points in the file: {total_points}")
     
@@ -64,14 +66,19 @@ def predict(file_path, model, model_path, device, batch_size, window_sizes, grid
         output_filepath = stitch_subtiles(subtile_folder=prediction_folder, original_las=las_file, original_filename=file_path, model_directory=model_directory, overlap_size=overlap_size)
 
         # Teardown: Remove the subtile folder and its content
-        # shutil.rmtree(subtile_folder)  # Removes the entire sub-tile folder
+        shutil.rmtree(subtile_folder)  # Removes the entire sub-tile folder
 
-        print(f'\nInference completed succesfully. File saved at {output_filepath}')
+        end_time=time.time()
+
+        print(f'\nInference completed succesfully in {end_time-start_time/3600:.2f} hours. File saved at {output_filepath}')
             
     else:
         print(f"File has less than {min_points} points. Performing inference directly on the entire file.")
         
         # adapt predict_subtiles logic to handle a file with less than min points
+    
+    
+
 
 
 def predict_subtiles(subtile_folder, model, device, batch_size, window_sizes, grid_resolution, features_to_use, num_workers):

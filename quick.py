@@ -26,6 +26,8 @@ sample_size = int(2*len(subset_df)) +1
 df = reservoir_sample_with_subset(input_file, sample_size, subset_file, save=True, save_dir='data/datasets/sampled_full_dataset', feature_to_use=None, chunk_size=100000, tol=1e-10)
 '''
 
+# srun python -u main.py --dataset_filepath 'data/datasets/sampled_data_5251681.csv' --training_data_filepath 'data/datasets/train_dataset.csv' --evaluate_model_after_training --evaluation_data_filepath 'data/datasets/eval_dataset.csv' --batch_size 32 --num_workers 32 --window_sizes '[5, 10, 20]' --features_to_use intensity --epochs 10 --patience 2
+
 df = pd.read_csv('data/datasets/train_dataset.csv')
 print(df.columns)
 
