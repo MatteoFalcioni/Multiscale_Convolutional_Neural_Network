@@ -25,8 +25,15 @@ sample_size = int(2*len(subset_df)) +1
 
 df = reservoir_sample_with_subset(input_file, sample_size, subset_file, save=True, save_dir='data/datasets/sampled_full_dataset', feature_to_use=None, chunk_size=100000, tol=1e-10)
 '''
+# TRAIN
+# srun python -u main.py --dataset_filepath 'data/datasets/sampled_data_5251681.csv' --training_data_filepath 'data/datasets/train_dataset.csv' --evaluate_model_after_training --evaluation_data_filepath 'data/datasets/eval_dataset.csv' --batch_size 32 --num_workers 32 --window_sizes '[5, 10, 20]' --features_to_use intensity red green blue nir delta_z l1 l2 l3 --epochs 10 --patience 2
 
-# srun python -u main.py --dataset_filepath 'data/datasets/sampled_data_5251681.csv' --training_data_filepath 'data/datasets/train_dataset.csv' --evaluate_model_after_training --evaluation_data_filepath 'data/datasets/eval_dataset.csv' --batch_size 32 --num_workers 32 --window_sizes '[5, 10, 20]' --features_to_use intensity --epochs 10 --patience 2
+# EVAL 
+# srun python -u main.py --perform_evaluation --load_model_filepath 'models/saved/mcnn_model_20241209_042355/model.pth' --dataset_filepath 'data/training_data/21/test_21.csv' --evaluation_data_filepath 'data/training_data/21/test_21.csv' --batch_size 32 --num_workers 32 
+
+# PREDICT
+# srun python -u main.py --predict_labels --file_to_predict 'data/chosen_tiles/32_687000_4930000_FP21.las'  --load_model_filepath 'models/saved/mcnn_model_20241209_042355/model.pth' --batch_size 32 --num_workers 32 
+
 
 df = pd.read_csv('data/datasets/train_dataset.csv')
 print(df.columns)
