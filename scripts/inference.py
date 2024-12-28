@@ -70,7 +70,7 @@ def predict(file_path, model, model_path, device, batch_size, window_sizes, grid
 
         end_time=time.time()
 
-        print(f'\nInference completed succesfully in {end_time-start_time/3600:.2f} hours. File saved at {output_filepath}')
+        print(f'\nInference completed succesfully in {((end_time-start_time)/3600):.2f} hours. File saved at {output_filepath}')
             
     else:
         print(f"File has less than {min_points} points. Performing inference directly on the entire file.")
