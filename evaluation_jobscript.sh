@@ -13,6 +13,6 @@
 
 echo "Running python script..."
 
-srun python -u main.py --perform_evaluation --load_model_filepath 'models/saved/mcnn_model_20241228_014729/model.pth' --dataset_filepath 'data/training_data/21/test_21.csv' --evaluation_data_filepath 'data/training_data/21/test_21.csv' --batch_size 32 --num_workers 32 
+srun python -u main.py --perform_evaluation --load_model_filepath 'models/saved/mcnn_model_20241230_070337/model.pth' --dataset_filepath 'data/training_data/21/test_21.csv' --evaluation_data_filepath 'data/training_data/21/test_21.csv' --batch_size 32 --num_workers 32 
 
-echo "Evaluate 'old' model on test_21"
+echo "Evaluate on test_21"
