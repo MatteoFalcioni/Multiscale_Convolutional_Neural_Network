@@ -67,7 +67,7 @@ First of all, if you want to evaluate the model directly after training, you can
 This argument should be followed by the argument `--evaluation_data_filepath` specifying the filepath to the file you want on which you want to evaluate the model. 
 For example:
 ```bash
-python main.py <training_command_line_arguments> --evaluate_model_after_training --evaluation_data_filepath <path_to_your_test_file>
+python main.py <other_command_line_arguments> --evaluate_model_after_training --evaluation_data_filepath <path_to_your_test_file>
 ```
 Otherwise, you can evaluate model independently from training by specifying it in the command line with the argument `--perform_evaluation` and specifying the path to the model you want to evaluate with the argument `--load_model_filepath <path_to_the_model>`. 
 For example:
