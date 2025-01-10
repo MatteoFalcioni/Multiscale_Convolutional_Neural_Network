@@ -112,15 +112,16 @@ The `vectorization_tries/` folder contains gpu accelerated versiions of the code
 
 Here are some results of the MCNN classificator on the tiles of Bolgona's LiDAR Dataset:
 
-![MCNN classification](images/confusion_matrix.png "MCNN classification")
+![MCNN classification](images/tile_4.png "MCNN classification")
+![MCNN classification](images/tile_4_labeled.png "MCNN classification")
 
 Here is a visualization of the confusion matrix for the best trained model:
 
-![Confusion Matrix](images/confusion_matrix.png "Confusion Matrix")
+![Confusion Matrix](images/conf_int_RGB_NIR_l1l2l3(1).png "Confusion Matrix")
 
 Below is a plot of the training and validation losses:
 
-![Training/Validation Loss](images/training_loss.png "Training and Validation Loss")
+![Training/Validation Loss](images/loss.png "Training and Validation Loss")
 
 
 
