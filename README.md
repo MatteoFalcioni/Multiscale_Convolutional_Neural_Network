@@ -1,9 +1,6 @@
 # Multi-Scale Convolutional Neural Network (MCNN) Training Project
 
-This project contains the implementation of a Multi-Scale Convolutional Neural Network (MCNN) for processing point cloud data and generating corresponding images, based on the methodologies described in the articles
-"Segmentation and Multi-Scale Convolutional Neural Network-Based Classification of Airborne Laser
-Scanner Data" (2018) - at https://www.mdpi.com/1424-8220/18/10/3347 - and "A Convolutional Neural Network-Based 3D Semantic
-Labeling Method for ALS Point Clouds" (2017) at https://www.mdpi.com/2072-4292/9/9/936. 
+This project contains the implementation of a Multi-Scale Convolutional Neural Network (MCNN) for the classification of LiDAR cloud data and generating corresponding images, based on the methodologies described in the articles "Segmentation and Multi-Scale Convolutional Neural Network-Based Classification of Airborne Laser Scanner Data" (2018) - at https://www.mdpi.com/1424-8220/18/10/3347 - and "A Convolutional Neural Network-Based 3D Semantic Labeling Method for ALS Point Clouds" (2017) at https://www.mdpi.com/2072-4292/9/9/936. 
 
 ## Table of Contents
 - Installation
