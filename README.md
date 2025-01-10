@@ -47,7 +47,7 @@ To train the MCNN model with custom setting, you can use the argument parser to 
 - `--momentum` specifies the value of momentum to be used in the scheduler;
 - `--num_workers` specifies the number of workers to be used from the PyTorch dataloader for parallel processing;
 - `--features_to_use` specifies the selected features from the data that should be used for the feature images generation. For example, a valid argument could be `--features_to_use intensity red green blue` ;
-- `--window sizes` specifies the chosen window sizes of the feature images, in meters. For example, a valid argument could be `--window sizes 2.5 5.0 10.0` ;
+- `--window sizes` is a list that specifies the chosen window sizes of the feature images, in meters. For example, a valid argument could be `--window sizes [2.5, 5.0, 10.0]` ;
 - `save_model` specifies if the model should be saved or discarded. Default is True;
 - `model_save_dir` specifiying the directory where the model should be saved. . The default directory is `models/saved/` ;
 - `--dataset_filepath` allows you to specify the path to a bigger dataset file, for which training and evaluation files are subsets. This is useful if you want to generate feature images only for a subset of the full dataset, while still using all points for nearest neighbor feature assignment.
