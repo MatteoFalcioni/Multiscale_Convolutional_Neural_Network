@@ -38,18 +38,18 @@ The training file can be in `.las` or `.csv` format.
 
 To train the MCNN model with custom setting, you can use the argument parser to specify relevant command line arguments. The possible commands are:
  
-- `--batch size`  specifies batch size for training
-- `--epochs` specifies the number of training epochs
-- `--patience` specifies the number of epochs to wait for an improvement in validation loss before early stopping
-- `--learning_rate` specifies the learning rate for the optimizer
-- `--learning_rate_decay_epochs` specifies the epochs interval to decay learning rate 
-- `--learning_rate_decay_factor` specifies the learning rate decay factor
-- `--momentum` specifies the value of momentum to be used in the scheduler
-- `--num_workers` specifies the number of workers to be used from the PyTorch dataloader for parallel processing
-- `--features_to_use` specifies the selected features from the data that should be used for the feature images generation. For example, a valid argument could be `--features_to_use intensity red green blue`
-- `--window sizes` specifies the chosen window sizes of the feature images, in meters. For example, a valid argument could be `--window sizes 2.5 5.0 10.0`
-- `save_model` specifies if the model should be saved or discarded. Default is True
-- `model_save_dir` specifiying the directory where the model should be saved. . The default directory is `models/saved/`
+- `--batch size`  specifies batch size for training;
+- `--epochs` specifies the number of training epochs;
+- `--patience` specifies the number of epochs to wait for an improvement in validation loss before early stopping;
+- `--learning_rate` specifies the learning rate for the optimizer;
+- `--learning_rate_decay_epochs` specifies the epochs interval to decay learning rate ;
+- `--learning_rate_decay_factor` specifies the learning rate decay factor;
+- `--momentum` specifies the value of momentum to be used in the scheduler;
+- `--num_workers` specifies the number of workers to be used from the PyTorch dataloader for parallel processing;
+- `--features_to_use` specifies the selected features from the data that should be used for the feature images generation. For example, a valid argument could be `--features_to_use intensity red green blue` ;
+- `--window sizes` specifies the chosen window sizes of the feature images, in meters. For example, a valid argument could be `--window sizes 2.5 5.0 10.0` ;
+- `save_model` specifies if the model should be saved or discarded. Default is True;
+- `model_save_dir` specifiying the directory where the model should be saved. . The default directory is `models/saved/` ;
 - `--dataset_filepath` allows you to specify the path to a bigger dataset file, for which training and evaluation files are subsets. This is useful if you want to generate feature images only for a subset of the full dataset, while still using all points for nearest neighbor feature assignment.
 
 If you save the model, it will be saved as a `.pth` file that can be loaded later on for evaluation or for predictions.
