@@ -110,7 +110,7 @@ The `vectorization_tries/` folder contains gpu accelerated versiions of the code
 
 # MCNN Results
 
-Here are some results of the MCNN classificator on the tiles of Bolgona's LiDAR Dataset:
+In the following we show some results of the MCNN classificator on the tiles of Bolgona's LiDAR Dataset. On the left, the images show the point clouds in RGB values. On the right, the predicted labels. Buildings are orange, Grass is green, High Vegetation is yellow, Railway is brown, Roads are grey and Cars are white.
 
 <div style="display: flex; justify-content: space-evenly;">
   <figure style="margin: 0 10px;">
@@ -136,11 +136,11 @@ Here are some results of the MCNN classificator on the tiles of Bolgona's LiDAR 
 
 Here is a visualization of the confusion matrix for the best trained model, evaluated on the evaluation dataset:
 
-<img src="images/conf_int_RGB_NIR_l1l2l3 (1).png" alt="Confusion Matrix" width="400"/>
+<img src="images/conf_int_RGB_NIR_l1l2l3 (1).png" alt="Confusion Matrix" width="500"/>
 
 Finally, below is a plot of the training and validation losses:
 
-<img src="images/loss.png" alt="Confusion Matrix" width="400"/>
+<img src="images/loss.png" alt="Confusion Matrix" width="500"/>
 
 
 
