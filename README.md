@@ -36,8 +36,7 @@ python main.py --training_data_filepath <path_to_training_file>
 The training file can be in `.las` or `.csv` format.
 
 To train the MCNN model with custom setting, you can use the argument parser to specify relevant command line arguments. The possible commands are:
-
-- `--subset_filepath` allows you to specify the file path to a file containing a subset of points from the training file, on which you want to train the model. This is useful if you want to generate feature images only for a subset of the full training dataset, while still using all points for nearest neighbor feature assignment. 
+ 
 - `--batch size`  specifies batch size for training
 - `--epochs` specifies the number of training epochs
 - `--patience` specifies the number of epochs to wait for an improvement in validation loss before early stopping
@@ -50,6 +49,7 @@ To train the MCNN model with custom setting, you can use the argument parser to 
 - `--window sizes` specifies the chosen window sizes of the feature images, in meters. For example, a valid argument could be `--window sizes 2.5 5.0 10.0`
 - `save_model` specifies if the model should be saved or discarded. Default is True
 - `model_save_dir` specifiying the directory where the model should be saved. . The default directory is `models/saved/`
+- `--dataset_filepath` allows you to specify the path to a bigger dataset file, for which training and evaluation files are subsets. This is useful if you want to generate feature images only for a subset of the full dataset, while still using all points for nearest neighbor feature assignment.
 
 If you save the model, it will be saved as a `.pth` file that can be loaded later on for evaluation or for predictions.
 In the same folder, the code will automatically save the files:
@@ -105,6 +105,8 @@ The code is subdivided in 4 main modules:
 Outside of these folders you can find the `main.py` script, which is the core script of the code, handling training/evaluation/prediction based on the specified command line arguments, as described above. 
 
 You can also find the default command line parameters inside the `config.yaml` file, and the depencies for the conda environment inside `environment.yml`. 
+
+The `vectorization_tries/` folder contains gpu accelerated versiions of the code, which resulted less efficient compared to the CPU multi-processing implementation. 
 
 
 
