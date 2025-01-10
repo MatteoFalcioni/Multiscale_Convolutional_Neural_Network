@@ -108,6 +108,21 @@ You can also find the default command line parameters inside the `config.yaml` f
 
 The `vectorization_tries/` folder contains gpu accelerated versiions of the code, which resulted less efficient compared to the CPU multi-processing implementation. 
 
+# MCNN Results
+
+Here are some results of the MCNN classificator on the tiles of Bolgona's LiDAR Dataset:
+
+![MCNN classification](images/confusion_matrix.png "MCNN classification")
+
+Here is a visualization of the confusion matrix for the best trained model:
+
+![Confusion Matrix](images/confusion_matrix.png "Confusion Matrix")
+
+Below is a plot of the training and validation losses:
+
+![Training/Validation Loss](images/training_loss.png "Training and Validation Loss")
+
+
 
 
 
