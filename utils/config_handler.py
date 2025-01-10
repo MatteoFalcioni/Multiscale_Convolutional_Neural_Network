@@ -20,7 +20,7 @@ def parse_window_sizes(value):
 
 
 
-def load_config(file_path='config.yaml'):
+def load_config(file_path='code/config.yaml'):
     """
     Load configuration from a YAML file.
     """
@@ -109,14 +109,19 @@ def parse_arguments():
                         default=config.get('file_to_predict', 'data/chosen_tiles/'),
                         help='File path to the file we need to run predictions on.')
     
-    
-    
-    
-    
-    
-
     # Parsing arguments
     args = parser.parse_args()
+    
+    # If dataset_filepath was not explicitly set on the command line
+    if not args.dataset_filepath:  
+        # 1) Check if training_data_filepath was provided
+        if args.training_data_filepath:
+            args.dataset_filepath = args.training_data_filepath
+        
+        # 2) Otherwise, if evaluation_data_filepath was provided
+        elif args.evaluation_data_filepath:
+            args.dataset_filepath = args.evaluation_data_filepath
+            
 
     return args
 
