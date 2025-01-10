@@ -111,7 +111,7 @@ The `vectorization_tries/` folder contains gpu accelerated versiions of the code
 
 # MCNN Results
 
-In the following we show some results of the MCNN classificator on the tiles of Bolgona's LiDAR Dataset. On the left, the images show the point clouds in RGB values. On the right, the predicted labels. Buildings are orange, Grass is green, High Vegetation is yellow, Railway is brown, Roads are grey and Cars are white.
+In the following we show some results of the MCNN classificator on the tiles of Bologna's LiDAR Dataset. On the left, the images show the point clouds in RGB values. On the right, the predicted labels. Buildings are orange, Grass is green, High Vegetation is yellow, Railway is brown, Roads are grey and Cars are white.
 
 <div style="display: flex; justify-content: space-evenly;">
   <figure style="margin: 0 10px;">
