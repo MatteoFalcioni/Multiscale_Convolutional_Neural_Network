@@ -114,22 +114,22 @@ Here are some results of the MCNN classificator on the tiles of Bolgona's LiDAR 
 
 <div style="display: flex; justify-content: space-evenly;">
   <figure style="margin: 0 10px;">
-    <img src="images/tile_4.png" alt="MCNN classification" width="300"/>
-    <figcaption>Tile 4 - Classification</figcaption>
+    <img src="images/tile_4.png" alt="MCNN classification" width="400"/>
+    
   </figure>
   <figure style="margin: 0 10px;">
-    <img src="images/tile_4_labeled.png" alt="MCNN classification" width="300"/>
-    <figcaption>Tile 4 - Labeled</figcaption>
+    <img src="images/tile_4_labeled.png" alt="MCNN classification" width="400"/>
+    
   </figure>
 </div>
 
 Here is a visualization of the confusion matrix for the best trained model:
 
-<img src="images/conf_int_RGB_NIR_l1l2l3 (1).png" alt="Confusion Matrix" width="300"/>
+<img src="images/conf_int_RGB_NIR_l1l2l3 (1).png" alt="Confusion Matrix" width="400"/>
 
 Below is a plot of the training and validation losses:
 
-<img src="images/loss.png" alt="Confusion Matrix" width="300"/>
+<img src="images/loss.png" alt="Confusion Matrix" width="400"/>
 
 
 
