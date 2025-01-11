@@ -64,16 +64,15 @@ You can find all default values of the command line arguments inside the `config
 
 ## Model evaluation
 You can evaluate a model performance by specifying other command line arguments. 
-First of all, if you want to evaluate the model directly after training, you can add to the training command line the argument `--evaluate_model_after_training` if you want to perform the evaluation right after training is completed. 
-This argument should be followed by the argument `--evaluation_data_filepath` specifying the filepath to the file you want on which you want to evaluate the model. 
+First of all, if you want to evaluate the model directly after training, you can add to the training command line the argument `--evaluate_model_after_training`. This argument should be followed by the argument `--evaluation_data_filepath` specifying the filepath to the file you want on which you want to evaluate the model. 
 For example:
 ```bash
 python main.py <other_command_line_arguments> --evaluate_model_after_training --evaluation_data_filepath <path_to_your_test_file>
 ```
-Otherwise, you can evaluate model independently from training by specifying it in the command line with the argument `--perform_evaluation` and specifying the path to the model you want to evaluate with the argument `--load_model_filepath <path_to_the_model>`. 
+Otherwise, you can evaluate the model independently from training, by specifying it in the command line with the argument `--perform_evaluation`, specifying the path to the model you want to evaluate with the argument `--load_model_filepath <path_to_the_model>`, and sepcifying the evaluation data as above with `--evaluation_data_filepath`. 
 For example:
 ```bash
-python main.py --perform_evaluation --load_model_filepath <path_to_the_model>
+python main.py --perform_evaluation --load_model_filepath <path_to_the_model> --evaluation_data_filepath <path_to_evaluation_dataset>
 ```
 In both cases, a folder `inference_<timestamp>` will be created inside the model folder, containing the files
 - `classification_report.csv` with the classification report;
@@ -86,10 +85,10 @@ In order to do so, you must specify from command line the file path to the model
 This file must be in `.las` format.
 For example:  
 ```bash
-python main.py --load_model_filepath --predict_labels --file_to_predict <path_to_las_file_to_predict>
+python main.py --predict_labels --load_model_filepath <filepath_to_model>  --file_to_predict <path_to_las_file_to_predict>
 ```
 
-Since this model is computationally expensive (it requires the creation of 3 multi-channel feature images for each point-cloud point) the code will automatically check the input file size and, if it's retained too big to be processed in one go, it will be automatically split into subtiles, each of which will be then processed. 
+Since this model is computationally and memory expensive (it requires the creation of 3 multi-channel feature images for each point-cloud point) the code will automatically check the input point cloud size and, if it's retained too big to be processed in one go, it will be automatically split into subtiles, each of which will then be labeled. 
 Once the process is over, the subtiles will be stitched together to form the final output file, which will be saved inside the loaded model folder, in a `predictions/` subfolder. 
 
 # Structure
@@ -107,7 +106,7 @@ Outside of these folders you can find the `main.py` script, which is the core sc
 
 You can also find the default command line parameters inside the `config.yaml` file, and the depencies for the conda environment inside `environment.yml`. 
 
-The `vectorization_tries/` folder contains gpu accelerated versiions of the code, which resulted less efficient compared to the CPU multi-processing implementation. 
+The `vectorization_tries/` folder contains gpu accelerated versions of the code, which resulted less efficient compared to the CPU multi-processing implementation. 
 
 # MCNN Results
 
