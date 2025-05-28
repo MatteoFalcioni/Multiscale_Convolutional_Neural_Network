@@ -40,6 +40,8 @@ def predict(file_path, model, model_path, device, batch_size, window_sizes, grid
     """
     start_time = time.time()
 
+    print(f"Predicting labels on file: {file_path}")
+
     # get the model direcotry from its path
     model_directory = os.path.dirname(model_path)
     

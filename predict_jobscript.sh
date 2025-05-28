@@ -13,6 +13,4 @@
 
 echo "Running python script..."
 
-srun python -u main.py --predict_labels --file_to_predict 'data/chosen_tiles/32_690500_4934000_FP21.las'  --load_model_filepath 'models/saved/mcnn_model_20241116_143003/model.pth' --batch_size 32 --num_workers 32 
-
-echo "Predicted labels on file: data/chosen_tiles/32_690500_4934000_FP21.las w/ best model (11/16)"
+srun python -u code/main.py --predict_labels --file_to_predict '../data/chosen_tiles/32_687000_4930000_FP21.las'  --load_model_filepath 'model/mcnn_model_20241116_143003/model.pth' --batch_size 32 --num_workers 32 

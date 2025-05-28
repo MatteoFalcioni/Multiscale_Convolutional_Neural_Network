@@ -35,7 +35,7 @@ df = reservoir_sample_with_subset(input_file, sample_size, subset_file, save=Tru
 # srun python -u main.py --predict_labels --file_to_predict 'data/chosen_tiles/32_687000_4930000_FP21.las'  --load_model_filepath 'models/saved/mcnn_model_20241209_042355/model.pth' --batch_size 32 --num_workers 32 
 
 
-df = pd.read_csv('data/datasets/train_dataset.csv')
+df = pd.read_csv('data/training_data/21/test_21.csv')
 print(df.columns)
 
 # Count the number of points per class

@@ -13,6 +13,6 @@
 
 echo "Running python script..."
 
-srun python -u main.py --dataset_filepath 'data/training_data/21/train_21.csv' --training_data_filepath 'data/training_data/21/train_21.csv' --batch_size 32 --num_workers 32 --epochs 10 --patience 2 --window_sizes '[10, 20 ,30]' --features_to_use intensity red green blue nir l1 l2 l3
+srun python -u main.py --dataset_filepath 'data/training_data/21/train_21.csv' --training_data_filepath 'data/training_data/21/train_21.csv' --batch_size 32 --num_workers 32 --epochs 6 --patience 2 --window_sizes '[10, 20 ,30]' --features_to_use intensity red green blue nir l1 l2 l3
 
-echo "training model w/ intensity, r, g, b, nir, l1 l2 l3 and ws 10,20,30"
+echo "training model w/ intensity, r, g, b, nir, l1 l2 l3 and ws 10,20,30 for only 6 epochs"
