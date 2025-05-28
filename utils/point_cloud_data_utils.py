@@ -73,6 +73,8 @@ def read_las_file_to_numpy(file_path, features_to_extract=None):
     # Add extra features if requested
     if features_to_extract:
         for feature in features_to_extract:
+            if feature in ['x', 'y', 'z']:
+                continue  # Already included
             if feature in las.point_format.dimension_names:
                 arr = np.array(las[feature])
                 data.append(arr)
