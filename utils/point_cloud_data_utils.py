@@ -68,7 +68,6 @@ def read_las_file_to_numpy(file_path, features_to_extract=None):
 
     # Start with x, y, z
     data = [x, y, z]
-    feature_names = ['x', 'y', 'z']
 
     # Add extra features if requested
     if features_to_extract:
@@ -78,13 +77,13 @@ def read_las_file_to_numpy(file_path, features_to_extract=None):
             if feature in las.point_format.dimension_names:
                 arr = np.array(las[feature])
                 data.append(arr)
-                feature_names.append(feature)
+                features_to_extract.append(feature)
             else:
                 raise ValueError(f"Feature '{feature}' not found in LAS file: {file_path}")
 
     # Stack features into array of shape (N, num_features)
     stacked = np.column_stack(data)
-    return stacked, feature_names
+    return stacked, features_to_extract
 
 
 def read_csv_file_to_numpy(file_path, features_to_extract=None):
