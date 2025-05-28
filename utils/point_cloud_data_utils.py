@@ -39,50 +39,70 @@ def load_asc_data(file_path):
     dtm_data = np.loadtxt(file_path, skiprows=6)  # Skips metadata lines (i.e., skips header)
     return dtm_data
 
+# write a function to get a np array from las files
+import numpy as np
+import laspy
 
 def read_las_file_to_numpy(file_path, features_to_extract=None):
     """
-    Reads a LAS file and extracts x, y, z coordinates along with optional additional features.
+    Reads a LAS file, extracts coordinate data (x, y, z), specific features and labels,
+    and returns them as a numpy array.
 
     Parameters:
-    - file_path (str): Path to the .las or .laz file.
-    - features_to_extract (list of str): Optional list of feature names to extract in addition to x, y, z.
+    - file_path (str): The path to the LAS file.
+    - features_to_extract (list): List of features to extract from the LAS file.
 
     Returns:
-    - np.ndarray: Array of shape (N_points, N_features).
-    - list of str: Feature names corresponding to array columns.
+    - np.ndarray: A numpy array containing the extracted data from the LAS file.
+    - feature_names (list of str): List of feature names corresponding to the columns in the array.
     """
-    # Load LAS file
-    las = laspy.read(file_path)
+    # Read the LAS file
+    print(f"Processing {file_path}...")
+    las_data = laspy.read(file_path)
 
-    # Check that coordinate arrays are non-empty
-    try:
-        x = las.x
-        y = las.y
-        z = las.z
-    except Exception as e:
-        raise ValueError(f"Failed to read x, y, z from {file_path}: {e}")
+    # Initialize a list to store the features and their names
+    data = []
 
-    if len(x) == 0 or len(y) == 0 or len(z) == 0:
-        raise ValueError(f"x, y, z arrays are empty in {file_path}")
+    # Check if x, y, z coordinates are present
+    if hasattr(las_data, 'x') and hasattr(las_data, 'y') and hasattr(las_data, 'z'):
+        if len(las_data.x) > 0 and len(las_data.y) > 0 and len(las_data.z) > 0:
+            # Add x, y, z as the first columns
+            data.append(las_data.x)
+            data.append(las_data.y)
+            data.append(las_data.z)
+        else:
+            print(f"Warning: One of the coordinate arrays (x, y, z) is empty in {file_path}.")
+            return None
+    else:
+        print(f"Warning: LAS data in {file_path} does not have 'x', 'y', or 'z' attributes.")
+        return None
 
-    # Start with x, y, z
-    data = [x, y, z]
+    # Extract additional features
+    available_features = []
+    missing_features = []
+    for feature in features_to_extract:
+        if feature in ['x', 'y', 'z']:
+            continue  # Skip if feature is x, y, or z since they are already added
+        if feature in las_data.point_format.dimension_names:
+            data.append(las_data[feature])
+            available_features.append(feature)
+        else:
+            missing_features.append(feature)
 
-    # Add extra features if requested
-    if features_to_extract:
-        for feature in features_to_extract:
-            if feature in ['x', 'y', 'z']:
-                continue  # Already included
-            if feature in las.point_format.dimension_names:
-                data.append(las[feature])
-                features_to_extract.append(feature)
-            else:
-                raise ValueError(f"Feature '{feature}' not found in LAS file: {file_path}")
+    # Warn if any requested features are missing
+    if missing_features:
+        print(f"Warning: The following features were not found in the LAS file: {missing_features}")
 
-    # Stack features into array of shape (N, num_features)
-    stacked = np.column_stack(data)
-    return stacked, features_to_extract
+    # Add selected features to feature_names
+    feature_names = ['x', 'y', 'z']
+    feature_names += available_features
+
+    # Convert the data list to a numpy array and transpose to match the expected shape (N, num_features)
+    data_array = np.vstack(data).T
+    print(f"Loaded NumPy array with shape: {data_array.shape}")
+
+    return data_array, feature_names
+
 
 
 def read_csv_file_to_numpy(file_path, features_to_extract=None):
