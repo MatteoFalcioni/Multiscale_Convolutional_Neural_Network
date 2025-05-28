@@ -24,6 +24,8 @@ saved/
 __pycache__/
 *.pyc
 *.pth
+*.sh
+*.png
 *.csv
 *.npy
 *.las
@@ -32,4 +34,5 @@ __pycache__/
 *.las:Zone.Identifier
 *.png
 *.txt
+*.pdf
 
