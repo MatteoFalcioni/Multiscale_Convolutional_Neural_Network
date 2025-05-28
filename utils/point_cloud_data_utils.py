@@ -57,9 +57,9 @@ def read_las_file_to_numpy(file_path, features_to_extract=None):
 
     # Check that coordinate arrays are non-empty
     try:
-        x = np.array(las['x'])
-        y = np.array(las['y'])
-        z = np.array(las['z'])
+        x = las.x
+        y = las.y
+        z = las.z
     except Exception as e:
         raise ValueError(f"Failed to read x, y, z from {file_path}: {e}")
 
@@ -75,8 +75,7 @@ def read_las_file_to_numpy(file_path, features_to_extract=None):
             if feature in ['x', 'y', 'z']:
                 continue  # Already included
             if feature in las.point_format.dimension_names:
-                arr = np.array(las[feature])
-                data.append(arr)
+                data.append(las[feature])
                 features_to_extract.append(feature)
             else:
                 raise ValueError(f"Feature '{feature}' not found in LAS file: {file_path}")
