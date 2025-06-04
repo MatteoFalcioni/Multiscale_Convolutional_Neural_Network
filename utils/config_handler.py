@@ -1,6 +1,7 @@
 import argparse
 import yaml
 import ast
+import os
 
 # Custom function to parse the window_sizes argument
 def parse_window_sizes(value):
@@ -20,10 +21,20 @@ def parse_window_sizes(value):
 
 
 
-def load_config(file_path='code/config.yaml'):
+def load_config(file_path=None):
+    """Load configuration from a YAML file.
+
+    Parameters
+    ----------
+    file_path : str, optional
+        Path to the configuration file. When ``None`` (default), the function
+        looks for ``config.yaml`` in the project root directory.
     """
-    Load configuration from a YAML file.
-    """
+    if file_path is None:
+        # Compute the path to ``config.yaml`` located in the repository root.
+        repo_root = os.path.dirname(os.path.dirname(__file__))
+        file_path = os.path.join(repo_root, 'config.yaml')
+
     with open(file_path, 'r') as file:
         config = yaml.safe_load(file)
     return config
